@@ -1,0 +1,53 @@
+# --- secrets / env ---
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.p12
+*.keystore
+*.jks
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# --- node / next ---
+node_modules/
+.next/
+out/
+dist/
+build/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# --- flutter / dart ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+app/build/
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+app/ios/Pods/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+*.iml
+
+# --- client-supplied assets (large binaries, managed outside git) ---
+data/import/**
+data/photos/**
+!data/import/.gitkeep
+
+# --- os / editor ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+.idea/
