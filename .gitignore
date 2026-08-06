@@ -22,22 +22,14 @@ build/
 npm-debug.log*
 yarn-error.log*
 
-# --- flutter / dart ---
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
-app/build/
-app/android/.gradle/
-app/android/local.properties
-app/android/key.properties
-app/ios/Pods/
-app/ios/Flutter/Flutter.framework
-app/ios/Flutter/Flutter.podspec
-app/ios/Flutter/Generated.xcconfig
-app/ios/Flutter/flutter_export_environment.sh
+# --- expo / react native ---
+.expo/
+*.jsbundle
+# CNG (Continuous Native Generation): android/ と ios/ は `npx expo prebuild` で
+# 常に再生成できるため Git 管理外とする。ネイティブコードを直接編集する必要が
+# 生じた場合のみ、この2行を外して追跡対象に切り替える。
+app/android/
+app/ios/
 *.iml
 
 # --- client-supplied assets (large binaries, managed outside git) ---

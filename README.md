@@ -9,7 +9,7 @@ Google マップアプリでナビ開始、という流れを最短操作で行�
 
 | ディレクトリ | 内容 |
 |---|---|
-| `app/` | モバイルアプリ (Flutter / iOS・Android 共通) |
+| `app/` | モバイルアプリ (React Native + Expo / iOS・Android 共通) |
 | `admin/` | 管理画面 (Next.js) |
 | `db/` | データベーススキーマ・マイグレーション・シードデータ |
 | `data/` | 初期データ投入用テンプレートと受領データ (写真は Git 管理外) |
@@ -35,7 +35,25 @@ Google マップアプリでナビ開始、という流れを最短操作で行�
 
 ## 技術構成 (初期版)
 
-- **アプリ**: Flutter (iOS / Android 単一コードベース)、オフラインキャッシュに SQLite
+- **アプリ**: React Native + Expo (iOS / Android 単一コードベース)、オフラインキャッシュに SQLite
+- **ビルド**: EAS Build — **iOS ビルドもクラウド上の macOS で実行されるため、Mac 不要**
 - **バックエンド**: Supabase (PostgreSQL + Storage + CDN)
 - **管理画面**: Next.js (App Router) + TypeScript
 - **地図**: 表示は施設ごとの進入案内図画像、ナビは Google マップアプリへディープリンク連携
+
+## よく使うコマンド
+
+```powershell
+# アプリ
+cd app
+npx expo start                      # 開発サーバー起動
+npx tsc --noEmit                    # 型チェック
+npx expo-doctor                     # 依存関係の健全性チェック
+eas build -p android --profile preview   # クラウドビルド (APK)
+eas build -p ios     --profile preview   # クラウドビルド (Mac 不要)
+
+# 管理画面
+cd admin
+npm run dev                         # http://localhost:3000
+npm run build
+```
