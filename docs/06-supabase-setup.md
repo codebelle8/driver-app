@@ -146,13 +146,39 @@ Supabase は組織単位でプロジェクトを移管できる。
 
 ---
 
-## 7. 現状の進捗
+## 7. アクセストークンが無い場合の適用手順
+
+`supabase link` / `db push` には**個人アクセストークン**が必要
+（プロジェクト URL や service_role key では代用できない）。
+トークンが無い場合は、以下の一括ファイルをダッシュボードから適用する。
+
+```powershell
+node tools/build-bootstrap-sql.mjs     # supabase/_bootstrap.sql を生成
+```
+
+1. 生成された `supabase/_bootstrap.sql` を開き、全文をコピー
+2. Supabase ダッシュボード → **SQL Editor** → 新規クエリに貼り付け
+3. **Run** を実行
+
+このファイルには**マイグレーション履歴テーブルへの登録も含まれている**ため、
+後日アクセストークンを設定して `supabase db push` を実行しても、
+同じマイグレーションが二重適用されることはない。
+
+> トークンの発行先: https://supabase.com/dashboard/account/tokens
+> 設定方法: `$env:SUPABASE_ACCESS_TOKEN = "<token>"`
+
+---
+
+## 8. 現状の進捗
 
 - [x] Supabase CLI 導入（v2.112.0）
 - [x] `supabase init` によるプロジェクト構成の作成
 - [x] マイグレーションを Supabase 標準レイアウトへ配置
 - [x] ローカル PostgreSQL 17.10 で全23項目の検証通過
-- [ ] **Supabase プロジェクトの作成**（アカウント所有者の作業）
-- [ ] `supabase link` と `db push`
-- [ ] Storage バケットの作成
-- [ ] `.env.local` の配置
+- [x] **Supabase プロジェクト作成済み**（`uiesfsdzpwzfbtknpckj` / 当方名義）
+- [x] `.env.local` の配置（admin / app 両方。Git 管理外を確認済み）
+- [x] anon key による疎通確認（REST API 到達を確認）
+- [x] 一括適用ファイルの生成と検証（クリーンDBで23項目合格）
+- [ ] **スキーマの適用**（アクセストークン、または SQL Editor での実行）
+- [ ] Storage バケット `facility-photos` / `catalog` の作成
+- [ ] Google Maps API キーの取得

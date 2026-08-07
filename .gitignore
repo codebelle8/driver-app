@@ -43,3 +43,6 @@ Desktop.ini
 .DS_Store
 *.swp
 .idea/
+
+# 派生ファイル (tools/build-bootstrap-sql.mjs が生成)
+supabase/_bootstrap.sql
