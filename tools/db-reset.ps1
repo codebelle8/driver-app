@@ -42,13 +42,12 @@ Write-Host "データベース $Database を作り直します..."
 & $psql @conn -d postgres -q -c "drop database if exists $Database;"
 & $psql @conn -d postgres -q -c "create database $Database;"
 
-# db/local/ はローカル検証専用。Supabase には適用しない。
+# db/local/ はローカル検証専用のスタブ。Supabase には適用しない。
+# supabase/migrations/ が本番へ適用される唯一の正。
 $scripts = @(
   'db/local/0000_supabase_stub.sql'
-) + (Get-ChildItem (Join-Path $repo 'db/migrations') -Filter '*.sql' |
-       Sort-Object Name | ForEach-Object { "db/migrations/$($_.Name)" }
-) + (Get-ChildItem (Join-Path $repo 'db/seed') -Filter '*.sql' |
-       Sort-Object Name | ForEach-Object { "db/seed/$($_.Name)" })
+) + (Get-ChildItem (Join-Path $repo 'supabase/migrations') -Filter '*.sql' |
+       Sort-Object Name | ForEach-Object { "supabase/migrations/$($_.Name)" })
 
 foreach ($s in $scripts) {
   $full = Join-Path $repo $s

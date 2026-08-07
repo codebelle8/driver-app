@@ -11,7 +11,8 @@ Google マップアプリでナビ開始、という流れを最短操作で行�
 |---|---|
 | `app/` | モバイルアプリ (React Native + Expo / iOS・Android 共通) |
 | `admin/` | 管理画面 (Next.js) |
-| `db/` | データベーススキーマ・マイグレーション・シードデータ・検証テスト |
+| `supabase/` | **本番へ適用されるマイグレーション**（Supabase CLI 標準レイアウト） |
+| `db/` | ローカル検証用スタブ (`local/`) とスキーマ検証テスト (`tests/`) |
 | `data/` | 初期データ投入用テンプレートと受領データ (写真は Git 管理外) |
 | `docs/` | 仕様書・設計書・作業手順 |
 | `tools/` | 画像変換・一括投入などの補助スクリプト |
@@ -24,6 +25,7 @@ Google マップアプリでナビ開始、という流れを最短操作で行�
 - [03-screen-spec.md](docs/03-screen-spec.md) — 画面一覧・画面遷移
 - [04-scope-and-acceptance.md](docs/04-scope-and-acceptance.md) — 初期版スコープと検収条件
 - [05-photo-guide.md](docs/05-photo-guide.md) — 現地写真 撮影ガイド（クライアント向け）
+- [06-supabase-setup.md](docs/06-supabase-setup.md) — Supabase セットアップ手順
 - [data/templates/README.md](data/templates/README.md) — 施設データ入力手順（クライアント向け）
 
 ## 開発フェーズ
