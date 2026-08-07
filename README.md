@@ -20,14 +20,17 @@ Google マップアプリでナビ開始、という流れを最短操作で行�
 
 - [00-environment.md](docs/00-environment.md) — 開発環境セットアップ手順
 - [01-client-requirements.md](docs/01-client-requirements.md) — 初期版完成に必要な確認事項（クライアント向け）
+- [02-data-spec.md](docs/02-data-spec.md) — データ項目定義書
+- [03-screen-spec.md](docs/03-screen-spec.md) — 画面一覧・画面遷移
+- [data/templates/README.md](data/templates/README.md) — 施設データ入力手順（クライアント向け）
 
 ## 開発フェーズ
 
 | フェーズ | 内容 | 状態 |
 |---|---|---|
-| Step 1 | 開発環境構築・リポジトリ初期化 | 進行中 |
-| Step 2 | 要件確定・データ項目定義 | 未着手 |
-| Step 3 | DB 設計・API 設計 | 未着手 |
+| Step 1 | 開発環境構築・リポジトリ初期化 | 完了 |
+| Step 2 | 要件確定・データ項目定義・画面設計 | 完了 |
+| Step 3 | Supabase 構築・API 設計 | 未着手 |
 | Step 4 | 管理画面の実装 | 未着手 |
 | Step 5 | アプリの実装 | 未着手 |
 | Step 6 | 初期データ投入・検証 | 未着手 |
