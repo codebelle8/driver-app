@@ -9,6 +9,37 @@
 --     したがって「anon で何ができるか」が実質的なセキュリティ境界になる。
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- テーブル権限
+--   RLS ポリシーだけでは足りない。GRANT が無ければ RLS 以前に弾かれる。
+--   Supabase は public スキーマの新規テーブルに既定権限を設定しているため
+--   実際には動くが、環境の既定設定に依存させず明示的に付与する。
+--
+--   anon には admin_profiles / audit_logs への権限を一切与えない。
+--   RLS で守るだけでなく、権限そのものを渡さない二重の防御とする。
+-- -----------------------------------------------------------------------------
+grant select on
+  public.categories,
+  public.facilities,
+  public.entry_points,
+  public.cautions,
+  public.photos,
+  public.catalog_snapshots
+to anon;
+
+grant select, insert, update, delete on
+  public.categories,
+  public.facilities,
+  public.entry_points,
+  public.cautions,
+  public.photos,
+  public.catalog_snapshots,
+  public.admin_profiles
+to authenticated;
+
+grant select, insert on public.audit_logs to authenticated;
+grant usage, select on sequence public.audit_logs_id_seq to authenticated;
+
 alter table public.categories        enable row level security;
 alter table public.facilities        enable row level security;
 alter table public.entry_points      enable row level security;

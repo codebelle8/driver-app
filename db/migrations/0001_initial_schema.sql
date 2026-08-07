@@ -14,6 +14,11 @@
 
 create extension if not exists "pgcrypto";
 
+-- 日本語の部分一致検索に使う。全文検索 (tsvector) は空白で語を区切るため、
+-- 「グランドホテル汐留」が1トークンになり「汐留」で引けない。
+-- 日本語では trigram + ILIKE の方が正しく機能する。
+create extension if not exists "pg_trgm";
+
 -- -----------------------------------------------------------------------------
 -- 共通: updated_at 自動更新
 -- -----------------------------------------------------------------------------
@@ -79,6 +84,11 @@ create table public.facilities (
   sort_order    integer     not null default 0,
   note_internal text,                            -- 管理者用メモ。アプリには出さない
 
+  -- 検索用に正規化した文字列。トリガで自動生成する。
+  -- 生成列 (generated) にできないのは、正規化に使う array_to_string や
+  -- translate の組み合わせが IMMUTABLE 要件を満たさないため。
+  search_text   text,
+
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
 
@@ -89,12 +99,50 @@ create table public.facilities (
 );
 
 -- 管理画面の検索用。アプリ側は端末内 SQLite で検索するためここは管理用途のみ。
+-- -----------------------------------------------------------------------------
+-- 検索文字列の正規化
+--   ドライバーは「シオドメ」「しおどめ」「汐留」のいずれでも検索しうる。
+--   カタカナをひらがなへ寄せ、英数字を小文字化して表記ゆれを吸収する。
+--   アプリ側 (端末内 SQLite) でも同じ正規化を行い、挙動を一致させる。
+-- -----------------------------------------------------------------------------
+create or replace function public.normalize_search_text(input text)
+returns text
+language sql
+immutable
+as $$
+  select lower(translate(
+    coalesce(input, ''),
+    'ァアィイゥウェエォオカガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトドナニヌネノハバパヒビピフブプヘベペホボポマミムメモャヤュユョヨラリルレロワヲンー',
+    'ぁあぃいぅうぇえぉおかがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとどなにぬねのはばぱひびぴふぶぷへべぺほぼぽまみむめもゃやゅゆょよらりるれろわをんー'
+  ));
+$$;
+
+create or replace function public.facilities_refresh_search_text()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.search_text := public.normalize_search_text(
+    concat_ws(' ',
+      new.name,
+      new.name_kana,
+      array_to_string(new.aliases, ' '),
+      new.prefecture,
+      new.city,
+      new.address_line
+    )
+  );
+  return new;
+end;
+$$;
+
+create trigger facilities_refresh_search_text
+  before insert or update on public.facilities
+  for each row execute function public.facilities_refresh_search_text();
+
+-- 日本語の部分一致は trigram で引く。「汐留」で「グランドホテル汐留」に当たる。
 create index facilities_search_idx on public.facilities
-  using gin (to_tsvector('simple',
-    coalesce(name, '') || ' ' ||
-    coalesce(name_kana, '') || ' ' ||
-    coalesce(array_to_string(aliases, ' '), '') || ' ' ||
-    coalesce(address_line, '')));
+  using gin (search_text gin_trgm_ops);
 
 create index facilities_category_idx on public.facilities (category_id, sort_order);
 create index facilities_status_idx   on public.facilities (status);
@@ -324,26 +372,26 @@ begin
   end if;
 
   if coalesce(trim(f.name), '') = '' then
-    problems := problems || '施設名が未入力です';
+    problems := array_append(problems, '施設名が未入力です');
   end if;
   if coalesce(trim(f.name_kana), '') = '' then
-    problems := problems || '施設名（かな）が未入力です。検索に必要です';
+    problems := array_append(problems, '施設名（かな）が未入力です。検索に必要です');
   end if;
   if coalesce(trim(f.address_line), '') = '' then
-    problems := problems || '住所が未入力です';
+    problems := array_append(problems, '住所が未入力です');
   end if;
 
   select count(*) into ep_count
     from public.entry_points where facility_id = p_facility_id and is_active;
   if ep_count = 0 then
-    problems := problems || '有効な車寄せ・エントランスが1件も登録されていません';
+    problems := array_append(problems, '有効な車寄せ・エントランスが1件も登録されていません');
   end if;
 
   select count(*) into bad_nav
     from public.entry_points
    where facility_id = p_facility_id and is_active and nav_lat is null;
   if bad_nav > 0 then
-    problems := problems || format('ナビ投入座標が未設定の進入口が %s 件あります', bad_nav);
+    problems := array_append(problems, format('ナビ投入座標が未設定の進入口が %s 件あります', bad_nav));
   end if;
 
   select count(*) into no_text
@@ -351,7 +399,7 @@ begin
    where facility_id = p_facility_id and is_active
      and coalesce(trim(approach_text), '') = '';
   if no_text > 0 then
-    problems := problems || format('進入方法の説明が未入力の進入口が %s 件あります', no_text);
+    problems := array_append(problems, format('進入方法の説明が未入力の進入口が %s 件あります', no_text));
   end if;
 
   select count(*) into no_photo
@@ -359,7 +407,7 @@ begin
    where ep.facility_id = p_facility_id and ep.is_active
      and not exists (select 1 from public.photos p where p.entry_point_id = ep.id);
   if no_photo > 0 then
-    problems := problems || format('写真が1枚も無い進入口が %s 件あります', no_photo);
+    problems := array_append(problems, format('写真が1枚も無い進入口が %s 件あります', no_photo));
   end if;
 
   select count(*) into placeholder_photos
@@ -368,7 +416,7 @@ begin
    where ep.facility_id = p_facility_id and p.is_placeholder;
   if placeholder_photos > 0 then
     -- これは警告。仮画像のままでも公開はできる運用とする。
-    problems := problems || format('［警告］仮画像が %s 枚残っています', placeholder_photos);
+    problems := array_append(problems, format('［警告］仮画像が %s 枚残っています', placeholder_photos));
   end if;
 
   return problems;
