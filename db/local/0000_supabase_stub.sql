@@ -48,3 +48,36 @@ grant select on auth.users to authenticated, service_role;
 
 -- 本番同様、public スキーマの利用権を各ロールへ付与する
 grant usage on schema public to anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- Supabase Storage のスキーマ（バケット設定マイグレーションの検証用）
+-- 本番の storage.objects はより多くの列を持つが、ポリシー検証に必要な
+-- 最小限のみ再現する。
+-- ---------------------------------------------------------------------------
+create schema if not exists storage;
+
+create table if not exists storage.buckets (
+  id                 text primary key,
+  name               text not null,
+  owner              uuid,
+  public             boolean not null default false,
+  file_size_limit    bigint,
+  allowed_mime_types text[],
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+create table if not exists storage.objects (
+  id            uuid primary key default gen_random_uuid(),
+  bucket_id     text references storage.buckets (id),
+  name          text,
+  owner         uuid,
+  metadata      jsonb,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+grant usage on schema storage to anon, authenticated, service_role;
+grant select on storage.buckets to anon, authenticated;
+grant select on storage.objects to anon, authenticated;
+grant insert, update, delete on storage.objects to authenticated;
