@@ -2,13 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { HeaderClock, LocaleSelect, ThemeToggle } from '@/components/header-controls';
-import {
-  BuildingIcon,
-  GaugeIcon,
-  SignOutIcon,
-  TagIcon,
-  UserIcon,
-} from '@/components/icons';
+import { SignOutIcon, UserIcon } from '@/components/icons';
+import { NavLinks } from '@/components/nav-links';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
@@ -28,12 +23,6 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
     getTheme(),
   ]);
 
-  const nav = [
-    { href: '/', label: t.nav.dashboard, Icon: GaugeIcon },
-    { href: '/facilities', label: t.nav.facilities, Icon: BuildingIcon },
-    { href: '/categories', label: t.nav.categories, Icon: TagIcon },
-  ] as const;
-
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur-md">
@@ -43,18 +32,13 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             <span className="ml-2 text-xs text-text-muted">{t.brand.sub}</span>
           </Link>
 
-          <nav className="flex flex-1 items-center gap-1">
-            {nav.map(({ href, label, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
-              >
-                <Icon />
-                <span className="hidden sm:inline">{label}</span>
-              </Link>
-            ))}
-          </nav>
+          <NavLinks
+            labels={{
+              dashboard: t.nav.dashboard,
+              facilities: t.nav.facilities,
+              categories: t.nav.categories,
+            }}
+          />
 
           <div className="flex items-center gap-2">
             <HeaderClock locale={locale} />

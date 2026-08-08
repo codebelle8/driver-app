@@ -45,6 +45,10 @@
   --c-backdrop: #171c20;
   --c-backdrop-opacity: 0.05;
 
+  /* 現在開いている画面のナビ項目。地の色より一段明るくする */
+  --c-nav-active: #ffffff;
+  --c-nav-active-border: #cfd8dd;
+
   /* ハンドル（実物の樹脂・革の質感を出すための色） */
   --c-wheel-1: #4a5157;
   --c-wheel-2: #23282d;
@@ -82,6 +86,9 @@
   --c-backdrop: #7fd3ae;
   --c-backdrop-opacity: 0.07;
 
+  --c-nav-active: #2b363c;
+  --c-nav-active-border: #3f4d55;
+
   --c-wheel-1: #3a4147;
   --c-wheel-2: #1b2024;
   --c-wheel-3: #0d1113;
@@ -111,6 +118,9 @@
   --color-danger: var(--c-danger);
   --color-warn: var(--c-warn);
   --color-ok: var(--c-ok);
+
+  --color-nav-active: var(--c-nav-active);
+  --color-nav-active-border: var(--c-nav-active-border);
 }
 
 /*
