@@ -40,30 +40,32 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
         <div className="no-scrollbar mx-auto flex max-w-6xl flex-nowrap items-center gap-2 overflow-x-auto px-3 py-3 sm:gap-3 sm:px-6">
           {/*
             ロゴ。右の縦罫線でナビと明確に切り分ける。
-            横組みロゴをそのまま置くとヘッダーの高さでは英文が4px程度になり
-            読めないため、ヘッダーではアイコンと社名表記を組み合わせる。
+
+            ロゴの文字色は濃紺のみで、暗いテーマの地色に埋もれてしまう。
+            図柄には手を加えない方針のため、色を変えるのではなく
+            明るい下地に載せて読めるようにしている。
           */}
           <Link
             href="/"
             className="flex shrink-0 items-center gap-2.5 border-r border-border pr-2.5 sm:pr-6"
           >
-            <Image
-              src="/brand/icon-64.png"
-              alt=""
-              width={30}
-              height={30}
-              className="shrink-0 rounded-[7px]"
-              priority
-            />
-            <span className="flex items-baseline gap-2">
-              <span className="text-base font-bold tracking-tight sm:text-lg">
-                {t.brand.name}
-              </span>
-              {/* 副題は場所を取るため lg 以上のみ。768px で横にはみ出すのを避ける */}
-              <span className="hidden text-xs text-text-muted lg:inline">
-                {t.brand.sub}
-              </span>
+            <span
+              className={
+                'flex shrink-0 items-center rounded-lg ' +
+                (theme === 'dark' ? 'bg-[#f4f6f8] px-2.5 py-1.5' : '')
+              }
+            >
+              <Image
+                src="/brand/logo-h80.png"
+                alt={t.brand.name}
+                width={127}
+                height={44}
+                className="h-[38px] w-auto sm:h-[44px]"
+                priority
+              />
             </span>
+            {/* 副題は場所を取るため lg 以上のみ。768px で横にはみ出すのを避ける */}
+            <span className="hidden text-xs text-text-muted lg:inline">{t.brand.sub}</span>
           </Link>
 
           <NavLinks
