@@ -63,10 +63,15 @@ for (const theme of ['dark', 'light']) {
 
   await page.getByRole('link', { name: '施設一覧' }).click();
 
-  // ハンドルが切れていて、計器の針も動いている状態を狙う
-  await page.waitForTimeout(1200);
-  await page.screenshot({ path: `${OUT}/08-loading-steering-${theme}.png` });
-  console.log(`  08-loading-steering-${theme}.png`);
+  // 回転していることを確かめるため、切れ角の異なる3枚を撮る
+  // （アニメーション周期 3.6s に対して 0.4s / 1.4s / 2.6s 時点）
+  const frames = [400, 1000, 1200];
+  for (let i = 0; i < frames.length; i++) {
+    await page.waitForTimeout(frames[i]);
+    const name = `08-loading-steering-${theme}-${i + 1}.png`;
+    await page.screenshot({ path: `${OUT}/${name}` });
+    console.log(`  ${name}`);
+  }
 
   await context.close();
 }

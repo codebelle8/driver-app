@@ -153,14 +153,22 @@ body {
 
 /* --- 読み込み中のハンドル --------------------------------------------------- */
 
+/*
+ * 左右へ切る動き。
+ * 切り終わりで少し保持してから戻すことで、
+ * 単なる往復ではなく「意図して操作している」動きに見える。
+ */
 @keyframes kn-steer {
-  0%   { transform: rotate(-32deg); }
-  50%  { transform: rotate(32deg); }
-  100% { transform: rotate(-32deg); }
+  0%   { transform: rotate(-46deg); }
+  10%  { transform: rotate(-46deg); }
+  45%  { transform: rotate(46deg); }
+  55%  { transform: rotate(46deg); }
+  90%  { transform: rotate(-46deg); }
+  100% { transform: rotate(-46deg); }
 }
 
 .steer-wheel {
-  animation: kn-steer 3.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: kn-steer 3.6s cubic-bezier(0.4, 0, 0.3, 1) infinite;
   transform-origin: 50% 50%;
   transform-box: fill-box;
 }
