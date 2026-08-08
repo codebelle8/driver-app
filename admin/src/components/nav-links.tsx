@@ -29,8 +29,10 @@ export function NavLinks({
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
+  // flex-1 にせず自然な幅に留め、右側の操作ボタンは ml-auto で端へ寄せる。
+  // 左の余白でロゴから離し、ナビ全体を少し右に置く。
   return (
-    <nav className="flex flex-1 items-center gap-1">
+    <nav className="ml-1 flex shrink-0 items-center gap-1 sm:ml-3">
       {items.map(({ href, label, Icon }) => {
         const active = isActive(href);
         return (
@@ -39,7 +41,7 @@ export function NavLinks({
             href={href}
             aria-current={active ? 'page' : undefined}
             className={
-              'flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors ' +
+              'flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm transition-colors sm:px-2.5 ' +
               (active
                 ? 'border-nav-active-border bg-nav-active font-semibold text-text'
                 : 'border-transparent text-text-muted hover:bg-surface-2 hover:text-text')

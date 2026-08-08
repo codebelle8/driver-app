@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { GlobeIcon, MoonIcon, SunIcon } from '@/components/icons';
 import type { Locale } from '@/lib/i18n/dictionaries';
@@ -80,17 +80,18 @@ export function LocaleSelect({
 
   return (
     <div className="relative flex items-center">
+      {/* 狭い画面では地球アイコンを隠し、横幅を詰める */}
       <GlobeIcon
         width={15}
         height={15}
-        className="pointer-events-none absolute left-2.5 text-text-faint"
+        className="pointer-events-none absolute left-2.5 hidden text-text-faint sm:block"
       />
       <select
         value={locale}
         onChange={(e) => select(e.target.value as Locale)}
         aria-label={label}
         disabled={pending}
-        className="h-9 cursor-pointer appearance-none rounded-md border border-border bg-surface py-0 pl-8 pr-7 text-xs font-medium text-text transition-colors hover:border-accent focus:border-accent disabled:opacity-60"
+        className="h-9 cursor-pointer appearance-none rounded-md border border-border bg-surface py-0 pl-2.5 pr-6 text-xs font-medium text-text transition-colors hover:border-accent focus:border-accent disabled:opacity-60 sm:pl-8 sm:pr-7"
       >
         <option value="ja">日本語</option>
         <option value="en">English</option>
@@ -116,31 +117,3 @@ export function LocaleSelect({
   );
 }
 
-/** ヘッダーの時計。現在時刻を表示する。 */
-export function HeaderClock({ locale }: { locale: string }) {
-  const [now, setNow] = useState<Date | null>(null);
-
-  useEffect(() => {
-    // サーバーとクライアントで時刻がずれるため、描画後に開始する
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  if (!now) return <span className="tabular text-xs text-text-faint">--:--:--</span>;
-
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-
-  const date =
-    locale === 'ja'
-      ? `${now.getMonth() + 1}月${now.getDate()}日（${'日月火水木金土'[now.getDay()]}）`
-      : now.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', weekday: 'short' });
-
-  return (
-    <span className="flex items-baseline gap-2">
-      <span className="hidden text-xs text-text-faint lg:inline">{date}</span>
-      <span className="tabular text-sm font-semibold text-text-muted">{time}</span>
-    </span>
-  );
-}

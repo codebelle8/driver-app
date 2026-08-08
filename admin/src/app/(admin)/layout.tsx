@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { HeaderClock, LocaleSelect, ThemeToggle } from '@/components/header-controls';
+import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { SignOutIcon, UserIcon } from '@/components/icons';
 import { NavLinks } from '@/components/nav-links';
 import { requireStaff } from '@/lib/auth';
@@ -26,10 +26,26 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
-          <Link href="/" className="shrink-0">
-            <span className="text-lg font-bold">{t.brand.name}</span>
-            <span className="ml-2 text-xs text-text-muted">{t.brand.sub}</span>
+        {/*
+          並びは 左:ロゴ ─ 区切り ─ ナビ ─ (余白) ─ 右:操作ボタン。
+          折り返さない (flex-nowrap) ことで、狭い画面でも操作列が
+          下段へ回り込まないようにする。
+        */}
+        {/*
+          極端に狭い画面（400px 未満）では全項目を並べきれない。
+          折り返すと2段になってしまうため、横スクロールで逃がす。
+          どの項目も消さずに到達できる状態を保つ。
+        */}
+        <div className="no-scrollbar mx-auto flex max-w-6xl flex-nowrap items-center gap-2 overflow-x-auto px-3 py-3 sm:gap-3 sm:px-6">
+          {/* ロゴ。右の縦罫線でナビと明確に切り分ける */}
+          <Link
+            href="/"
+            className="flex shrink-0 items-baseline gap-2 border-r border-border pr-2.5 sm:pr-6"
+          >
+            <span className="text-base font-bold tracking-tight sm:text-lg">
+              {t.brand.name}
+            </span>
+            <span className="hidden text-xs text-text-muted sm:inline">{t.brand.sub}</span>
           </Link>
 
           <NavLinks
@@ -40,9 +56,8 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             }}
           />
 
-          <div className="flex items-center gap-2">
-            <HeaderClock locale={locale} />
-
+          {/* ml-auto で操作ボタンを右端へ寄せる */}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <ThemeToggle
               initial={theme}
               labels={{
@@ -54,7 +69,11 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
 
             <LocaleSelect initial={locale} label={t.common.language} />
 
-            <span className="hidden items-center gap-1.5 border-l border-border pl-3 text-xs text-text-muted md:flex">
+            {/*
+              利用者名は場所を取るため lg 以上でのみ出す。
+              md で出すと 768px 幅でヘッダーが横にはみ出す。
+            */}
+            <span className="hidden items-center gap-1.5 border-l border-border pl-3 text-xs text-text-muted lg:flex">
               <UserIcon width={15} height={15} />
               {staff.profile.display_name}
               <span className="rounded border border-border px-1.5 py-0.5 text-[10px]">
