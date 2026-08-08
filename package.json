@@ -1,18 +1,18 @@
 {
-    "name":  "kurumayose-navi",
-    "private":  true,
-    "description":  "車寄せナビ — ドライバー向け施設進入経路・車寄せ位置確認アプリ",
-    "scripts":  {
-                    "check:sql":  "node tools/check-sql.mjs",
-                    "check:templates":  "node tools/check-templates.mjs",
-                    "db:reset":  "powershell -NoProfile -ExecutionPolicy Bypass -File tools/db-reset.ps1",
-                    "db:push":  "supabase db push",
-                    "db:diff":  "supabase db diff",
-                    "supabase:link":  "supabase link",
-                    "verify:prod":  "node tools/verify-production.mjs"
-                },
-    "devDependencies":  {
-                            "pg-query-emscripten":  "^5.1.0",
-                            "supabase":  "^2.112.0"
-                        }
+  "name": "kurumayose-navi",
+  "private": true,
+  "description": "車寄せナビ — ドライバー向け施設進入経路・車寄せ位置確認アプリ",
+  "scripts": {
+    "check:sql": "node tools/check-sql.mjs",
+    "check:templates": "node tools/check-templates.mjs",
+    "db:reset": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/db-reset.ps1",
+    "db:bootstrap": "node tools/build-bootstrap-sql.mjs",
+    "db:push": "supabase db push",
+    "db:diff": "supabase db diff",
+    "verify:prod": "node tools/verify-production.mjs"
+  },
+  "devDependencies": {
+    "pg-query-emscripten": "^5.1.0",
+    "supabase": "^2.112.0"
+  }
 }
