@@ -13,10 +13,11 @@
 | CLI 導入・マイグレーション整備 | ✅ 完了（4ファイル） |
 | ローカル PostgreSQL 17.10 での検証 | ✅ **41項目すべて合格** |
 | `.env.local` 配置（admin / app） | ✅ 完了（Git 管理外を確認済み） |
-| **スキーマの適用** | ⬜ **← これから実施（手順1）** |
-| **認証設定** | ⬜ ← 手順3 |
-| **管理者ユーザーの作成** | ⬜ ← 手順4 |
-| Google Maps API キー | ⬜ ← 手順6 |
+| **スキーマの適用** | ✅ 完了（2026-08-08 確認。テーブル8つ・カテゴリ6件） |
+| **Storage バケット** | ✅ 完了（`facility-photos` / `catalog` 作成済み） |
+| **認証設定（サインアップ無効化）** | ⬜ **← 手順3** |
+| **管理者ユーザーの作成** | ⬜ **← 手順4** |
+| Google Maps API キー | ⬜ ← 手順6（Step 4 の地図ピン実装までに） |
 
 所要時間の目安: **全体で15〜20分**
 
@@ -108,10 +109,10 @@ select id, public, file_size_limit from storage.buckets;
 初期版のアプリはログイン不要（施設情報を読むだけ）のため、
 認証を使うのは管理画面のみ。
 
-1. 認証設定を開く
+1. 左メニューの **Authentication → Sign In / Providers** を開く
    https://supabase.com/dashboard/project/uiesfsdzpwzfbtknpckj/auth/providers
 
-2. **Email** を開き、以下を設定する
+2. 「Auth Providers」一覧から **Email** を開き、以下を設定する
 
    | 設定 | 値 | 理由 |
    |---|---|---|
