@@ -39,27 +39,17 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
         <div className="w-full max-w-sm">
           {/*
             ログイン画面は余白があるため、横組みロゴをそのまま使う。
-
-            ロゴの文字色は濃紺のみで、暗いテーマの地色に埋もれてしまう。
-            図柄には手を加えない方針のため、色を変えるのではなく
-            明るい下地カードに載せて読めるようにしている。
+            濃紺版と白抜き版をテーマに応じて出し分ける。
           */}
           <div className="mb-8 flex flex-col items-center text-center">
-            <div
-              className={
-                'flex w-full max-w-[340px] items-center justify-center rounded-xl ' +
-                (theme === 'dark' ? 'bg-[#f4f6f8] px-6 py-5' : '')
-              }
-            >
-              <Image
-                src="/brand/logo-h160.png"
-                alt={t.brand.name}
-                width={462}
-                height={160}
-                className="h-auto w-full"
-                priority
-              />
-            </div>
+            <Image
+              src={theme === 'dark' ? '/brand/logo-white-h160.png' : '/brand/logo-h160.png'}
+              alt={t.brand.name}
+              width={462}
+              height={160}
+              className="h-auto w-full max-w-[320px]"
+              priority
+            />
             <p className="mt-4 text-sm text-text-muted">{t.brand.sub}</p>
           </div>
 

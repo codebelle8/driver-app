@@ -55,30 +55,45 @@ ${SRC}/ に logo.png がありません。
 console.log(`元画像: ${logoSrc}`);
 
 // --- ロゴ -------------------------------------------------------------------
-// trim() は周囲の余白（単色の縁）だけを取り除く。図柄には触れない。
-const trimmed = await sharp(logoSrc).trim().png().toBuffer();
-const meta = await sharp(trimmed).metadata();
-console.log(`  余白を除いた寸法: ${meta.width}x${meta.height}`);
+/**
+ * 余白を切り詰めて各サイズへ書き出す。
+ * trim() が取り除くのは周囲の均一な縁だけで、図柄には触れない。
+ */
+async function exportLogo(srcPath, stem) {
+  const trimmed = await sharp(srcPath).trim().png().toBuffer();
+  const meta = await sharp(trimmed).metadata();
 
-await sharp(trimmed).toFile(`${OUT}/logo.png`);
+  await sharp(trimmed).toFile(`${OUT}/${stem}.png`);
+  for (const h of [160, 80, 40]) {
+    await sharp(trimmed)
+      .resize({ height: h, fit: 'inside' })
+      .png()
+      .toFile(`${OUT}/${stem}-h${h}.png`);
+  }
 
-// 表示用の高さ違い。横幅は縦横比を保って自動計算される。
-for (const h of [160, 80, 40]) {
-  await sharp(trimmed)
-    .resize({ height: h, fit: 'inside', withoutEnlargement: false })
-    .png()
-    .toFile(`${OUT}/logo-h${h}.png`);
-}
-console.log('  logo.png / logo-h160.png / logo-h80.png / logo-h40.png');
+  // 背景が不透明だと、暗い（明るい）テーマで四角い下地が見えてしまう
+  const stats = await sharp(trimmed).stats();
+  const transparent =
+    meta.hasAlpha && stats.channels.length === 4 && stats.channels[3].min < 250;
 
-// 背景が不透明かどうかを調べる。白背景のままだと暗いテーマで白い箱に見える。
-const stats = await sharp(trimmed).stats();
-const hasAlpha = meta.hasAlpha && stats.channels.length === 4 && stats.channels[3].min < 250;
-if (!hasAlpha) {
   console.log(
-    '  ※ 背景が不透明です。暗いテーマでは白い下地カードに載せて表示します。',
+    `  ${stem}: ${meta.width}x${meta.height}  ` +
+      `${transparent ? '背景透過あり' : '※背景が不透明（下地が四角く見えます）'}`,
   );
+  return { width: meta.width, height: meta.height };
 }
+
+const logoMeta = await exportLogo(logoSrc, 'logo');
+
+const whiteSrc = findSource('logo-white');
+if (whiteSrc) {
+  await exportLogo(whiteSrc, 'logo-white');
+} else {
+  console.log('  logo-white: 未提供（暗いテーマでは明るい下地に載せて表示します）');
+}
+
+const meta = logoMeta;
+const trimmed = await sharp(logoSrc).trim().png().toBuffer();
 
 // --- アイコン ---------------------------------------------------------------
 /** 角丸タイルに図柄を載せてアイコンを作る */
@@ -165,7 +180,18 @@ if (iconSrc) {
 console.log('  icon-1024/512/192/180/64/32.png');
 
 // --- 管理画面へ配置 ----------------------------------------------------------
-const copies = ['logo.png', 'logo-h160.png', 'logo-h80.png', 'icon-512.png', 'icon-192.png', 'icon-64.png', 'icon-32.png'];
+const copies = [
+  'logo.png',
+  'logo-h160.png',
+  'logo-h80.png',
+  'logo-white.png',
+  'logo-white-h160.png',
+  'logo-white-h80.png',
+  'icon-512.png',
+  'icon-192.png',
+  'icon-64.png',
+  'icon-32.png',
+];
 for (const f of copies) {
   if (existsSync(`${OUT}/${f}`)) await sharp(`${OUT}/${f}`).toFile(`${ADMIN}/${f}`);
 }

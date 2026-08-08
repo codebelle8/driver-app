@@ -40,30 +40,21 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
         <div className="no-scrollbar mx-auto flex max-w-6xl flex-nowrap items-center gap-2 overflow-x-auto px-3 py-3 sm:gap-3 sm:px-6">
           {/*
             ロゴ。右の縦罫線でナビと明確に切り分ける。
-
-            ロゴの文字色は濃紺のみで、暗いテーマの地色に埋もれてしまう。
-            図柄には手を加えない方針のため、色を変えるのではなく
-            明るい下地に載せて読めるようにしている。
+            濃紺版と白抜き版をご提供いただいているため、
+            テーマに応じて素のまま出し分ける（下地は不要）。
           */}
           <Link
             href="/"
             className="flex shrink-0 items-center gap-2.5 border-r border-border pr-2.5 sm:pr-6"
           >
-            <span
-              className={
-                'flex shrink-0 items-center rounded-lg ' +
-                (theme === 'dark' ? 'bg-[#f4f6f8] px-2.5 py-1.5' : '')
-              }
-            >
-              <Image
-                src="/brand/logo-h80.png"
-                alt={t.brand.name}
-                width={127}
-                height={44}
-                className="h-[38px] w-auto sm:h-[44px]"
-                priority
-              />
-            </span>
+            <Image
+              src={theme === 'dark' ? '/brand/logo-white-h80.png' : '/brand/logo-h80.png'}
+              alt={t.brand.name}
+              width={127}
+              height={44}
+              className="h-[38px] w-auto shrink-0 sm:h-[44px]"
+              priority
+            />
             {/* 副題は場所を取るため lg 以上のみ。768px で横にはみ出すのを避ける */}
             <span className="hidden text-xs text-text-muted lg:inline">{t.brand.sub}</span>
           </Link>

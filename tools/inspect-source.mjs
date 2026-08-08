@@ -1,8 +1,12 @@
-/** 元画像の寸法・背景色・透過の分布を調べる（取り込み方法を決めるため） */
+/** 元画像の寸法・背景・透過の分布を調べる（取り込み方法を決めるため） */
+import { existsSync } from 'node:fs';
+
 import sharp from 'sharp';
 
-for (const name of ['logo', 'icon']) {
+for (const name of ['logo', 'logo-white', 'icon']) {
   const path = `assets/brand/source/${name}.png`;
+  if (!existsSync(path)) continue;
+
   const meta = await sharp(path).metadata();
   const { data, info } = await sharp(path)
     .ensureAlpha()
@@ -22,7 +26,6 @@ for (const name of ['logo', 'icon']) {
     else partial++;
   }
 
-  // 背景（角）の色と、そこからどれだけ離れているかの分布
   const px = (x, y) => {
     const i = (y * info.width + x) * ch;
     return [data[i], data[i + 1], data[i + 2], data[i + 3]];
@@ -35,6 +38,6 @@ for (const name of ['logo', 'icon']) {
       `完全透過 ${((transparent / total) * 100).toFixed(1)}% / ` +
       `半透明 ${((partial / total) * 100).toFixed(1)}%`,
   );
-  console.log(`  左上の画素 : rgba(${px(4, 4).join(', ')})`);
-  console.log(`  中心の画素 : rgba(${px(Math.floor(info.width / 2), Math.floor(info.height / 2)).join(', ')})`);
+  console.log(`  左上      : rgba(${px(4, 4).join(', ')})`);
+  console.log(`  右下      : rgba(${px(info.width - 5, info.height - 5).join(', ')})`);
 }
