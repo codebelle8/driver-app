@@ -1,5 +1,5 @@
 /**
- * 読み込み中のタクシー演出を撮影する。
+ * 読み込み中のハンドル演出を撮影する。
  *
  *   node tools/screenshot-loading.mjs
  *
@@ -63,10 +63,10 @@ for (const theme of ['dark', 'light']) {
 
   await page.getByRole('link', { name: '施設一覧' }).click();
 
-  // タクシーが画面中央付近に来たタイミングを狙う
+  // ハンドルが切れていて、計器の針も動いている状態を狙う
   await page.waitForTimeout(1200);
-  await page.screenshot({ path: `${OUT}/08-loading-taxi-${theme}.png` });
-  console.log(`  08-loading-taxi-${theme}.png`);
+  await page.screenshot({ path: `${OUT}/08-loading-steering-${theme}.png` });
+  console.log(`  08-loading-steering-${theme}.png`);
 
   await context.close();
 }

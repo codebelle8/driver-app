@@ -251,7 +251,7 @@ export function AddEntryPointButton({
 
   return (
     <div className="w-full rounded-xl border border-accent/40 bg-surface p-5">
-      <h3 className="font-mincho mb-4 font-semibold">{t.entryPoint.addTitle}</h3>
+      <h3 className="mb-4 font-semibold">{t.entryPoint.addTitle}</h3>
       <EntryPointEditor
         facilityId={facilityId}
         suggestedCode={suggestedCode}

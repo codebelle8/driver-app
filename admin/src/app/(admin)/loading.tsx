@@ -1,11 +1,8 @@
-import { TaxiLoader } from '@/components/taxi-loader';
+import { SteeringLoader } from '@/components/steering-loader';
 import { getDictionary } from '@/lib/i18n/server';
 
-/**
- * 画面の読み込み中に表示される。
- * タクシーが左端から右端へ走り切るまでが、そのまま読み込み時間になる。
- */
+/** 画面の読み込み中に表示される。 */
 export default async function Loading() {
   const t = await getDictionary();
-  return <TaxiLoader label={t.common.loading} />;
+  return <SteeringLoader label={t.common.loading} />;
 }

@@ -1,4 +1,4 @@
-import { LocaleToggle, ThemeToggle } from '@/components/header-controls';
+import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { LoginForm } from '@/components/login-form';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 
@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             dark: t.common.themeDark,
           }}
         />
-        <LocaleToggle initial={locale} label={t.common.language} />
+        <LocaleSelect initial={locale} label={t.common.language} />
       </div>
 
       <div className="flex flex-1 items-center justify-center pb-24">
@@ -39,7 +39,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <p className="text-xs font-semibold tracking-[0.3em] text-accent">
               {t.brand.tagline}
             </p>
-            <h1 className="font-mincho mt-3 text-4xl font-bold">{t.brand.name}</h1>
+            <h1 className="mt-3 text-4xl font-bold">{t.brand.name}</h1>
             <p className="mt-2 text-sm text-text-muted">{t.brand.sub}</p>
           </div>
 
@@ -60,7 +60,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       </div>
 
       <footer className="border-t border-border py-5 text-center">
-        <span className="font-mincho text-sm tracking-widest text-text-muted">
+        <span className="text-sm tracking-widest text-text-muted">
           {t.brand.footerName}
         </span>
         <span className="tabular ml-3 text-sm text-accent">2026</span>

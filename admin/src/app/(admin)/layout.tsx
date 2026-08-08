@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { LocaleToggle, ThemeToggle } from '@/components/header-controls';
+import { HeaderClock, LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import {
   BuildingIcon,
   GaugeIcon,
@@ -9,7 +9,6 @@ import {
   TagIcon,
   UserIcon,
 } from '@/components/icons';
-import { DigitalClock } from '@/components/wall-clock';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
@@ -40,7 +39,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
       <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
           <Link href="/" className="shrink-0">
-            <span className="font-mincho text-lg font-bold">{t.brand.name}</span>
+            <span className="text-lg font-bold">{t.brand.name}</span>
             <span className="ml-2 text-xs text-text-muted">{t.brand.sub}</span>
           </Link>
 
@@ -58,7 +57,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <DigitalClock locale={locale} />
+            <HeaderClock locale={locale} />
 
             <ThemeToggle
               initial={theme}
@@ -69,7 +68,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               }}
             />
 
-            <LocaleToggle initial={locale} label={t.common.language} />
+            <LocaleSelect initial={locale} label={t.common.language} />
 
             <span className="hidden items-center gap-1.5 border-l border-border pl-3 text-xs text-text-muted md:flex">
               <UserIcon width={15} height={15} />
@@ -97,7 +96,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
 
       <footer className="border-t border-border px-6 py-5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
-          <span className="font-mincho text-sm tracking-widest text-text-muted">
+          <span className="text-sm tracking-widest text-text-muted">
             {t.brand.footerName}
           </span>
           <span className="tabular text-sm text-accent">2026</span>

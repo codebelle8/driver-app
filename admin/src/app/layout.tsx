@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { WallClock } from '@/components/wall-clock';
+import { AppBackdrop } from '@/components/app-backdrop';
 import { getLocale, getTheme } from '@/lib/i18n/server';
 
 import './globals.css';
@@ -18,7 +18,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang={locale} data-theme={theme} className="h-full antialiased">
       <body className="relative min-h-full flex flex-col">
-        <WallClock />
+        <AppBackdrop />
         {children}
       </body>
     </html>

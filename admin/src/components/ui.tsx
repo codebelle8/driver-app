@@ -16,8 +16,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
       <div>
-        {/* 見出しは明朝体。和の落ち着きを出しつつ、本文のゴシックと区別する */}
-        <h1 className="font-mincho text-2xl font-bold">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
         {description && <p className="mt-1.5 text-sm text-text-muted">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -32,10 +31,9 @@ export function Card({
   children: ReactNode;
   className?: string;
 }) {
+  // 影は使わず、罫線と余白だけで面を区切る（平坦で読みやすい構成）
   return (
-    <div
-      className={`rounded-xl border border-border bg-surface/90 p-5 backdrop-blur-sm ${className}`}
-    >
+    <div className={`rounded-lg border border-border bg-surface p-5 ${className}`}>
       {children}
     </div>
   );
@@ -131,12 +129,11 @@ export function Badge({
   tone = 'default',
 }: {
   children: ReactNode;
-  tone?: 'default' | 'accent' | 'teal' | 'warn';
+  tone?: 'default' | 'accent' | 'warn';
 }) {
   const style = {
-    default: 'border-border-strong bg-surface-2 text-text-muted',
-    accent: 'border-accent/40 bg-accent/10 text-accent',
-    teal: 'border-teal/40 bg-teal/10 text-teal',
+    default: 'border-border bg-surface-2 text-text-muted',
+    accent: 'border-accent/35 bg-accent-soft text-accent',
     warn: 'border-warn/40 bg-warn/10 text-warn',
   }[tone];
 

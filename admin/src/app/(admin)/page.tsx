@@ -79,7 +79,7 @@ export default async function DashboardPage() {
         この2つが 0 になることが初期データ整備の完了条件。
       */}
       <section>
-        <h2 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+        <h2 className="mb-3 text-sm font-semibold text-text-muted">
           {t.dashboard.remainingTitle}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -107,7 +107,7 @@ export default async function DashboardPage() {
       </section>
 
       <section>
-        <h2 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+        <h2 className="mb-3 text-sm font-semibold text-text-muted">
           {t.dashboard.recent}
         </h2>
         {recent.length === 0 ? (

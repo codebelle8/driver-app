@@ -157,7 +157,7 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
                       <p className="truncate text-xs text-text-muted">{f.address_line}</p>
                     </div>
                     <Badge>{categoryName.get(f.category_id) ?? '—'}</Badge>
-                    <Badge tone={count === 0 ? 'warn' : 'teal'}>
+                    <Badge tone={count === 0 ? 'warn' : 'accent'}>
                       {t.facilities.entryPoints} {count} {t.common.places}
                     </Badge>
                     <StatusBadge status={f.status} label={t.status[f.status]} />

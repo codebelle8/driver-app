@@ -93,7 +93,7 @@ export default async function FacilityDetailPage({
       */}
       <Card className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-mincho text-sm font-semibold text-text-muted">
+          <h2 className="text-sm font-semibold text-text-muted">
             {t.publish.title}
           </h2>
           <form action={setFacilityStatus} className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export default async function FacilityDetailPage({
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-mincho text-lg font-bold">
+          <h2 className="text-lg font-bold">
             {t.entryPoint.heading}
             <span className="ml-2 text-sm font-normal text-text-muted">
               {entryPoints?.length ?? 0} {t.common.places}
@@ -181,7 +181,7 @@ export default async function FacilityDetailPage({
                     {ep.nav_lat === null && (
                       <Badge tone="warn">{t.entryPoint.noCoords}</Badge>
                     )}
-                    <Badge tone="teal">
+                    <Badge tone="accent">
                       {t.entryPoint.photos} {epPhotos.length} {t.common.sheets}
                     </Badge>
                     <form action={deleteEntryPoint}>
@@ -199,7 +199,7 @@ export default async function FacilityDetailPage({
                   <EntryPointEditor facilityId={facility.id} entryPoint={ep} t={t} />
 
                   <div className="border-t border-border pt-5">
-                    <h3 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+                    <h3 className="mb-3 text-sm font-semibold text-text-muted">
                       {t.caution.heading}
                     </h3>
                     <CautionEditor
@@ -211,7 +211,7 @@ export default async function FacilityDetailPage({
                   </div>
 
                   <div className="border-t border-border pt-5">
-                    <h3 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+                    <h3 className="mb-3 text-sm font-semibold text-text-muted">
                       {t.photo.heading}
                     </h3>
                     <PhotoManager
@@ -229,7 +229,7 @@ export default async function FacilityDetailPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="font-mincho text-lg font-bold">{t.facilityForm.sectionFacility}</h2>
+        <h2 className="text-lg font-bold">{t.facilityForm.sectionFacility}</h2>
         <FacilityForm
           action={updateFacility}
           categories={categories ?? []}

@@ -48,7 +48,7 @@ export default async function CategoriesPage() {
                 </td>
                 <td className="px-5 py-3">
                   {c.is_active ? (
-                    <Badge tone="teal">{t.categories.active}</Badge>
+                    <Badge tone="accent">{t.categories.active}</Badge>
                   ) : (
                     <Badge>{t.categories.inactive}</Badge>
                   )}
@@ -60,7 +60,7 @@ export default async function CategoriesPage() {
       </Card>
 
       <Card>
-        <h2 className="font-mincho mb-2 text-sm font-semibold">
+        <h2 className="mb-2 text-sm font-semibold">
           {t.categories.prefixTitle}
         </h2>
         <p className="text-sm leading-relaxed text-text-muted">{t.categories.prefixBody}</p>

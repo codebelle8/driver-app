@@ -31,7 +31,7 @@ export function FacilityForm({
       {state.message && <Alert tone={state.ok ? 'ok' : 'danger'}>{state.message}</Alert>}
 
       <Card className="space-y-5">
-        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+        <h2 className="text-sm font-semibold text-text-muted">
           {f.sectionBasic}
         </h2>
 
@@ -100,7 +100,7 @@ export function FacilityForm({
       </Card>
 
       <Card className="space-y-5">
-        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+        <h2 className="text-sm font-semibold text-text-muted">
           {f.sectionAddress}
         </h2>
 
@@ -175,7 +175,7 @@ export function FacilityForm({
       </Card>
 
       <Card className="space-y-5">
-        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+        <h2 className="text-sm font-semibold text-text-muted">
           {f.sectionNote}
         </h2>
         <Field label={f.note} hint={f.noteHint} error={err('note_internal')}>
