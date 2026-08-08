@@ -10,6 +10,7 @@
     "db:push": "supabase db push",
     "db:diff": "supabase db diff",
     "verify:prod": "node tools/verify-production.mjs",
+    "brand:import": "node tools/import-brand.mjs",
     "brand": "node tools/build-brand.mjs",
     "shot": "node tools/screenshot.mjs",
     "shot:header": "node tools/screenshot-header.mjs",
@@ -18,6 +19,7 @@
   "devDependencies": {
     "pg-query-emscripten": "^5.1.0",
     "playwright": "^1.62.1",
+    "sharp": "^0.35.3",
     "supabase": "^2.112.0"
   }
 }
