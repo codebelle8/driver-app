@@ -1,14 +1,18 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { LocaleToggle, ThemeToggle } from '@/components/header-controls';
+import {
+  BuildingIcon,
+  GaugeIcon,
+  SignOutIcon,
+  TagIcon,
+  UserIcon,
+} from '@/components/icons';
+import { DigitalClock } from '@/components/wall-clock';
 import { requireStaff } from '@/lib/auth';
+import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
-
-const NAV = [
-  { href: '/', label: 'ダッシュボード' },
-  { href: '/facilities', label: '施設一覧' },
-  { href: '/categories', label: 'カテゴリ' },
-];
 
 async function signOut() {
   'use server';
@@ -18,42 +22,71 @@ async function signOut() {
 }
 
 export default async function AdminLayout({ children }: LayoutProps<'/'>) {
-  const staff = await requireStaff();
+  const [staff, t, locale, theme] = await Promise.all([
+    requireStaff(),
+    getDictionary(),
+    getLocale(),
+    getTheme(),
+  ]);
+
+  const nav = [
+    { href: '/', label: t.nav.dashboard, Icon: GaugeIcon },
+    { href: '/facilities', label: t.nav.facilities, Icon: BuildingIcon },
+    { href: '/categories', label: t.nav.categories, Icon: TagIcon },
+  ] as const;
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-border bg-bg/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+      <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
           <Link href="/" className="shrink-0">
-            <span className="text-sm font-bold">車寄せナビ</span>
-            <span className="ml-2 text-xs text-text-muted">管理画面</span>
+            <span className="font-mincho text-lg font-bold">{t.brand.name}</span>
+            <span className="ml-2 text-xs text-text-muted">{t.brand.sub}</span>
           </Link>
 
           <nav className="flex flex-1 items-center gap-1">
-            {NAV.map((item) => (
+            {nav.map(({ href, label, Icon }) => (
               <Link
-                key={item.href}
-                href={item.href}
-                className="rounded-lg px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                key={href}
+                href={href}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
               >
-                {item.label}
+                <Icon />
+                <span className="hidden sm:inline">{label}</span>
               </Link>
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-text-muted sm:block">
+          <div className="flex items-center gap-2">
+            <DigitalClock locale={locale} />
+
+            <ThemeToggle
+              initial={theme}
+              labels={{
+                toggle: t.common.theme,
+                light: t.common.themeLight,
+                dark: t.common.themeDark,
+              }}
+            />
+
+            <LocaleToggle initial={locale} label={t.common.language} />
+
+            <span className="hidden items-center gap-1.5 border-l border-border pl-3 text-xs text-text-muted md:flex">
+              <UserIcon width={15} height={15} />
               {staff.profile.display_name}
-              <span className="ml-1.5 rounded border border-border-strong px-1.5 py-0.5 text-[10px]">
-                {staff.profile.role === 'admin' ? '管理者' : '編集者'}
+              <span className="rounded border border-border px-1.5 py-0.5 text-[10px]">
+                {staff.profile.role === 'admin' ? t.nav.roleAdmin : t.nav.roleEditor}
               </span>
             </span>
+
             <form action={signOut}>
               <button
                 type="submit"
-                className="rounded-lg px-2 py-1.5 text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                title={t.nav.signOut}
+                aria-label={t.nav.signOut}
+                className="flex size-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:border-border hover:text-accent"
               >
-                ログアウト
+                <SignOutIcon />
               </button>
             </form>
           </div>
@@ -62,8 +95,13 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
 
-      <footer className="border-t border-border px-6 py-4 text-center text-xs text-text-faint">
-        車寄せナビ 管理画面 — 初期版 (MVP)
+      <footer className="border-t border-border px-6 py-5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
+          <span className="font-mincho text-sm tracking-widest text-text-muted">
+            {t.brand.footerName}
+          </span>
+          <span className="tabular text-sm text-accent">2026</span>
+        </div>
       </footer>
     </div>
   );

@@ -2,12 +2,14 @@ import { createFacility } from '@/app/actions/facilities';
 import { FacilityForm } from '@/components/facility-form';
 import { Alert, PageHeader } from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function NewFacilityPage() {
   await requireStaff();
+  const t = await getDictionary();
   const supabase = await createClient();
 
   const { data: categories } = await supabase
@@ -19,19 +21,17 @@ export default async function NewFacilityPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="施設を新規登録"
-        description="施設コードはカテゴリに応じて自動採番されます"
+        title={t.facilityForm.newTitle}
+        description={t.facilityForm.newDescription}
       />
 
-      <Alert tone="info">
-        入口・車寄せの情報と写真は、この施設を保存したあとに登録できます。
-        分かっている範囲だけ入力して保存して問題ありません。
-      </Alert>
+      <Alert tone="info">{t.facilityForm.newNotice}</Alert>
 
       <FacilityForm
         action={createFacility}
         categories={categories ?? []}
-        submitLabel="登録して次へ進む"
+        submitLabel={t.facilityForm.submitCreate}
+        t={t}
       />
     </div>
   );

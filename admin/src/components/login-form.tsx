@@ -9,9 +9,17 @@ import { createClient } from '@/lib/supabase/client';
 export function LoginForm({
   next,
   initialError,
+  labels,
 }: {
   next: string;
   initialError?: string;
+  labels: {
+    email: string;
+    password: string;
+    submit: string;
+    pending: string;
+    failed: string;
+  };
 }) {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -32,7 +40,7 @@ export function LoginForm({
 
     if (signInError) {
       // 認証エラーの詳細は出さない（アカウントの存在有無を推測されないため）
-      setError('メールアドレスまたはパスワードが正しくありません。');
+      setError(labels.failed);
       setPending(false);
       return;
     }
@@ -45,7 +53,7 @@ export function LoginForm({
     <form onSubmit={onSubmit} className="space-y-4">
       {error && <Alert tone="danger">{error}</Alert>}
 
-      <Field label="メールアドレス" required>
+      <Field label={labels.email} required>
         <input
           type="email"
           name="email"
@@ -58,7 +66,7 @@ export function LoginForm({
         />
       </Field>
 
-      <Field label="パスワード" required>
+      <Field label={labels.password} required>
         <input
           type="password"
           name="password"
@@ -72,7 +80,7 @@ export function LoginForm({
       </Field>
 
       <Button type="submit" disabled={pending} className="w-full">
-        {pending ? 'ログインしています…' : 'ログイン'}
+        {pending ? labels.pending : labels.submit}
       </Button>
     </form>
   );

@@ -1,16 +1,20 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
-import { checkPublishReadiness, setFacilityStatus, updateFacility } from '@/app/actions/facilities';
 import { deleteEntryPoint } from '@/app/actions/entry-points';
+import {
+  checkPublishReadiness,
+  setFacilityStatus,
+  updateFacility,
+} from '@/app/actions/facilities';
 import { CautionEditor } from '@/components/caution-editor';
 import { AddEntryPointButton, EntryPointEditor } from '@/components/entry-point-editor';
 import { FacilityForm } from '@/components/facility-form';
 import { PhotoManager } from '@/components/photo-manager';
 import { Alert, Badge, Button, Card, PageHeader, StatusBadge } from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
-import { ENTRY_POINT_KIND_LABEL } from '@/lib/supabase/database.types';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,8 +32,7 @@ export default async function FacilityDetailPage({
   searchParams,
 }: PageProps<'/facilities/[id]'>) {
   await requireStaff();
-  const { id } = await params;
-  const sp = await searchParams;
+  const [{ id }, sp, t] = await Promise.all([params, searchParams, getDictionary()]);
 
   const supabase = await createClient();
 
@@ -43,7 +46,12 @@ export default async function FacilityDetailPage({
 
   const [{ data: categories }, { data: entryPoints }, problems] = await Promise.all([
     supabase.from('categories').select('id, name').eq('is_active', true).order('sort_order'),
-    supabase.from('entry_points').select('*').eq('facility_id', id).order('sort_order').order('code'),
+    supabase
+      .from('entry_points')
+      .select('*')
+      .eq('facility_id', id)
+      .order('sort_order')
+      .order('code'),
     checkPublishReadiness(id),
   ]);
 
@@ -69,19 +77,15 @@ export default async function FacilityDetailPage({
         description={`${facility.code} ／ ${facility.prefecture}${facility.city ?? ''}${facility.address_line}`}
         actions={
           <div className="flex items-center gap-3">
-            <StatusBadge status={facility.status} />
+            <StatusBadge status={facility.status} label={t.status[facility.status]} />
             <Link href="/facilities" className="text-sm text-text-muted hover:text-text">
-              一覧へ戻る
+              {t.common.back}
             </Link>
           </div>
         }
       />
 
-      {sp.created === '1' && (
-        <Alert tone="ok">
-          施設を登録しました。続けて入口・車寄せの情報を追加してください。
-        </Alert>
-      )}
+      {sp.created === '1' && <Alert tone="ok">{t.facilityForm.createdNotice}</Alert>}
 
       {/*
         公開可否は DB 側の関数で判定している。
@@ -89,21 +93,23 @@ export default async function FacilityDetailPage({
       */}
       <Card className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-text-muted">公開状態</h2>
+          <h2 className="font-mincho text-sm font-semibold text-text-muted">
+            {t.publish.title}
+          </h2>
           <form action={setFacilityStatus} className="flex items-center gap-2">
             <input type="hidden" name="id" value={facility.id} />
             {facility.status !== 'published' ? (
               <>
                 <input type="hidden" name="status" value="published" />
                 <Button type="submit" disabled={!canPublish}>
-                  {canPublish ? 'この施設を公開する' : '公開できません'}
+                  {canPublish ? t.publish.publish : t.publish.cannotPublish}
                 </Button>
               </>
             ) : (
               <>
                 <input type="hidden" name="status" value="draft" />
                 <Button type="submit" variant="secondary">
-                  下書きに戻す
+                  {t.publish.unpublish}
                 </Button>
               </>
             )}
@@ -111,7 +117,7 @@ export default async function FacilityDetailPage({
         </div>
 
         {blockers.length > 0 && (
-          <Alert tone="danger" title="公開前に解消が必要な項目">
+          <Alert tone="danger" title={t.publish.blockers}>
             <ul className="mt-1 list-disc space-y-0.5 pl-5">
               {blockers.map((p) => (
                 <li key={p}>{p}</li>
@@ -121,44 +127,39 @@ export default async function FacilityDetailPage({
         )}
 
         {warnings.length > 0 && (
-          <Alert tone="warn" title="公開は可能ですが、確認をおすすめします">
+          <Alert tone="warn" title={t.publish.warnings}>
             <ul className="mt-1 list-disc space-y-0.5 pl-5">
               {warnings.map((p) => (
                 <li key={p}>{p.replace('［警告］', '')}</li>
               ))}
             </ul>
-            <p className="mt-2 text-xs">
-              仮画像のままでも公開できます。文章と座標が正しければ、ドライバーには既に十分な価値があります。
-            </p>
+            <p className="mt-2 text-xs">{t.publish.warningNote}</p>
           </Alert>
         )}
 
         {canPublish && warnings.length === 0 && facility.status !== 'published' && (
-          <Alert tone="ok">必要な項目はすべて揃っています。いつでも公開できます。</Alert>
+          <Alert tone="ok">{t.publish.ready}</Alert>
         )}
       </Card>
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold">
-            入口・車寄せ
+          <h2 className="font-mincho text-lg font-bold">
+            {t.entryPoint.heading}
             <span className="ml-2 text-sm font-normal text-text-muted">
-              {entryPoints?.length ?? 0} か所
+              {entryPoints?.length ?? 0} {t.common.places}
             </span>
           </h2>
           <AddEntryPointButton
             facilityId={facility.id}
             suggestedCode={nextCode((entryPoints ?? []).map((ep) => ep.code))}
+            t={t}
           />
         </div>
 
         {!entryPoints?.length ? (
           <Card>
-            <p className="text-sm text-text-muted">
-              入口・車寄せがまだ登録されていません。
-              <strong className="text-text"> ここがアプリの中核データです。</strong>
-              同じ建物でも入口ごとに経路も注意点も異なるため、入口の数だけ登録してください。
-            </p>
+            <p className="text-sm leading-relaxed text-text-muted">{t.entryPoint.empty}</p>
           </Card>
         ) : (
           <div className="space-y-5">
@@ -174,13 +175,15 @@ export default async function FacilityDetailPage({
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold">{ep.name}</p>
-                      <p className="text-xs text-text-muted">
-                        {ENTRY_POINT_KIND_LABEL[ep.kind]}
-                      </p>
+                      <p className="text-xs text-text-muted">{t.kind[ep.kind]}</p>
                     </div>
-                    {!ep.is_active && <Badge tone="warn">無効</Badge>}
-                    {ep.nav_lat === null && <Badge tone="warn">座標未設定</Badge>}
-                    <Badge tone="teal">写真 {epPhotos.length} 枚</Badge>
+                    {!ep.is_active && <Badge tone="warn">{t.entryPoint.inactive}</Badge>}
+                    {ep.nav_lat === null && (
+                      <Badge tone="warn">{t.entryPoint.noCoords}</Badge>
+                    )}
+                    <Badge tone="teal">
+                      {t.entryPoint.photos} {epPhotos.length} {t.common.sheets}
+                    </Badge>
                     <form action={deleteEntryPoint}>
                       <input type="hidden" name="id" value={ep.id} />
                       <input type="hidden" name="facility_id" value={facility.id} />
@@ -188,30 +191,34 @@ export default async function FacilityDetailPage({
                         type="submit"
                         className="text-xs text-text-faint transition-colors hover:text-danger"
                       >
-                        この入口を削除
+                        {t.entryPoint.deleteThis}
                       </button>
                     </form>
                   </div>
 
-                  <EntryPointEditor facilityId={facility.id} entryPoint={ep} />
+                  <EntryPointEditor facilityId={facility.id} entryPoint={ep} t={t} />
 
                   <div className="border-t border-border pt-5">
-                    <h3 className="mb-3 text-sm font-semibold text-text-muted">注意事項</h3>
+                    <h3 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+                      {t.caution.heading}
+                    </h3>
                     <CautionEditor
                       facilityId={facility.id}
                       entryPointId={ep.id}
                       cautions={epCautions}
+                      t={t}
                     />
                   </div>
 
                   <div className="border-t border-border pt-5">
-                    <h3 className="mb-3 text-sm font-semibold text-text-muted">
-                      写真・進入案内図
+                    <h3 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+                      {t.photo.heading}
                     </h3>
                     <PhotoManager
                       facilityId={facility.id}
                       entryPointId={ep.id}
                       photos={epPhotos}
+                      t={t}
                     />
                   </div>
                 </Card>
@@ -222,12 +229,13 @@ export default async function FacilityDetailPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-bold">施設の基本情報</h2>
+        <h2 className="font-mincho text-lg font-bold">{t.facilityForm.sectionFacility}</h2>
         <FacilityForm
           action={updateFacility}
           categories={categories ?? []}
           facility={facility}
-          submitLabel="変更を保存"
+          submitLabel={t.facilityForm.submitUpdate}
+          t={t}
         />
       </section>
     </div>

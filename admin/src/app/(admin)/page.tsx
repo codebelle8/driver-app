@@ -1,5 +1,7 @@
+import { PlusIcon } from '@/components/icons';
 import { Card, LinkButton, PageHeader, StatCard, StatusBadge } from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,7 @@ async function countOf(
 
 export default async function DashboardPage() {
   await requireStaff();
+  const t = await getDictionary();
   const supabase = await createClient();
 
   const [
@@ -48,19 +51,24 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="ダッシュボード"
-        description="登録状況と、公開までに残っている作業の一覧"
-        actions={<LinkButton href="/facilities/new">施設を新規登録</LinkButton>}
+        title={t.dashboard.title}
+        description={t.dashboard.description}
+        actions={
+          <LinkButton href="/facilities/new">
+            <PlusIcon width={16} height={16} />
+            {t.dashboard.newFacility}
+          </LinkButton>
+        }
       />
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="登録施設数" value={facilityCount} unit="件" />
-        <StatCard label="入口・車寄せ" value={entryPointCount} unit="か所" />
-        <StatCard label="登録写真" value={photoCount} unit="枚" />
+        <StatCard label={t.dashboard.facilityCount} value={facilityCount} unit={t.common.count} />
+        <StatCard label={t.dashboard.entryPointCount} value={entryPointCount} unit={t.common.places} />
+        <StatCard label={t.dashboard.photoCount} value={photoCount} unit={t.common.sheets} />
         <StatCard
-          label="下書きのまま"
+          label={t.dashboard.draftCount}
           value={draftCount}
-          unit="件"
+          unit={t.common.count}
           tone={draftCount > 0 ? 'warn' : 'ok'}
         />
       </section>
@@ -71,42 +79,40 @@ export default async function DashboardPage() {
         この2つが 0 になることが初期データ整備の完了条件。
       */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-text-muted">
-          公開までに残っている作業
+        <h2 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+          {t.dashboard.remainingTitle}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <StatCard
-            label="仮画像が残っている写真"
+            label={t.dashboard.placeholderPhotos}
             value={placeholderCount}
-            unit="枚"
+            unit={t.common.sheets}
             tone={placeholderCount > 0 ? 'warn' : 'ok'}
             hint={
               placeholderCount > 0
-                ? '実写真が届き次第、管理画面から差し替えてください'
-                : 'すべて実写真に差し替え済みです'
+                ? t.dashboard.placeholderHint
+                : t.dashboard.placeholderDone
             }
           />
           <StatCard
-            label="ナビ座標が未設定の入口"
+            label={t.dashboard.missingNav}
             value={missingNavCount}
-            unit="か所"
+            unit={t.common.places}
             tone={missingNavCount > 0 ? 'warn' : 'ok'}
             hint={
-              missingNavCount > 0
-                ? '座標が無い入口を含む施設は公開できません'
-                : 'すべての入口に座標が設定されています'
+              missingNavCount > 0 ? t.dashboard.missingNavHint : t.dashboard.missingNavDone
             }
           />
         </div>
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-text-muted">最近更新した施設</h2>
+        <h2 className="font-mincho mb-3 text-sm font-semibold text-text-muted">
+          {t.dashboard.recent}
+        </h2>
         {recent.length === 0 ? (
           <Card>
-            <p className="text-sm text-text-muted">
-              まだ施設が登録されていません。「施設を新規登録」から追加してください。
-            </p>
+            <p className="text-sm text-text-muted">{t.dashboard.empty}</p>
           </Card>
         ) : (
           <Card className="!p-0">
@@ -119,7 +125,7 @@ export default async function DashboardPage() {
                   >
                     <span className="tabular text-xs text-text-faint">{f.code}</span>
                     <span className="flex-1 truncate text-sm">{f.name}</span>
-                    <StatusBadge status={f.status} />
+                    <StatusBadge status={f.status} label={t.status[f.status]} />
                   </a>
                 </li>
               ))}

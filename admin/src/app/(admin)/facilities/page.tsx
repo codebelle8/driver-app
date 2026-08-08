@@ -1,7 +1,17 @@
 import Link from 'next/link';
 
-import { Badge, Card, EmptyState, LinkButton, PageHeader, StatusBadge, inputClass } from '@/components/ui';
+import { PlusIcon } from '@/components/icons';
+import {
+  Badge,
+  Card,
+  EmptyState,
+  LinkButton,
+  PageHeader,
+  StatusBadge,
+  inputClass,
+} from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
+import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 import type { PublishStatus } from '@/lib/supabase/database.types';
 
@@ -24,11 +34,9 @@ function normalize(input: string): string {
   return out.toLowerCase();
 }
 
-export default async function FacilitiesPage({
-  searchParams,
-}: PageProps<'/facilities'>) {
+export default async function FacilitiesPage({ searchParams }: PageProps<'/facilities'>) {
   await requireStaff();
-  const params = await searchParams;
+  const [params, t] = await Promise.all([searchParams, getDictionary()]);
 
   const q = typeof params.q === 'string' ? params.q : '';
   const categoryId = typeof params.category === 'string' ? params.category : '';
@@ -65,13 +73,19 @@ export default async function FacilitiesPage({
   }
 
   const categoryName = new Map((categories ?? []).map((c) => [c.id, c.name]));
+  const isFiltered = Boolean(q || categoryId || status);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="施設一覧"
-        description={`${facilities?.length ?? 0} 件を表示しています`}
-        actions={<LinkButton href="/facilities/new">施設を新規登録</LinkButton>}
+        title={t.facilities.title}
+        description={`${facilities?.length ?? 0} ${t.facilities.showing}`}
+        actions={
+          <LinkButton href="/facilities/new">
+            <PlusIcon width={16} height={16} />
+            {t.dashboard.newFacility}
+          </LinkButton>
+        }
       />
 
       <Card>
@@ -80,11 +94,11 @@ export default async function FacilitiesPage({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="施設名・かな・別名・住所で検索"
+            placeholder={t.facilities.searchPlaceholder}
             className={inputClass}
           />
           <select name="category" defaultValue={categoryId} className={inputClass}>
-            <option value="">すべてのカテゴリ</option>
+            <option value="">{t.facilities.allCategories}</option>
             {(categories ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -92,37 +106,35 @@ export default async function FacilitiesPage({
             ))}
           </select>
           <select name="status" defaultValue={status} className={inputClass}>
-            <option value="">すべての状態</option>
-            <option value="draft">下書き</option>
-            <option value="published">公開中</option>
-            <option value="archived">非表示</option>
+            <option value="">{t.facilities.allStatuses}</option>
+            <option value="draft">{t.status.draft}</option>
+            <option value="published">{t.status.published}</option>
+            <option value="archived">{t.status.archived}</option>
           </select>
           <button
             type="submit"
-            className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-accent-text hover:bg-accent-hover"
+            className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-accent-text transition-colors hover:bg-accent-hover"
           >
-            絞り込む
+            {t.facilities.filter}
           </button>
         </form>
       </Card>
 
       {error && (
         <Card>
-          <p className="text-sm text-danger">読み込みに失敗しました: {error.message}</p>
+          <p className="text-sm text-danger">
+            {t.facilities.loadFailed}: {error.message}
+          </p>
         </Card>
       )}
 
       {!facilities?.length ? (
         <EmptyState
-          title={q || categoryId || status ? '該当する施設がありません' : 'まだ施設が登録されていません'}
-          description={
-            q || categoryId || status
-              ? '検索条件を変えてお試しください。別名でも検索できます。'
-              : '「施設を新規登録」から最初の施設を追加してください。写真や座標は後からでも追加できます。'
-          }
+          title={isFiltered ? t.facilities.emptyFiltered : t.facilities.empty}
+          description={isFiltered ? t.facilities.emptyFilteredHint : t.facilities.emptyHint}
           action={
-            !(q || categoryId || status) && (
-              <LinkButton href="/facilities/new">施設を新規登録</LinkButton>
+            !isFiltered && (
+              <LinkButton href="/facilities/new">{t.dashboard.newFacility}</LinkButton>
             )
           }
         />
@@ -146,9 +158,9 @@ export default async function FacilitiesPage({
                     </div>
                     <Badge>{categoryName.get(f.category_id) ?? '—'}</Badge>
                     <Badge tone={count === 0 ? 'warn' : 'teal'}>
-                      入口 {count} か所
+                      {t.facilities.entryPoints} {count} {t.common.places}
                     </Badge>
-                    <StatusBadge status={f.status} />
+                    <StatusBadge status={f.status} label={t.status[f.status]} />
                   </Link>
                 </li>
               );

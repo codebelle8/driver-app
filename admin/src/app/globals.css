@@ -1,48 +1,212 @@
 @import "tailwindcss";
 
 /**
- * 配色はアプリ側のデザイン（ダークテーマ）に合わせている。
- * 管理者が管理画面で見た印象と、ドライバーがアプリで見る印象を揃えるため。
+ * 和モダンの配色。
+ *
+ * 生成り（きなり）・墨（すみ）・朱（しゅ）・藍（あい）という
+ * 日本の伝統色を基調にしている。判子や神社の鳥居に使われる朱色は
+ * 日本人にとって「押すもの・目を引くもの」として直感的に伝わるため、
+ * 主要な操作ボタンに用いる。
+ *
+ * ライト／ダークはサーバー側で Cookie から読み、<html data-theme> に
+ * 反映するため、切り替え時に画面が白く光る現象（FOUC）が起きない。
  */
+
 @theme {
-  --color-bg: #0b1220;
-  --color-surface: #131c2e;
-  --color-surface-2: #1a2436;
-  --color-border: #253046;
-  --color-border-strong: #33415c;
-
-  --color-text: #e8edf7;
-  --color-text-muted: #94a3b8;
-  --color-text-faint: #64748b;
-
-  --color-accent: #f0b429;
-  --color-accent-hover: #d69e1f;
-  --color-accent-text: #1a1206;
-
-  --color-teal: #2dd4bf;
-  --color-danger: #f87171;
-  --color-warn: #fb923c;
-  --color-ok: #4ade80;
+  --font-sans: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic",
+    Meiryo, "Noto Sans JP", system-ui, sans-serif;
+  --font-serif: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN",
+    "Noto Serif JP", "MS PMincho", serif;
 }
 
-html {
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg: #f7f4ee;          /* 生成り */
+  --c-bg-sub: #efe9dd;
+  --c-surface: #fffdf9;
+  --c-surface-2: #f3eee4;
+  --c-border: #ded5c4;
+  --c-border-strong: #c4b8a1;
+
+  --c-text: #1e1b17;        /* 墨 */
+  --c-text-muted: #6d6459;
+  --c-text-faint: #9a9186;
+
+  --c-accent: #c1442e;      /* 朱 */
+  --c-accent-hover: #a5361f;
+  --c-accent-text: #fffdf9;
+  --c-indigo: #2c4f7c;      /* 藍 */
+  --c-gold: #9c7c3c;
+
+  --c-danger: #b3271e;
+  --c-warn: #b06d16;
+  --c-ok: #3f7d42;
+
+  --c-clock-face: #1e1b17;
+  --c-clock-line: #4a4136;
+  --c-clock-opacity: 0.085;
+
+  /* 日本のタクシーは黒塗りが定番 */
+  --c-taxi-body: #1e1e22;
+  --c-taxi-stroke: rgba(30, 27, 23, 0.25);
+  --c-taxi-glass: #6f8fb8;
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
+
+  --c-bg: #15161a;          /* 墨黒 */
+  --c-bg-sub: #101115;
+  --c-surface: #1c1e24;
+  --c-surface-2: #24272f;
+  --c-border: #333741;
+  --c-border-strong: #4a4f5c;
+
+  --c-text: #ece8e1;        /* 白練 */
+  --c-text-muted: #a09a90;
+  --c-text-faint: #766f65;
+
+  --c-accent: #e0674d;
+  --c-accent-hover: #ef7c62;
+  --c-accent-text: #17120f;
+  --c-indigo: #7ba3d8;
+  --c-gold: #c8a557;
+
+  --c-danger: #f08279;
+  --c-warn: #e2a34e;
+  --c-ok: #63c169;
+
+  /* 暗い背景では墨色の線が沈むため、金茶を使って行灯のように浮かせる */
+  --c-clock-face: #ece8e1;
+  --c-clock-line: #c8a557;
+  --c-clock-opacity: 0.13;
+
+  /* 暗い背景で真っ黒だと沈むため、やや明るい炭色に縁取りを添える */
+  --c-taxi-body: #2f333d;
+  --c-taxi-stroke: rgba(236, 232, 225, 0.35);
+  --c-taxi-glass: #5b7ba6;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-bg-sub: var(--c-bg-sub);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-border: var(--c-border);
+  --color-border-strong: var(--c-border-strong);
+
+  --color-text: var(--c-text);
+  --color-text-muted: var(--c-text-muted);
+  --color-text-faint: var(--c-text-faint);
+
+  --color-accent: var(--c-accent);
+  --color-accent-hover: var(--c-accent-hover);
+  --color-accent-text: var(--c-accent-text);
+  --color-indigo: var(--c-indigo);
+  --color-gold: var(--c-gold);
+
+  --color-danger: var(--c-danger);
+  --color-warn: var(--c-warn);
+  --color-ok: var(--c-ok);
+}
+
+/*
+ * 背景色は html にのみ置く。
+ * body にも背景を指定すると、body の子である背景時計 (z-index:-10) が
+ * body の背景に覆われて見えなくなる。
+ */
+html {
+  background: var(--c-bg);
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
-    "Yu Gothic UI", Meiryo, sans-serif;
+  background: transparent;
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  /* 日本語は字面が詰まって見えるため、わずかに字間を開けると読みやすい */
+  letter-spacing: 0.02em;
+}
+
+/* 見出しは明朝体にして「和」の印象を出す */
+.font-mincho {
+  font-family: var(--font-serif);
+  letter-spacing: 0.06em;
 }
 
 /* 数値・座標は等幅にすると桁の比較がしやすい */
 .tabular {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  letter-spacing: 0;
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+  background: var(--c-accent);
+  color: var(--c-accent-text);
+}
+
+/* --- 背景の掛け時計 ------------------------------------------------------- */
+
+@keyframes kn-slow-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.clock-ring {
+  animation: kn-slow-spin 240s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* --- タクシーのローディング ----------------------------------------------- */
+
+@keyframes kn-taxi-run {
+  from { transform: translateX(-22vw); }
+  to   { transform: translateX(112vw); }
+}
+
+@keyframes kn-tire-track {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes kn-wheel-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes kn-bounce {
+  0%, 100% { transform: translateY(0); }
+  25%      { transform: translateY(-1.5px); }
+  75%      { transform: translateY(1px); }
+}
+
+.taxi-run {
+  animation: kn-taxi-run var(--kn-duration, 2.4s) linear infinite;
+}
+
+.taxi-body {
+  animation: kn-bounce 0.45s ease-in-out infinite;
+}
+
+.tire-track {
+  transform-origin: left center;
+  animation: kn-tire-track var(--kn-duration, 2.4s) linear infinite;
+}
+
+.wheel-spin {
+  animation: kn-wheel-spin 0.5s linear infinite;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clock-ring,
+  .taxi-run,
+  .taxi-body,
+  .tire-track,
+  .wheel-spin {
+    animation: none;
+  }
 }

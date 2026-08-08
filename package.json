@@ -9,10 +9,13 @@
     "db:bootstrap": "node tools/build-bootstrap-sql.mjs",
     "db:push": "supabase db push",
     "db:diff": "supabase db diff",
-    "verify:prod": "node tools/verify-production.mjs"
+    "verify:prod": "node tools/verify-production.mjs",
+    "shot": "node tools/screenshot.mjs",
+    "shot:loading": "node tools/screenshot-loading.mjs"
   },
   "devDependencies": {
     "pg-query-emscripten": "^5.1.0",
+    "playwright": "^1.62.1",
     "supabase": "^2.112.0"
   }
 }

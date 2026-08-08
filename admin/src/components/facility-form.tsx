@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 
 import { Alert, Button, Card, Field, inputClass } from '@/components/ui';
 import type { ActionState } from '@/app/actions/facilities';
+import type { Dictionary } from '@/lib/i18n/dictionaries';
 import type { Category, Facility } from '@/lib/supabase/database.types';
 
 export function FacilityForm({
@@ -11,28 +12,31 @@ export function FacilityForm({
   categories,
   facility,
   submitLabel,
+  t,
 }: {
   action: (prev: ActionState, formData: FormData) => Promise<ActionState>;
   categories: Pick<Category, 'id' | 'name'>[];
   facility?: Facility;
   submitLabel: string;
+  t: Dictionary;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
   const err = (key: string) => state.errors?.[key];
+  const f = t.facilityForm;
 
   return (
     <form action={formAction} className="space-y-6">
       {facility && <input type="hidden" name="id" value={facility.id} />}
 
-      {state.message && (
-        <Alert tone={state.ok ? 'ok' : 'danger'}>{state.message}</Alert>
-      )}
+      {state.message && <Alert tone={state.ok ? 'ok' : 'danger'}>{state.message}</Alert>}
 
       <Card className="space-y-5">
-        <h2 className="text-sm font-semibold text-text-muted">基本情報</h2>
+        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+          {f.sectionBasic}
+        </h2>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="施設名" required error={err('name')}>
+          <Field label={f.name} required error={err('name')}>
             <input
               name="name"
               defaultValue={facility?.name}
@@ -42,12 +46,7 @@ export function FacilityForm({
             />
           </Field>
 
-          <Field
-            label="施設名（かな）"
-            required
-            hint="検索に使用します。ひらがな・カタカナどちらでも可"
-            error={err('name_kana')}
-          >
+          <Field label={f.nameKana} required hint={f.nameKanaHint} error={err('name_kana')}>
             <input
               name="name_kana"
               defaultValue={facility?.name_kana}
@@ -58,11 +57,7 @@ export function FacilityForm({
           </Field>
         </div>
 
-        <Field
-          label="別名・略称"
-          hint="ドライバーが口頭で言う呼び方。複数ある場合は「;」で区切ってください。検索の精度に直結します"
-          error={err('aliases')}
-        >
+        <Field label={f.aliases} hint={f.aliasesHint} error={err('aliases')}>
           <input
             name="aliases"
             defaultValue={facility?.aliases?.join('; ')}
@@ -72,7 +67,7 @@ export function FacilityForm({
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="カテゴリ" required error={err('category_id')}>
+          <Field label={f.category} required error={err('category_id')}>
             <select
               name="category_id"
               defaultValue={facility?.category_id ?? ''}
@@ -80,7 +75,7 @@ export function FacilityForm({
               className={inputClass}
             >
               <option value="" disabled>
-                選択してください
+                {f.categoryPlaceholder}
               </option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -90,25 +85,27 @@ export function FacilityForm({
             </select>
           </Field>
 
-          <Field label="公開状態" error={err('status')}>
+          <Field label={f.status} error={err('status')}>
             <select
               name="status"
               defaultValue={facility?.status ?? 'draft'}
               className={inputClass}
             >
-              <option value="draft">下書き（アプリに表示されません）</option>
-              <option value="published">公開中</option>
-              <option value="archived">非表示</option>
+              <option value="draft">{f.statusDraftLabel}</option>
+              <option value="published">{t.status.published}</option>
+              <option value="archived">{t.status.archived}</option>
             </select>
           </Field>
         </div>
       </Card>
 
       <Card className="space-y-5">
-        <h2 className="text-sm font-semibold text-text-muted">所在地</h2>
+        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+          {f.sectionAddress}
+        </h2>
 
         <div className="grid gap-5 sm:grid-cols-[160px_1fr_1fr]">
-          <Field label="郵便番号" error={err('postal_code')}>
+          <Field label={f.postalCode} error={err('postal_code')}>
             <input
               name="postal_code"
               defaultValue={facility?.postal_code ?? ''}
@@ -117,7 +114,7 @@ export function FacilityForm({
             />
           </Field>
 
-          <Field label="都道府県" required error={err('prefecture')}>
+          <Field label={f.prefecture} required error={err('prefecture')}>
             <input
               name="prefecture"
               defaultValue={facility?.prefecture}
@@ -127,7 +124,7 @@ export function FacilityForm({
             />
           </Field>
 
-          <Field label="市区町村" error={err('city')}>
+          <Field label={f.city} error={err('city')}>
             <input
               name="city"
               defaultValue={facility?.city ?? ''}
@@ -137,7 +134,7 @@ export function FacilityForm({
           </Field>
         </div>
 
-        <Field label="住所" required hint="町名・番地・建物名" error={err('address_line')}>
+        <Field label={f.address} required hint={f.addressHint} error={err('address_line')}>
           <input
             name="address_line"
             defaultValue={facility?.address_line}
@@ -147,26 +144,17 @@ export function FacilityForm({
           />
         </Field>
 
-        <Field
-          label="施設概要"
-          hint="アプリの施設詳細に表示されます。2〜3行程度"
-          error={err('summary')}
-        >
+        <Field label={f.summary} hint={f.summaryHint} error={err('summary')}>
           <textarea
             name="summary"
             defaultValue={facility?.summary ?? ''}
             rows={3}
             className={inputClass}
-            placeholder="地上38階の大型シティホテル。正面車寄せは屋根付きで、深夜も警備員が常駐しています。"
           />
         </Field>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="代表地点の緯度"
-            hint="地図の初期表示に使います。ナビの目的地には使いません"
-            error={err('lat')}
-          >
+          <Field label={f.lat} hint={f.latHint} error={err('lat')}>
             <input
               name="lat"
               defaultValue={facility?.lat ?? ''}
@@ -175,7 +163,7 @@ export function FacilityForm({
             />
           </Field>
 
-          <Field label="代表地点の経度" error={err('lng')}>
+          <Field label={f.lng} error={err('lng')}>
             <input
               name="lng"
               defaultValue={facility?.lng ?? ''}
@@ -187,23 +175,24 @@ export function FacilityForm({
       </Card>
 
       <Card className="space-y-5">
-        <h2 className="text-sm font-semibold text-text-muted">管理用メモ</h2>
-        <Field label="メモ" hint="アプリには表示されません" error={err('note_internal')}>
+        <h2 className="font-mincho text-sm font-semibold text-text-muted">
+          {f.sectionNote}
+        </h2>
+        <Field label={f.note} hint={f.noteHint} error={err('note_internal')}>
           <textarea
             name="note_internal"
             defaultValue={facility?.note_internal ?? ''}
             rows={2}
             className={inputClass}
-            placeholder="コンシェルジュ対応あり。撮影は管理室へ要連絡。"
           />
         </Field>
       </Card>
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? '保存しています…' : submitLabel}
+          {pending ? t.common.saving : submitLabel}
         </Button>
-        {state.ok && <span className="text-sm text-ok">保存しました</span>}
+        {state.ok && <span className="text-sm text-ok">{t.common.saved}</span>}
       </div>
     </form>
   );

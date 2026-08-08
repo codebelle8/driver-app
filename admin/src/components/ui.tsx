@@ -2,7 +2,6 @@ import Link from 'next/link';
 import type { ComponentProps, ReactNode } from 'react';
 
 import type { PublishStatus } from '@/lib/supabase/database.types';
-import { PUBLISH_STATUS_LABEL } from '@/lib/supabase/database.types';
 
 /** 画面共通の見出し。右側に操作ボタンを置ける。 */
 export function PageHeader({
@@ -17,8 +16,9 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {description && <p className="mt-1 text-sm text-text-muted">{description}</p>}
+        {/* 見出しは明朝体。和の落ち着きを出しつつ、本文のゴシックと区別する */}
+        <h1 className="font-mincho text-2xl font-bold">{title}</h1>
+        {description && <p className="mt-1.5 text-sm text-text-muted">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -33,7 +33,9 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-border bg-surface p-5 ${className}`}>
+    <div
+      className={`rounded-xl border border-border bg-surface/90 p-5 backdrop-blur-sm ${className}`}
+    >
       {children}
     </div>
   );
@@ -101,7 +103,14 @@ export function LinkButton({
   );
 }
 
-export function StatusBadge({ status }: { status: PublishStatus }) {
+/** 表示文言は辞書から渡す（言語切り替えに追従させるため） */
+export function StatusBadge({
+  status,
+  label,
+}: {
+  status: PublishStatus;
+  label: string;
+}) {
   const style = {
     published: 'border-ok/40 bg-ok/10 text-ok',
     draft: 'border-border-strong bg-surface-2 text-text-muted',
@@ -112,7 +121,7 @@ export function StatusBadge({ status }: { status: PublishStatus }) {
     <span
       className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${style}`}
     >
-      {PUBLISH_STATUS_LABEL[status]}
+      {label}
     </span>
   );
 }
