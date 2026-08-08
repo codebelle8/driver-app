@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { LoginForm } from '@/components/login-form';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
@@ -35,12 +37,17 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
 
       <div className="flex flex-1 items-center justify-center pb-24">
         <div className="w-full max-w-sm">
-          <div className="mb-8 text-center">
-            <p className="text-xs font-semibold tracking-[0.3em] text-accent">
-              {t.brand.tagline}
-            </p>
-            <h1 className="mt-3 text-4xl font-bold">{t.brand.name}</h1>
-            <p className="mt-2 text-sm text-text-muted">{t.brand.sub}</p>
+          {/* ログイン画面は余白があるため、横組みロゴをそのまま使う */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            <Image
+              src={theme === 'dark' ? '/brand/logo-on-dark.png' : '/brand/logo.png'}
+              alt={t.brand.name}
+              width={2461}
+              height={804}
+              className="h-auto w-full max-w-[320px]"
+              priority
+            />
+            <p className="mt-3 text-sm text-text-muted">{t.brand.sub}</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-surface/90 p-6 shadow-sm backdrop-blur">

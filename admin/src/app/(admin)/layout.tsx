@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -37,15 +38,32 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
           どの項目も消さずに到達できる状態を保つ。
         */}
         <div className="no-scrollbar mx-auto flex max-w-6xl flex-nowrap items-center gap-2 overflow-x-auto px-3 py-3 sm:gap-3 sm:px-6">
-          {/* ロゴ。右の縦罫線でナビと明確に切り分ける */}
+          {/*
+            ロゴ。右の縦罫線でナビと明確に切り分ける。
+            横組みロゴをそのまま置くとヘッダーの高さでは英文が4px程度になり
+            読めないため、ヘッダーではアイコンと社名表記を組み合わせる。
+          */}
           <Link
             href="/"
-            className="flex shrink-0 items-baseline gap-2 border-r border-border pr-2.5 sm:pr-6"
+            className="flex shrink-0 items-center gap-2.5 border-r border-border pr-2.5 sm:pr-6"
           >
-            <span className="text-base font-bold tracking-tight sm:text-lg">
-              {t.brand.name}
+            <Image
+              src="/brand/icon-64.png"
+              alt=""
+              width={30}
+              height={30}
+              className="shrink-0 rounded-[7px]"
+              priority
+            />
+            <span className="flex items-baseline gap-2">
+              <span className="text-base font-bold tracking-tight sm:text-lg">
+                {t.brand.name}
+              </span>
+              {/* 副題は場所を取るため lg 以上のみ。768px で横にはみ出すのを避ける */}
+              <span className="hidden text-xs text-text-muted lg:inline">
+                {t.brand.sub}
+              </span>
             </span>
-            <span className="hidden text-xs text-text-muted sm:inline">{t.brand.sub}</span>
           </Link>
 
           <NavLinks

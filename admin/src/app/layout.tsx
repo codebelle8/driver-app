@@ -8,6 +8,13 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '車寄せナビ 管理画面',
   description: '施設・エントランス・写真・カテゴリの登録と編集',
+  icons: {
+    icon: [
+      { url: '/brand/icon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/brand/icon-192.png', sizes: '180x180', type: 'image/png' }],
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
