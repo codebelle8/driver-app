@@ -109,14 +109,44 @@ async function buildIcon(inputBuffer, size) {
 let iconArt;
 if (iconSrc) {
   console.log(`アイコン元画像: ${iconSrc}`);
-  // 既に角丸タイルとして仕上がっている前提。余白だけ落としてそのまま使う。
+  // 角丸タイルとして仕上がっている前提。透明な余白だけ落とす。
   iconArt = await sharp(iconSrc).trim().png().toBuffer();
+  const im = await sharp(iconArt).metadata();
+  console.log(`  余白を除いた寸法: ${im.width}x${im.height}`);
+
+  // タイルの地色を拾う（左端から少し内側・高さ中央）。
+  // 角の丸みで生じる隙間を同じ色で埋め、正方形の不透明な画像にする。
+  const { data: edge } = await sharp(iconArt)
+    .extract({
+      left: Math.round(im.width * 0.08),
+      top: Math.round(im.height * 0.5),
+      width: 1,
+      height: 1,
+    })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const tile = { r: edge[0], g: edge[1], b: edge[2] };
+  console.log(`  タイルの地色: rgb(${tile.r}, ${tile.g}, ${tile.b})`);
+
+  const side = Math.max(im.width, im.height);
   for (const size of [1024, 512, 192, 180, 64, 32]) {
-    await sharp(iconArt)
-      .resize(size, size, { fit: 'cover' })
+    // 透過ありは Web 用、不透明は申請用として使い分けられるよう両方出す
+    const square = await sharp(iconArt)
+      .resize(side, side, { fit: 'contain', background: { ...tile, alpha: 0 } })
+      .resize(size, size)
       .png()
-      .toFile(`${OUT}/icon-${size}.png`);
+      .toBuffer();
+    await sharp(square).toFile(`${OUT}/icon-${size}.png`);
   }
+
+  // iOS/Android のストア提出用は透過不可のため、地色で塗り潰した版も用意する
+  await sharp(iconArt)
+    .resize(side, side, { fit: 'contain', background: { ...tile, alpha: 1 } })
+    .flatten({ background: tile })
+    .resize(1024, 1024)
+    .png()
+    .toFile(`${OUT}/icon-1024-opaque.png`);
+  console.log('  icon-1024-opaque.png（ストア提出用・透過なし）');
 } else {
   // ロゴ左側の正方形をマークとみなして切り出す
   const side = meta.height;
