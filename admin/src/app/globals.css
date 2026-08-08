@@ -139,6 +139,26 @@ body {
   letter-spacing: 0.01em;
 }
 
+/*
+ * テーマ別のロゴ出し分け。
+ *
+ * src をサーバー側で選ぶと、テーマ切替が Cookie 経由になるため
+ * 再描画するまで画像が変わらない。両方を描画しておき CSS で
+ * 表示を切り替えることで、切替と同時に入れ替わる。
+ */
+.only-light {
+  display: block;
+}
+.only-dark {
+  display: none;
+}
+:root[data-theme='dark'] .only-light {
+  display: none;
+}
+:root[data-theme='dark'] .only-dark {
+  display: block;
+}
+
 /* 横スクロールはさせるが、バーは出さない（ヘッダー用） */
 .no-scrollbar {
   scrollbar-width: none;

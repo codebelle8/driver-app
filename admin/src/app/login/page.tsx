@@ -39,15 +39,25 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
         <div className="w-full max-w-sm">
           {/*
             ログイン画面は余白があるため、横組みロゴをそのまま使う。
-            濃紺版と白抜き版をテーマに応じて出し分ける。
+            濃紺版と白抜き版の両方を描画し、CSS で表示を切り替える
+            （テーマ切替と同時に入れ替わるようにするため）。
           */}
           <div className="mb-8 flex flex-col items-center text-center">
             <Image
-              src={theme === 'dark' ? '/brand/logo-white-h160.png' : '/brand/logo-h160.png'}
+              src="/brand/logo-h160.png"
               alt={t.brand.name}
               width={462}
               height={160}
-              className="h-auto w-full max-w-[320px]"
+              className="only-light h-auto w-full max-w-[320px]"
+              priority
+            />
+            <Image
+              src="/brand/logo-white-h160.png"
+              alt=""
+              aria-hidden
+              width={462}
+              height={160}
+              className="only-dark h-auto w-full max-w-[320px]"
               priority
             />
             <p className="mt-4 text-sm text-text-muted">{t.brand.sub}</p>

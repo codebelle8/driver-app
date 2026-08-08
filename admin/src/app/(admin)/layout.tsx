@@ -40,19 +40,30 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
         <div className="no-scrollbar mx-auto flex max-w-6xl flex-nowrap items-center gap-2 overflow-x-auto px-3 py-3 sm:gap-3 sm:px-6">
           {/*
             ロゴ。右の縦罫線でナビと明確に切り分ける。
-            濃紺版と白抜き版をご提供いただいているため、
-            テーマに応じて素のまま出し分ける（下地は不要）。
+
+            濃紺版と白抜き版の両方を描画し、CSS で表示を切り替える。
+            src をサーバー側で選ぶと、テーマ切替が Cookie 経由になるため
+            再描画するまで画像が変わらない。
           */}
           <Link
             href="/"
             className="flex shrink-0 items-center gap-2.5 border-r border-border pr-2.5 sm:pr-6"
           >
             <Image
-              src={theme === 'dark' ? '/brand/logo-white-h80.png' : '/brand/logo-h80.png'}
+              src="/brand/logo-h80.png"
               alt={t.brand.name}
               width={127}
               height={44}
-              className="h-[38px] w-auto shrink-0 sm:h-[44px]"
+              className="only-light h-[38px] w-auto shrink-0 sm:h-[44px]"
+              priority
+            />
+            <Image
+              src="/brand/logo-white-h80.png"
+              alt=""
+              aria-hidden
+              width={127}
+              height={44}
+              className="only-dark h-[38px] w-auto shrink-0 sm:h-[44px]"
               priority
             />
             {/* 副題は場所を取るため lg 以上のみ。768px で横にはみ出すのを避ける */}

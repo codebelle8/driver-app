@@ -11,6 +11,7 @@
     "db:diff": "supabase db diff",
     "verify:prod": "node tools/verify-production.mjs",
     "brand:import": "node tools/import-brand.mjs",
+    "test:theme": "node tools/test-theme-toggle.mjs",
     "shot": "node tools/screenshot.mjs",
     "shot:header": "node tools/screenshot-header.mjs",
     "shot:loading": "node tools/screenshot-loading.mjs"
