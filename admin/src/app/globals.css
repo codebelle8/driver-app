@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/**
+ * 配色はアプリ側のデザイン（ダークテーマ）に合わせている。
+ * 管理者が管理画面で見た印象と、ドライバーがアプリで見る印象を揃えるため。
+ */
+@theme {
+  --color-bg: #0b1220;
+  --color-surface: #131c2e;
+  --color-surface-2: #1a2436;
+  --color-border: #253046;
+  --color-border-strong: #33415c;
+
+  --color-text: #e8edf7;
+  --color-text-muted: #94a3b8;
+  --color-text-faint: #64748b;
+
+  --color-accent: #f0b429;
+  --color-accent-hover: #d69e1f;
+  --color-accent-text: #1a1206;
+
+  --color-teal: #2dd4bf;
+  --color-danger: #f87171;
+  --color-warn: #fb923c;
+  --color-ok: #4ade80;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", Meiryo, sans-serif;
+}
+
+/* 数値・座標は等幅にすると桁の比較がしやすい */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
 }
