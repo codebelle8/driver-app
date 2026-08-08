@@ -50,6 +50,21 @@ grant select on auth.users to authenticated, service_role;
 grant usage on schema public to anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
+-- Supabase の既定権限を再現する（重要）
+--
+-- Supabase は public スキーマに作られる新規テーブルへ、anon / authenticated へ
+-- 自動的に権限を付与する。これを再現しないと、ローカルでは「GRANT が無いので
+-- 拒否」となり、本番では「GRANT はあるが RLS で0件」となって挙動が食い違う。
+--
+-- 実際にこの差異により、ローカルでは合格していたテストが本番では
+-- 成り立たないことが判明した (2026-08-08)。ローカルを本番に合わせる。
+-- ---------------------------------------------------------------------------
+alter default privileges for role postgres in schema public
+  grant all on tables to anon, authenticated, service_role;
+alter default privileges for role postgres in schema public
+  grant all on sequences to anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
 -- Supabase Storage のスキーマ（バケット設定マイグレーションの検証用）
 -- 本番の storage.objects はより多くの列を持つが、ポリシー検証に必要な
 -- 最小限のみ再現する。
