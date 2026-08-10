@@ -18,7 +18,14 @@ import { useEffect, useState } from 'react';
  *   実際の残り時間を知る手段が無い。そのため 100% へ漸近する
  *   曲線で表示し、描画が終わった時点で本体に差し替わる。
  */
-export function SteeringLoader({ label }: { label: string }) {
+export function SteeringLoader({
+  label,
+  className = 'min-h-[60vh]',
+}: {
+  label: string;
+  /** 重ねて表示する場合は高さ指定を外して使う */
+  className?: string;
+}) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -33,7 +40,7 @@ export function SteeringLoader({ label }: { label: string }) {
 
   return (
     <div
-      className="flex min-h-[60vh] flex-col items-center justify-center gap-10"
+      className={`flex flex-col items-center justify-center gap-10 ${className}`}
       role="status"
       aria-live="polite"
       aria-busy="true"

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { SignOutIcon, UserIcon } from '@/components/icons';
+import { NavigationOverlay } from '@/components/navigation-overlay';
 import { NavLinks } from '@/components/nav-links';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
@@ -118,6 +119,12 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
       </header>
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+
+      {/*
+        遷移中は、いま表示している画面を残したまま上に重ねて出す。
+        loading.tsx を置くと元の画面が差し替わってしまうため使っていない。
+      */}
+      <NavigationOverlay label={t.common.loading} />
 
       <footer className="border-t border-border px-6 py-5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
