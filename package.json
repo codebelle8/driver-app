@@ -13,6 +13,7 @@
     "brand:import": "node tools/import-brand.mjs",
     "test:theme": "node tools/test-theme-toggle.mjs",
     "test:overlay": "node tools/test-loading-overlay.mjs",
+    "test:input": "node tools/test-input.mjs",
     "shot": "node tools/screenshot.mjs",
     "shot:header": "node tools/screenshot-header.mjs",
     "shot:loading": "node tools/screenshot-loading.mjs"
