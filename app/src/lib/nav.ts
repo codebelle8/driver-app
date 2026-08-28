@@ -1,0 +1,111 @@
+/**
+ * 端末のナビアプリを、指定した座標へ案内する状態で開く。
+ *
+ * 渡すのは建物の代表地点ではなく `nav_lat / nav_lng`（進入レーンの入口）。
+ * 一般の地図アプリは建物の中心を案内するため、車寄せまで数十メートル
+ * ずれることがある。そのずれを解消することがこのアプリの目的そのもの。
+ */
+import * as Clipboard from 'expo-clipboard';
+import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
+
+export type NavApp = 'google' | 'yahoo' | 'apple';
+
+export interface NavTarget {
+  lat: number;
+  lng: number;
+  /** ナビ画面に出る目的地名。「帝国ホテル東京 正面車寄せ」など */
+  label?: string;
+}
+
+/**
+ * 座標を小数第6位までに丸める。
+ *
+ * 度分秒から変換すると `35.657583333333335` のように 15 桁になる。
+ * 第6位で約 11cm の精度があり、車寄せの位置としては十分。
+ * それ以上は意味を持たないうえ、URL が長くなり、
+ * 受け取る側の解釈も機器によってまちまちになる。
+ */
+function round(value: number): string {
+  return value.toFixed(6);
+}
+
+/**
+ * 起動用のURLを組み立てる。
+ *
+ * Android と iOS で書式が違う。Android の `google.navigation:` は
+ * 案内を即開始する専用の形式で、iOS の `comgooglemaps://` は
+ * 経路画面を開く形式。
+ */
+function buildUrl(app: NavApp, target: NavTarget): string {
+  const lat = round(target.lat);
+  const lng = round(target.lng);
+  const name = encodeURIComponent(target.label ?? '');
+
+  if (app === 'yahoo') {
+    // Yahoo! カーナビ。日本のドライバーの利用が多い。
+    return `yjcarnavi://navi/select?lat=${lat}&lon=${lng}&name=${name}`;
+  }
+
+  if (app === 'apple') {
+    // dirflg=d で自動車の経路
+    return `maps://?daddr=${lat},${lng}&dirflg=d`;
+  }
+
+  return Platform.OS === 'android'
+    ? `google.navigation:q=${lat},${lng}&mode=d`
+    : `comgooglemaps://?daddr=${lat},${lng}&directionsmode=driving`;
+}
+
+/** どのアプリも入っていない場合に開く、ブラウザ上の経路案内 */
+function webFallbackUrl(target: NavTarget): string {
+  const lat = round(target.lat);
+  const lng = round(target.lng);
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
+}
+
+/**
+ * ナビを開く。開けたアプリ名を返す。
+ *
+ * canOpenURL で事前確認しない理由:
+ *   iOS は LSApplicationQueriesSchemes に列挙した scheme しか
+ *   問い合わせられず、Android 11 以降も manifest の queries が要る。
+ *   実際に開いてみて失敗したら次を試すほうが、設定漏れに強い。
+ */
+export async function openNavigation(
+  target: NavTarget,
+  preferred: NavApp[] = Platform.OS === 'ios'
+    ? ['google', 'yahoo', 'apple']
+    : ['google', 'yahoo'],
+): Promise<NavApp | 'web'> {
+  for (const app of preferred) {
+    try {
+      await Linking.openURL(buildUrl(app, target));
+      return app;
+    } catch {
+      // このアプリは入っていない。次を試す。
+    }
+  }
+
+  await Linking.openURL(webFallbackUrl(target));
+  return 'web';
+}
+
+/**
+ * 座標を書き写せる形で複製する。
+ *
+ * 車載のナビ機器など、URLで受け取れない機器を使う方が一定数いる。
+ * その場合は数値を手入力することになるため、控えを取れるようにしておく。
+ */
+export async function copyCoordinates({ lat, lng }: NavTarget): Promise<string> {
+  const text = `${round(lat)}, ${round(lng)}`;
+  await Clipboard.setStringAsync(text);
+  return text;
+}
+
+export const NAV_APP_LABEL: Record<NavApp | 'web', string> = {
+  google: 'Google マップ',
+  yahoo: 'Yahoo! カーナビ',
+  apple: 'マップ',
+  web: 'ブラウザ',
+};
