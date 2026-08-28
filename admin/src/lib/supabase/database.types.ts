@@ -28,7 +28,7 @@ export type PhotoKind =
   | 'exterior'  // 外観
   | 'other';
 
-export type AdminRole = 'admin' | 'editor';
+export type AdminRole = 'admin' | 'editor' | 'surveyor';
 
 export type Category = {
   id: string;
@@ -123,6 +123,16 @@ export type AdminProfile = {
   updated_at: string;
 }
 
+export type AuditLog = {
+  id: number;
+  actor_id: string | null;
+  action: string;
+  table_name: string;
+  record_id: string | null;
+  diff: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export type CatalogSnapshot = {
   version: number;
   storage_path: string;
@@ -194,6 +204,10 @@ export interface Database {
         AdminProfile,
         Insert<AdminProfile, 'role' | 'is_active' | 'created_at' | 'updated_at'>
       >;
+      audit_logs: Table<
+        AuditLog,
+        Insert<AuditLog, 'id' | 'actor_id' | 'record_id' | 'diff' | 'created_at'>
+      >;
       catalog_snapshots: Table<
         CatalogSnapshot,
         Insert<CatalogSnapshot, 'published_by' | 'published_at'>
@@ -244,3 +258,4 @@ export const CAUTION_SEVERITY_LABEL: Record<CautionSeverity, string> = {
 export const WEEKDAY_LABEL: Record<number, string> = {
   1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 7: '日',
 };
+

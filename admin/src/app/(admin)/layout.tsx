@@ -6,6 +6,7 @@ import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { SignOutIcon, UserIcon } from '@/components/icons';
 import { NavigationOverlay } from '@/components/navigation-overlay';
 import { NavLinks } from '@/components/nav-links';
+import { ScrollTopButton } from '@/components/scroll-top';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
@@ -26,8 +27,18 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   ]);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-bg/85 backdrop-blur-md">
+    /*
+      画面の高さに合わせて固定し、本文だけを送る。
+
+      従来はページ全体が伸び、ヘッダーは sticky、フッターは一番下だった。
+      そのため一覧が長いとフッターが見えず、下まで送ると
+      ヘッダーだけが残る形になっていた。
+
+      h-screen + overflow-hidden で外枠を固定し、本文に
+      overflow-y-auto を与えると、ヘッダーとフッターが常に見える。
+    */
+    <div className="flex h-screen flex-col overflow-hidden">
+      <header className="z-20 shrink-0 border-b border-border bg-bg/85 backdrop-blur-md">
         {/*
           並びは 左:ロゴ ─ 区切り ─ ナビ ─ (余白) ─ 右:操作ボタン。
           折り返さない (flex-nowrap) ことで、狭い画面でも操作列が
@@ -76,7 +87,10 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               dashboard: t.nav.dashboard,
               facilities: t.nav.facilities,
               categories: t.nav.categories,
+              accounts: t.nav.accounts,
+              history: t.nav.history,
             }}
+            isAdmin={staff.profile.role === 'admin'}
           />
 
           {/* ml-auto で操作ボタンを右端へ寄せる */}
@@ -100,7 +114,13 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               <UserIcon width={15} height={15} />
               {staff.profile.display_name}
               <span className="rounded border border-border px-1.5 py-0.5 text-[10px]">
-                {staff.profile.role === 'admin' ? t.nav.roleAdmin : t.nav.roleEditor}
+                {
+                  {
+                    admin: t.nav.roleAdmin,
+                    editor: t.nav.roleEditor,
+                    surveyor: t.nav.roleSurveyor,
+                  }[staff.profile.role]
+                }
               </span>
             </span>
 
@@ -118,7 +138,22 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      {/*
+        本文だけが送られる領域。
+        min-h-0 が要る。これが無いと flex の子は内容の高さまで伸び、
+        overflow-y-auto が効かない（外側にスクロールが出てしまう）。
+      */}
+      {/*
+        relative を付けておく。
+
+        本文の中に position:absolute の要素（sr-only など）が置かれたとき、
+        基準になる先祖が無いと body を基準に配置され、
+        main の overflow では抑えられずページ全体が伸びる。
+        個々の要素に頼らず、本文の器の側で受け止める。
+      */}
+      <main className="relative min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl px-6 py-8">{children}</div>
+      </main>
 
       {/*
         遷移中は、いま表示している画面を残したまま上に重ねて出す。
@@ -126,7 +161,10 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
       */}
       <NavigationOverlay label={t.common.loading} />
 
-      <footer className="border-t border-border px-6 py-5">
+      {/* 一覧が長い画面で使う。全画面に置いて場所を固定する。 */}
+      <ScrollTopButton label={t.nav.scrollTop} />
+
+      <footer className="shrink-0 border-t border-border px-6 py-5">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
           <span className="text-sm tracking-widest text-text-muted">
             {t.brand.footerName}

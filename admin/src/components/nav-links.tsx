@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { BuildingIcon, GaugeIcon, TagIcon } from '@/components/icons';
+import { BuildingIcon, GaugeIcon, TagIcon, UsersIcon, HistoryIcon } from '@/components/icons';
 
 /**
  * ヘッダーのナビゲーション。
@@ -14,8 +14,17 @@ import { BuildingIcon, GaugeIcon, TagIcon } from '@/components/icons';
  */
 export function NavLinks({
   labels,
+  isAdmin = false,
 }: {
-  labels: { dashboard: string; facilities: string; categories: string };
+  labels: {
+    dashboard: string;
+    facilities: string;
+    categories: string;
+    accounts: string;
+    history: string;
+  };
+  /** アカウント管理と操作履歴は管理者しか開けない。開けない項目は出さない。 */
+  isAdmin?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -23,6 +32,12 @@ export function NavLinks({
     { href: '/', label: labels.dashboard, Icon: GaugeIcon },
     { href: '/facilities', label: labels.facilities, Icon: BuildingIcon },
     { href: '/categories', label: labels.categories, Icon: TagIcon },
+    ...(isAdmin
+      ? [
+          { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
+          { href: '/history', label: labels.history, Icon: HistoryIcon },
+        ]
+      : []),
   ];
 
   // ダッシュボードは完全一致。他は配下の画面（施設の詳細など）も点灯させる。

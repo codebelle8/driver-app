@@ -24,9 +24,81 @@ const ja = {
     dashboard: 'ダッシュボード',
     facilities: '施設一覧',
     categories: 'カテゴリ',
+    accounts: 'アカウント',
+    history: '操作履歴',
+    scrollTop: '先頭へ戻る',
     signOut: 'ログアウト',
     roleAdmin: '管理者',
     roleEditor: '編集者',
+    roleSurveyor: '調査員',
+  },
+
+
+  role: {
+    admin: '管理者',
+    editor: '編集者',
+    surveyor: '調査員',
+    adminDesc: 'すべての操作。アカウントの発行・停止と操作履歴の閲覧を含みます',
+    editorDesc: '施設の登録・編集・公開・削除。アカウント管理はできません',
+    surveyorDesc: '下書きの登録・編集のみ。公開済みの情報は変更できません',
+  },
+
+  auditAction: {
+    insert: '追加',
+    update: '変更',
+    delete: '削除',
+    publish: '公開',
+  },
+
+  auditTable: {
+    facilities: '施設',
+    entry_points: '入口・車寄せ',
+    cautions: '注意事項',
+    photos: '写真',
+    categories: 'カテゴリ',
+    admin_profiles: 'アカウント',
+  },
+
+  accounts: {
+    title: 'アカウント管理',
+    description: '調査員・編集者のアカウントを発行し、権限を管理します。',
+    newTitle: 'アカウントを発行する',
+    email: 'メールアドレス',
+    displayName: 'お名前',
+    role: '役割',
+    issue: '発行する',
+    issuing: '発行しています...',
+    issuedTitle: '初期パスワードを発行しました',
+    issuedWarning:
+      'このパスワードは今だけ表示されます。画面を離れると二度と確認できません。ご本人へお渡しください。',
+    listTitle: '登録済みのアカウント',
+    colName: 'お名前',
+    colRole: '役割',
+    colState: '状態',
+    colCreated: '登録日',
+    active: '有効',
+    inactive: '停止中',
+    suspend: '停止する',
+    resume: '再開する',
+    self: 'ご自身',
+    empty: 'まだアカウントがありません。',
+    roleNote: '役割ごとにできることが異なります。',
+    adminOnly: 'この画面は管理者のみご利用いただけます。',
+  },
+
+  audit: {
+    title: '操作履歴',
+    description: '誰がいつ何を変更したかの記録です。',
+    colWhen: '日時',
+    colWho: '操作した人',
+    colWhat: '対象',
+    colAction: '操作',
+    colDetail: '内容',
+    empty: 'まだ記録がありません。',
+    unknownUser: '（削除された利用者）',
+    filterAll: 'すべて',
+    changedFields: '件の項目を変更',
+    note: '記録はデータベース側で自動的に残るため、画面の操作では消せません。',
   },
   common: {
     save: '保存',
@@ -145,6 +217,11 @@ const ja = {
     warningNote:
       '仮画像のままでも公開できます。文章と座標が正しければ、ドライバーには既に十分な価値があります。',
     ready: '必要な項目はすべて揃っています。いつでも公開できます。',
+    surveyorNote: '公開の切り替えは管理者が行います',
+    readOnlyTitle: 'この施設は公開中のため、変更できません',
+    readOnlyBody:
+      '公開後の内容を変更できるのは管理者・編集者のみです。'
+      + '修正が必要な箇所がございましたら、管理者へお知らせください。',
   },
   entryPoint: {
     heading: '入口・車寄せ',
@@ -185,6 +262,7 @@ const ja = {
   },
   caution: {
     heading: '注意事項',
+    empty: '注意事項は登録されていません。',
     add: '+ 注意事項を追加',
     body: '本文',
     bodyPlaceholder: '17〜20時は送迎バスが停車するため手前のレーンは通過できません。',
@@ -212,6 +290,10 @@ const ja = {
     upload: '写真を追加',
     uploading: 'アップロードしています…',
     placeholder: '仮画像',
+    dropHint: 'この枠に画像を落としても選択できます',
+    moveUp: '前へ移動',
+    moveDown: '後ろへ移動',
+    replace: '画像を差し替える（種別・説明・順番はそのまま）',
   },
   categories: {
     title: 'カテゴリ',
@@ -269,9 +351,82 @@ const en: Dictionary = {
     dashboard: 'Dashboard',
     facilities: 'Facilities',
     categories: 'Categories',
+    accounts: 'Accounts',
+    history: 'History',
+    scrollTop: 'Back to top',
     signOut: 'Sign out',
     roleAdmin: 'Administrator',
     roleEditor: 'Editor',
+    roleSurveyor: 'Investigator',
+  },
+
+
+  role: {
+    admin: 'Administrator',
+    editor: 'Editor',
+    surveyor: 'Investigator',
+    adminDesc:
+      'Everything, including issuing or suspending accounts and viewing the activity history',
+    editorDesc: 'Register, edit, publish and delete facilities. Cannot manage accounts',
+    surveyorDesc: 'Register and edit drafts only. Cannot change published information',
+  },
+
+  auditAction: {
+    insert: 'Added',
+    update: 'Changed',
+    delete: 'Deleted',
+    publish: 'Published',
+  },
+
+  auditTable: {
+    facilities: 'Facility',
+    entry_points: 'Entrance',
+    cautions: 'Caution',
+    photos: 'Photo',
+    categories: 'Category',
+    admin_profiles: 'Account',
+  },
+
+  accounts: {
+    title: 'Account management',
+    description: 'Issue accounts for investigators and editors, and manage their permissions.',
+    newTitle: 'Issue an account',
+    email: 'Email address',
+    displayName: 'Name',
+    role: 'Role',
+    issue: 'Issue',
+    issuing: 'Issuing...',
+    issuedTitle: 'Initial password issued',
+    issuedWarning:
+      'This password is shown only once. It cannot be retrieved after you leave this page. Please pass it to the account holder.',
+    listTitle: 'Registered accounts',
+    colName: 'Name',
+    colRole: 'Role',
+    colState: 'State',
+    colCreated: 'Created',
+    active: 'Active',
+    inactive: 'Suspended',
+    suspend: 'Suspend',
+    resume: 'Resume',
+    self: 'You',
+    empty: 'No accounts yet.',
+    roleNote: 'Each role can do different things.',
+    adminOnly: 'This page is available to administrators only.',
+  },
+
+  audit: {
+    title: 'Activity history',
+    description: 'A record of who changed what, and when.',
+    colWhen: 'When',
+    colWho: 'Who',
+    colWhat: 'Target',
+    colAction: 'Action',
+    colDetail: 'Detail',
+    empty: 'No records yet.',
+    unknownUser: '(deleted user)',
+    filterAll: 'All',
+    changedFields: 'field(s) changed',
+    note: 'Records are written by the database itself and cannot be removed from this screen.',
   },
   common: {
     save: 'Save',
@@ -390,6 +545,11 @@ const en: Dictionary = {
     warningNote:
       'You can publish with placeholders still in place. If the text and coordinates are correct, drivers already get real value.',
     ready: 'Everything required is in place. You can publish at any time.',
+    surveyorNote: 'Publishing is handled by an administrator',
+    readOnlyTitle: 'This facility is published and cannot be changed',
+    readOnlyBody:
+      'Only administrators and editors can change published content. '
+      + 'Please contact an administrator if something needs correcting.',
   },
   entryPoint: {
     heading: 'Entrances & drop-offs',
@@ -430,6 +590,7 @@ const en: Dictionary = {
   },
   caution: {
     heading: 'Cautions',
+    empty: 'No cautions registered.',
     add: '+ Add caution',
     body: 'Text',
     bodyPlaceholder:
@@ -459,6 +620,10 @@ const en: Dictionary = {
     upload: 'Add photo',
     uploading: 'Uploading…',
     placeholder: 'Placeholder',
+    dropHint: 'You can also drop an image onto this area',
+    moveUp: 'Move earlier',
+    moveDown: 'Move later',
+    replace: 'Replace image (kind, caption and order are kept)',
   },
   categories: {
     title: 'Categories',

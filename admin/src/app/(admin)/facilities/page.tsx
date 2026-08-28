@@ -18,6 +18,14 @@ import type { PublishStatus } from '@/lib/supabase/database.types';
 export const dynamic = 'force-dynamic';
 
 /**
+ * 1ページに出す件数。
+ *
+ * 150件を一度に並べると、目当ての施設を探すのに縦スクロールが要る。
+ * 15件なら画面に収まり、絞り込みと組み合わせて辿り着ける。
+ */
+const PAGE_SIZE = 15;
+
+/**
  * 検索語を、施設の search_text と同じ規則で正規化する。
  * DB 側のトリガと揃えないと「シオドメ」で引けない。
  * （DB: public.normalize_search_text）
@@ -41,25 +49,51 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
   const q = typeof params.q === 'string' ? params.q : '';
   const categoryId = typeof params.category === 'string' ? params.category : '';
   const status = typeof params.status === 'string' ? params.status : '';
+  const page = Math.max(1, Number(params.page) || 1);
 
   const supabase = await createClient();
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('id, name, code_prefix')
-    .eq('is_active', true)
-    .order('sort_order');
-
+  // count: 'exact' で、絞り込み後の総件数も一緒に受け取る。
+  // 件数が分からないとページ送りの終わりを判断できない。
   let query = supabase
     .from('facilities')
-    .select('id, code, name, name_kana, address_line, status, category_id, updated_at')
+    .select('id, code, name, name_kana, address_line, status, category_id, updated_at', {
+      count: 'exact',
+    })
     .order('code');
 
   if (q.trim()) query = query.like('search_text', `%${normalize(q.trim())}%`);
   if (categoryId) query = query.eq('category_id', categoryId);
   if (status) query = query.eq('status', status as PublishStatus);
 
-  const { data: facilities, error } = await query;
+  const from = (page - 1) * PAGE_SIZE;
+
+  // 絞り込み用のカテゴリ一覧と施設一覧は互いに依存しない。同時に取る。
+  const [facilityResult, categoryResult] = await Promise.all([
+    query.range(from, from + PAGE_SIZE - 1),
+    supabase
+      .from('categories')
+      .select('id, name, code_prefix')
+      .eq('is_active', true)
+      .order('sort_order'),
+  ]);
+
+  const { data: facilities, error, count } = facilityResult;
+  const categories = categoryResult.data;
+
+  const total = count ?? 0;
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  /** 絞り込みを保ったままページだけ変える */
+  function pageHref(target: number): string {
+    const sp = new URLSearchParams();
+    if (q) sp.set('q', q);
+    if (categoryId) sp.set('category', categoryId);
+    if (status) sp.set('status', status);
+    if (target > 1) sp.set('page', String(target));
+    const query = sp.toString();
+    return query ? `/facilities?${query}` : '/facilities';
+  }
 
   // 入口の件数をまとめて取得し、一覧に表示する
   const ids = (facilities ?? []).map((f) => f.id);
@@ -79,7 +113,11 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
     <div className="space-y-6">
       <PageHeader
         title={t.facilities.title}
-        description={`${facilities?.length ?? 0} ${t.facilities.showing}`}
+        description={
+          total > PAGE_SIZE
+            ? `${total} ${t.facilities.showing}（${from + 1}〜${Math.min(from + PAGE_SIZE, total)} 件目）`
+            : `${total} ${t.facilities.showing}`
+        }
         actions={
           <LinkButton href="/facilities/new">
             <PlusIcon width={16} height={16} />
@@ -168,6 +206,58 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
           </ul>
         </Card>
       )}
+
+      {/*
+        ページ送り。
+        リンクなので、押した時点で既存の読み込み表示（ステアリング）が出る。
+        別途の作り込みは要らない。
+      */}
+      {lastPage > 1 && (
+        <nav className="flex items-center justify-center gap-2" aria-label="ページ送り">
+          <PageLink href={pageHref(page - 1)} disabled={page <= 1}>
+            前へ
+          </PageLink>
+          <span className="tabular px-3 text-sm text-text-muted">
+            {page} / {lastPage}
+          </span>
+          <PageLink href={pageHref(page + 1)} disabled={page >= lastPage}>
+            次へ
+          </PageLink>
+        </nav>
+      )}
     </div>
+  );
+}
+
+/** ページ送りのボタン。端では押せないことが見て分かるようにする。 */
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const base =
+    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors';
+
+  if (disabled) {
+    return (
+      <span
+        aria-disabled="true"
+        className={`${base} border-border text-text-faint`}
+      >
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className={`${base} border-border text-text hover:border-accent hover:text-accent`}
+    >
+      {children}
+    </Link>
   );
 }

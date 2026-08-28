@@ -12,7 +12,7 @@ import { AddEntryPointButton, EntryPointEditor } from '@/components/entry-point-
 import { FacilityForm } from '@/components/facility-form';
 import { PhotoManager } from '@/components/photo-manager';
 import { Alert, Badge, Button, Card, PageHeader, StatusBadge } from '@/components/ui';
-import { requireStaff } from '@/lib/auth';
+import { canEditFacility, requireStaff } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -31,7 +31,7 @@ export default async function FacilityDetailPage({
   params,
   searchParams,
 }: PageProps<'/facilities/[id]'>) {
-  await requireStaff();
+  const staff = await requireStaff();
   const [{ id }, sp, t] = await Promise.all([params, searchParams, getDictionary()]);
 
   const supabase = await createClient();
@@ -70,6 +70,13 @@ export default async function FacilityDetailPage({
   const warnings = problems.filter((p) => p.startsWith('［警告］'));
   const canPublish = blockers.length === 0;
 
+  // 調査員は公開・非公開の切り替えを行えない
+  const isManager = staff.profile.role !== 'surveyor';
+  // 調査員から見た公開済みの施設は読み取り専用。
+  // 編集欄を出したまま保存させると、RLS が対象0件に絞るため
+  // 「保存できたのに何も変わらない」という最悪の結果になる。
+  const editable = canEditFacility(staff, facility.status);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -88,6 +95,17 @@ export default async function FacilityDetailPage({
       {sp.created === '1' && <Alert tone="ok">{t.facilityForm.createdNotice}</Alert>}
 
       {/*
+        調査員から見た公開済みの施設。編集欄を出したまま保存させると
+        RLS が対象0件に絞るため、保存できたように見えて何も変わらない。
+        操作させずに理由を伝える。
+      */}
+      {!editable && (
+        <Alert tone="info" title={t.publish.readOnlyTitle}>
+          {t.publish.readOnlyBody}
+        </Alert>
+      )}
+
+      {/*
         公開可否は DB 側の関数で判定している。
         CSV 一括投入など別経路から登録された場合にも同じ基準が働くようにするため。
       */}
@@ -96,24 +114,28 @@ export default async function FacilityDetailPage({
           <h2 className="text-sm font-semibold text-text-muted">
             {t.publish.title}
           </h2>
-          <form action={setFacilityStatus} className="flex items-center gap-2">
-            <input type="hidden" name="id" value={facility.id} />
-            {facility.status !== 'published' ? (
-              <>
-                <input type="hidden" name="status" value="published" />
-                <Button type="submit" disabled={!canPublish}>
-                  {canPublish ? t.publish.publish : t.publish.cannotPublish}
-                </Button>
-              </>
-            ) : (
-              <>
-                <input type="hidden" name="status" value="draft" />
-                <Button type="submit" variant="secondary">
-                  {t.publish.unpublish}
-                </Button>
-              </>
-            )}
-          </form>
+          {isManager ? (
+            <form action={setFacilityStatus} className="flex items-center gap-2">
+              <input type="hidden" name="id" value={facility.id} />
+              {facility.status !== 'published' ? (
+                <>
+                  <input type="hidden" name="status" value="published" />
+                  <Button type="submit" disabled={!canPublish}>
+                    {canPublish ? t.publish.publish : t.publish.cannotPublish}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <input type="hidden" name="status" value="draft" />
+                  <Button type="submit" variant="secondary">
+                    {t.publish.unpublish}
+                  </Button>
+                </>
+              )}
+            </form>
+          ) : (
+            <span className="text-xs text-text-muted">{t.publish.surveyorNote}</span>
+          )}
         </div>
 
         {blockers.length > 0 && (
@@ -150,11 +172,13 @@ export default async function FacilityDetailPage({
               {entryPoints?.length ?? 0} {t.common.places}
             </span>
           </h2>
-          <AddEntryPointButton
-            facilityId={facility.id}
-            suggestedCode={nextCode((entryPoints ?? []).map((ep) => ep.code))}
-            t={t}
-          />
+          {editable && (
+            <AddEntryPointButton
+              facilityId={facility.id}
+              suggestedCode={nextCode((entryPoints ?? []).map((ep) => ep.code))}
+              t={t}
+            />
+          )}
         </div>
 
         {!entryPoints?.length ? (
@@ -184,30 +208,72 @@ export default async function FacilityDetailPage({
                     <Badge tone="accent">
                       {t.entryPoint.photos} {epPhotos.length} {t.common.sheets}
                     </Badge>
-                    <form action={deleteEntryPoint}>
-                      <input type="hidden" name="id" value={ep.id} />
-                      <input type="hidden" name="facility_id" value={facility.id} />
-                      <button
-                        type="submit"
-                        className="text-xs text-text-faint transition-colors hover:text-danger"
-                      >
-                        {t.entryPoint.deleteThis}
-                      </button>
-                    </form>
+                    {editable && (
+                      <form action={deleteEntryPoint}>
+                        <input type="hidden" name="id" value={ep.id} />
+                        <input type="hidden" name="facility_id" value={facility.id} />
+                        <button
+                          type="submit"
+                          className="text-xs text-text-faint transition-colors hover:text-danger"
+                        >
+                          {t.entryPoint.deleteThis}
+                        </button>
+                      </form>
+                    )}
                   </div>
 
-                  <EntryPointEditor facilityId={facility.id} entryPoint={ep} t={t} />
+                  {editable ? (
+                    <EntryPointEditor facilityId={facility.id} entryPoint={ep} t={t} />
+                  ) : (
+                    // 編集はできなくても、現地で参照する情報としては読めるべき
+                    <dl className="space-y-2 text-sm">
+                      {ep.approach_text && (
+                        <div>
+                          <dt className="text-xs text-text-muted">
+                            {t.entryPoint.approachText}
+                          </dt>
+                          <dd className="leading-relaxed">{ep.approach_text}</dd>
+                        </div>
+                      )}
+                      {ep.approach_from && (
+                        <div>
+                          <dt className="text-xs text-text-muted">
+                            {t.entryPoint.approachFrom}
+                          </dt>
+                          <dd>{ep.approach_from}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  )}
 
                   <div className="border-t border-border pt-5">
                     <h3 className="mb-3 text-sm font-semibold text-text-muted">
                       {t.caution.heading}
                     </h3>
-                    <CautionEditor
-                      facilityId={facility.id}
-                      entryPointId={ep.id}
-                      cautions={epCautions}
-                      t={t}
-                    />
+                    {editable ? (
+                      <CautionEditor
+                        facilityId={facility.id}
+                        entryPointId={ep.id}
+                        cautions={epCautions}
+                        t={t}
+                      />
+                    ) : (
+                      <ul className="space-y-1 text-sm leading-relaxed">
+                        {epCautions.length === 0 && (
+                          <li className="text-text-muted">{t.caution.empty}</li>
+                        )}
+                        {epCautions.map((c) => (
+                          <li key={c.id}>
+                            {c.time_from && c.time_to && (
+                              <span className="tabular mr-2 text-xs text-text-muted">
+                                {c.time_from.slice(0, 5)}–{c.time_to.slice(0, 5)}
+                              </span>
+                            )}
+                            {c.body}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
 
                   <div className="border-t border-border pt-5">
@@ -218,6 +284,7 @@ export default async function FacilityDetailPage({
                       facilityId={facility.id}
                       entryPointId={ep.id}
                       photos={epPhotos}
+                      readOnly={!editable}
                       t={t}
                     />
                   </div>
@@ -228,16 +295,18 @@ export default async function FacilityDetailPage({
         )}
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-bold">{t.facilityForm.sectionFacility}</h2>
-        <FacilityForm
-          action={updateFacility}
-          categories={categories ?? []}
-          facility={facility}
-          submitLabel={t.facilityForm.submitUpdate}
-          t={t}
-        />
-      </section>
+      {editable && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold">{t.facilityForm.sectionFacility}</h2>
+          <FacilityForm
+            action={updateFacility}
+            categories={categories ?? []}
+            facility={facility}
+            submitLabel={t.facilityForm.submitUpdate}
+            t={t}
+          />
+        </section>
+      )}
     </div>
   );
 }

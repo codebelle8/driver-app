@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-import { requireStaff } from '@/lib/auth';
+import { requireManager, requireStaff } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { facilitySchema, fieldErrors, formToObject } from '@/lib/validation';
 
@@ -93,9 +93,24 @@ export async function updateFacility(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from('facilities').update(parsed.data).eq('id', id);
+
+  // 更新できた行を返させているのは、権限が足りないときに黙って
+  // 0件で終わるのを検出するため。RLS は「見えない行」を除外するだけで
+  // エラーにしないため、これが無いと保存できたように見えてしまう。
+  const { data: updated, error } = await supabase
+    .from('facilities')
+    .update(parsed.data)
+    .eq('id', id)
+    .select('id');
 
   if (error) return { message: `更新に失敗しました: ${error.message}` };
+  if (!updated || updated.length === 0) {
+    return {
+      message:
+        '保存できませんでした。公開済みの施設は調査員の権限では変更できません。'
+        + '管理者へご連絡ください。',
+    };
+  }
 
   revalidatePath(`/facilities/${id}`);
   revalidatePath('/facilities');
@@ -104,7 +119,7 @@ export async function updateFacility(
 }
 
 export async function deleteFacility(formData: FormData): Promise<void> {
-  await requireStaff();
+  await requireManager();
 
   const id = formData.get('id');
   if (typeof id !== 'string') return;
@@ -135,7 +150,7 @@ export async function checkPublishReadiness(facilityId: string): Promise<string[
 }
 
 export async function setFacilityStatus(formData: FormData): Promise<void> {
-  await requireStaff();
+  await requireManager();
 
   const id = formData.get('id');
   const status = formData.get('status');

@@ -35,6 +35,22 @@ export async function proxy(request: NextRequest) {
   // getUser() を呼ぶことでトークンの更新が走る。呼ばないと期限切れに気づけない。
   const { data: { user } } = await supabase.auth.getUser();
 
+  /*
+    確認できた利用者を、後続の画面へ受け渡す。
+
+    画面側 (lib/auth.ts) でも getUser() を呼んでいたため、1回の表示で
+    Supabase の認証サーバーへ2往復していた。1往復あたり 70〜100ms かかり、
+    表示のたびに無駄が乗る。
+
+    ここで付ける値は利用者のブラウザから来たものではなく、
+    この関数がトークンを検証した結果である。改ざんの余地は無い。
+  */
+  if (user) {
+    request.headers.set('x-kn-user-id', user.id);
+    request.headers.set('x-kn-user-email', user.email ?? '');
+    response = NextResponse.next({ request });
+  }
+
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname.startsWith('/login');
 

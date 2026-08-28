@@ -106,3 +106,26 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** 複数人 — アカウント管理 */
+export function UsersIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <path d="M16 5.5a3.2 3.2 0 0 1 0 5.6" />
+      <path d="M17.5 14.4A6 6 0 0 1 21 20" />
+    </svg>
+  );
+}
+
+/** 時計と矢印 — 操作履歴 */
+export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
+      <path d="M3.5 4.5V9H8" />
+      <path d="M12 7.5V12l3 1.8" />
+    </svg>
+  );
+}

@@ -9,6 +9,75 @@ import { createClient } from '@/lib/supabase/server';
 import type { PhotoKind } from '@/lib/supabase/database.types';
 import type { ActionState } from './facilities';
 
+/**
+ * 画像を詳細版と一覧版の2つに変換する。
+ *
+ * 追加と差し替えで同じ処理が要るため、切り出してある。
+ * ここで失敗した場合は、保存にもデータベースにも一切触れていない状態で返す。
+ */
+async function processImage(file: File) {
+  // rotate() で EXIF の向きを反映する。
+  // スマートフォンの写真は横向きに撮っても縦のまま保存されることがあり、
+  // これを入れないと管理画面とアプリで上下が逆になる。
+  const base = sharp(Buffer.from(await file.arrayBuffer())).rotate();
+
+  const detailResult = await base
+    .clone()
+    .resize({ width: DETAIL_MAX, height: DETAIL_MAX, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toBuffer({ resolveWithObject: true });
+
+  const thumb = await base
+    .clone()
+    .resize({ width: THUMB_MAX, height: THUMB_MAX, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality: 75 })
+    .toBuffer();
+
+  return {
+    detail: detailResult.data,
+    thumb,
+    width: detailResult.info.width,
+    height: detailResult.info.height,
+  };
+}
+
+/**
+ * 保存領域から画像の実体を消す。
+ *
+ * **消えたかどうかを必ず確かめる。**
+ *   Storage の削除は、権限が無くても HTTP 200 と空配列を返す。
+ *   戻り値を見ないと「消したつもり」で通過し、参照されないファイルだけが
+ *   際限なく積み上がる。150施設ぶんの差し替えでは容量に直結する。
+ *
+ * 呼ぶ側は、対応する行の削除・更新が成功したことを先に確かめておくこと。
+ * 行が残ったままファイルだけ消すと、一覧に出るのに開けない写真になる。
+ */
+async function removeFiles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  storagePath: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const paths = [storagePath, thumbPathOf(storagePath)];
+  const { data, error } = await supabase.storage.from(BUCKET).remove(paths);
+
+  if (error) return { ok: false, reason: error.message };
+  if (!data || data.length === 0) {
+    return {
+      ok: false,
+      reason: '保存領域の削除権限がありません（storage.objects の削除ポリシーをご確認ください）',
+    };
+  }
+  return { ok: true };
+}
+
+/** 受け取ったものが画像として扱えるか */
+function checkFile(file: FormDataEntryValue | null): string | null {
+  if (!(file instanceof File) || file.size === 0) return '画像ファイルを選択してください';
+  if (!file.type.startsWith('image/')) {
+    return '画像ファイルを選択してください（JPEG / PNG / WebP）';
+  }
+  return null;
+}
+
 export async function uploadPhoto(
   _prev: ActionState,
   formData: FormData,
@@ -22,12 +91,8 @@ export async function uploadPhoto(
   const file = formData.get('file');
 
   if (typeof facilityId !== 'string') return { message: '施設が特定できませんでした' };
-  if (!(file instanceof File) || file.size === 0) {
-    return { errors: { file: '画像ファイルを選択してください' } };
-  }
-  if (!file.type.startsWith('image/')) {
-    return { errors: { file: '画像ファイルを選択してください（JPEG / PNG / WebP）' } };
-  }
+  const fileError = checkFile(file);
+  if (fileError) return { errors: { file: fileError } };
 
   const supabase = await createClient();
 
@@ -41,34 +106,11 @@ export async function uploadPhoto(
 
   let detail: Buffer;
   let thumb: Buffer;
-  let width: number | null = null;
-  let height: number | null = null;
+  let width: number;
+  let height: number;
 
   try {
-    const input = Buffer.from(await file.arrayBuffer());
-
-    // rotate() で EXIF の向きを反映する。
-    // スマートフォンの写真は横向きに撮っても縦のまま保存されることがあり、
-    // これを入れないと管理画面とアプリで上下が逆になる。
-    const base = sharp(input).rotate();
-
-    const detailImage = base.clone().resize({
-      width: DETAIL_MAX,
-      height: DETAIL_MAX,
-      fit: 'inside',
-      withoutEnlargement: true,
-    });
-
-    const detailResult = await detailImage.webp({ quality: 82 }).toBuffer({ resolveWithObject: true });
-    detail = detailResult.data;
-    width = detailResult.info.width;
-    height = detailResult.info.height;
-
-    thumb = await base
-      .clone()
-      .resize({ width: THUMB_MAX, height: THUMB_MAX, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
+    ({ detail, thumb, width, height } = await processImage(file as File));
   } catch {
     return { errors: { file: '画像を読み込めませんでした。別のファイルでお試しください。' } };
   }
@@ -93,7 +135,27 @@ export async function uploadPhoto(
     return { message: `アップロードに失敗しました: ${uploadThumb.error.message}` };
   }
 
+  /*
+    並びの最後に置く。
+
+    列の既定値は 0 のため、採番しないと追加した写真がすべて 0 になり、
+    並べ替えても順序が定まらなくなる。
+  */
+  const owner =
+    typeof entryPointId === 'string' && entryPointId
+      ? { column: 'entry_point_id' as const, value: entryPointId }
+      : { column: 'facility_id' as const, value: facilityId };
+
+  const { data: last } = await supabase
+    .from('photos')
+    .select('sort_order')
+    .eq(owner.column, owner.value)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const { error } = await supabase.from('photos').insert({
+    sort_order: (last?.sort_order ?? -1) + 1,
     facility_id: entryPointId ? null : facilityId,
     entry_point_id: typeof entryPointId === 'string' && entryPointId ? entryPointId : null,
     kind: kindValue,
@@ -117,6 +179,172 @@ export async function uploadPhoto(
   return { ok: true, message: '写真を追加しました。' };
 }
 
+/**
+ * 写真の順番を1つ動かす。
+ *
+ * ドライバーは上から順に見るため、並び順は「手前の目印 → 進入路 → 車寄せ」
+ * のように現地で目にする順であってほしい。登録した順とは限らない。
+ *
+ * 隣と番号を入れ替える方式にしている。全体を振り直すより書き込みが2件で済み、
+ * 途中で失敗しても並びが壊れない。
+ */
+export async function movePhoto(formData: FormData): Promise<void> {
+  await requireStaff();
+
+  const id = formData.get('id');
+  const facilityId = formData.get('facility_id');
+  const direction = formData.get('direction');
+  if (typeof id !== 'string' || typeof facilityId !== 'string') return;
+  if (direction !== 'up' && direction !== 'down') return;
+
+  const supabase = await createClient();
+
+  const { data: photo } = await supabase
+    .from('photos')
+    .select('id, sort_order, entry_point_id, facility_id')
+    .eq('id', id)
+    .single();
+  if (!photo) return;
+
+  // 同じ入口（入口に紐づかないものは同じ施設）の中だけで入れ替える
+  const column = photo.entry_point_id ? 'entry_point_id' : 'facility_id';
+  const value = photo.entry_point_id ?? photo.facility_id;
+  if (!value) return;
+
+  const { data: neighbours } = await supabase
+    .from('photos')
+    .select('id, sort_order')
+    .eq(column, value)
+    .order('sort_order')
+    .order('id');
+  if (!neighbours) return;
+
+  const at = neighbours.findIndex((n) => n.id === photo.id);
+  const to = direction === 'up' ? at - 1 : at + 1;
+  // 端では動かせない。押せないようにもしているが、二重に守る。
+  if (at < 0 || to < 0 || to >= neighbours.length) return;
+
+  const other = neighbours[to];
+
+  /*
+    番号が同じだと入れ替えても並びが変わらない。
+    取り込み時の値がすべて 0 の施設もあり得るため、
+    ここで並び全体を 0 から振り直してから入れ替える。
+  */
+  const renumbered = neighbours.map((n, i) => ({ id: n.id, sort_order: i }));
+  const needsRenumber = neighbours.some((n, i) => n.sort_order !== i);
+  if (needsRenumber) {
+    for (const r of renumbered) {
+      await supabase.from('photos').update({ sort_order: r.sort_order }).eq('id', r.id);
+    }
+  }
+
+  await supabase.from('photos').update({ sort_order: to }).eq('id', photo.id);
+  await supabase.from('photos').update({ sort_order: at }).eq('id', other.id);
+
+  revalidatePath(`/facilities/${facilityId}`);
+  revalidatePath('/');
+}
+
+/**
+ * 写真の画像だけを入れ替える。
+ *
+ * 種別・説明・順番・並びの位置はそのまま引き継ぐ。
+ * 削除して登録し直すと、これらを毎回付け直すことになり、
+ * 150施設ぶんの仮画像を実写真へ置き換える作業が現実的でなくなる。
+ *
+ * 仮画像の印は外す。実写真に入れ替わった時点で仮ではなくなるため。
+ */
+export async function replacePhoto(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireStaff();
+
+  const id = formData.get('id');
+  const facilityId = formData.get('facility_id');
+  const file = formData.get('file');
+
+  if (typeof id !== 'string' || typeof facilityId !== 'string') {
+    return { message: '写真が特定できませんでした' };
+  }
+  const fileError = checkFile(file);
+  if (fileError) return { errors: { file: fileError } };
+
+  const supabase = await createClient();
+
+  const { data: photo } = await supabase
+    .from('photos')
+    .select('storage_path, kind')
+    .eq('id', id)
+    .single();
+  if (!photo) return { message: '写真が見つかりませんでした' };
+
+  const { data: facility } = await supabase
+    .from('facilities')
+    .select('code')
+    .eq('id', facilityId)
+    .single();
+  if (!facility) return { message: '施設が見つかりませんでした' };
+
+  let detail: Buffer;
+  let thumb: Buffer;
+  let width: number;
+  let height: number;
+
+  try {
+    ({ detail, thumb, width, height } = await processImage(file as File));
+  } catch {
+    return { errors: { file: '画像を読み込めませんでした。別のファイルでお試しください。' } };
+  }
+
+  /*
+    元のパスへ上書きせず、新しいパスへ置く。
+
+    同じパスへ上書きすると、閲覧側や CDN に残った古い画像が
+    しばらく表示され続ける。差し替えたのに変わらない、という状態になる。
+  */
+  const newPath = `photos/${facility.code}/${photo.kind}_${Date.now()}.webp`;
+  const options = { contentType: 'image/webp', upsert: false };
+
+  const putDetail = await supabase.storage.from(BUCKET).upload(newPath, detail, options);
+  if (putDetail.error) {
+    return { message: `差し替えに失敗しました: ${putDetail.error.message}` };
+  }
+
+  const putThumb = await supabase.storage
+    .from(BUCKET)
+    .upload(thumbPathOf(newPath), thumb, options);
+  if (putThumb.error) {
+    await supabase.storage.from(BUCKET).remove([newPath]);
+    return { message: `差し替えに失敗しました: ${putThumb.error.message}` };
+  }
+
+  const { error } = await supabase
+    .from('photos')
+    .update({ storage_path: newPath, width, height, is_placeholder: false })
+    .eq('id', id);
+
+  if (error) {
+    // 記録できなければ、置いたばかりの画像は残さない
+    await supabase.storage.from(BUCKET).remove([newPath, thumbPathOf(newPath)]);
+    return { message: `差し替えに失敗しました: ${error.message}` };
+  }
+
+  // 記録が新しい画像へ移ったあとに、古い画像を消す。
+  // 先に消すと、記録の更新が失敗したときに画像だけ無くなる。
+  const cleaned = await removeFiles(supabase, photo.storage_path);
+
+  revalidatePath(`/facilities/${facilityId}`);
+  revalidatePath('/');
+
+  // 差し替え自体は成立している。消し残りは伝えるだけにとどめ、
+  // 作業を止めない。
+  return cleaned.ok
+    ? { ok: true, message: '写真を差し替えました。' }
+    : { ok: true, message: `写真を差し替えました。ただし古い画像が残りました: ${cleaned.reason}` };
+}
+
 export async function deletePhoto(formData: FormData): Promise<void> {
   await requireStaff();
 
@@ -126,18 +354,21 @@ export async function deletePhoto(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
 
-  const { data: photo } = await supabase
+  /*
+    行が消えたことを確かめてからファイルを消す。
+
+    delete() は、権限が無くて1行も消えなかった場合もエラーにならない。
+    確かめずにファイルを消すと、一覧には残るのに開けない写真ができる。
+    調査員は公開済みの写真を消せないため、これは実際に起こり得る。
+  */
+  const { data: deleted } = await supabase
     .from('photos')
-    .select('storage_path')
+    .delete()
     .eq('id', id)
-    .single();
+    .select('storage_path');
 
-  await supabase.from('photos').delete().eq('id', id);
-
-  if (photo) {
-    await supabase.storage
-      .from(BUCKET)
-      .remove([photo.storage_path, thumbPathOf(photo.storage_path)]);
+  if (deleted && deleted.length > 0) {
+    await removeFiles(supabase, deleted[0].storage_path);
   }
 
   revalidatePath(`/facilities/${facilityId}`);

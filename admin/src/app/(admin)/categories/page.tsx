@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 import { Badge, Card, PageHeader } from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
@@ -5,17 +7,33 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export default async function CategoriesPage() {
+/** 1ページに出す件数。施設一覧と揃える。 */
+const PAGE_SIZE = 15;
+
+export default async function CategoriesPage({ searchParams }: PageProps<'/categories'>) {
   await requireStaff();
-  const t = await getDictionary();
+  const [params, t] = await Promise.all([searchParams, getDictionary()]);
+  const page = Math.max(1, Number(params.page) || 1);
+
   const supabase = await createClient();
 
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order');
+  const from = (page - 1) * PAGE_SIZE;
 
-  const { data: facilities } = await supabase.from('facilities').select('category_id');
+  // 2つの問い合わせは互いに依存しない。順に待つと往復が2回分積み上がる。
+  const [categoryResult, facilityResult] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('*', { count: 'exact' })
+      .order('sort_order')
+      .range(from, from + PAGE_SIZE - 1),
+    supabase.from('facilities').select('category_id'),
+  ]);
+
+  const categories = categoryResult.data;
+  const facilities = facilityResult.data;
+
+  const total = categoryResult.count ?? 0;
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const usage = new Map<string, number>();
   for (const f of facilities ?? []) {
@@ -59,6 +77,20 @@ export default async function CategoriesPage() {
         </table>
       </Card>
 
+      {lastPage > 1 && (
+        <nav className="flex items-center justify-center gap-2" aria-label="ページ送り">
+          <PageLink href={page > 2 ? `/categories?page=${page - 1}` : '/categories'} disabled={page <= 1}>
+            前へ
+          </PageLink>
+          <span className="tabular px-3 text-sm text-text-muted">
+            {page} / {lastPage}
+          </span>
+          <PageLink href={`/categories?page=${page + 1}`} disabled={page >= lastPage}>
+            次へ
+          </PageLink>
+        </nav>
+      )}
+
       <Card>
         <h2 className="mb-2 text-sm font-semibold">
           {t.categories.prefixTitle}
@@ -67,5 +99,31 @@ export default async function CategoriesPage() {
         <p className="mt-3 text-sm text-text-muted">{t.categories.prefixNote}</p>
       </Card>
     </div>
+  );
+}
+
+/** ページ送りのボタン。端では押せないことが見て分かるようにする。 */
+function PageLink({
+  href,
+  disabled,
+  children,
+}: {
+  href: string;
+  disabled: boolean;
+  children: React.ReactNode;
+}) {
+  const base = 'rounded-lg border px-4 py-2 text-sm font-medium transition-colors';
+
+  if (disabled) {
+    return (
+      <span aria-disabled="true" className={`${base} border-border text-text-faint`}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Link href={href} className={`${base} border-border text-text hover:border-accent hover:text-accent`}>
+      {children}
+    </Link>
   );
 }
