@@ -1,8 +1,9 @@
 import Link from 'next/link';
 
+import { CategoryEditor } from '@/components/category-editor';
 import { Badge, Card, PageHeader } from '@/components/ui';
 import { requireStaff } from '@/lib/auth';
-import { getDictionary } from '@/lib/i18n/server';
+import { getDictionary, type Dictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +12,7 @@ export const dynamic = 'force-dynamic';
 const PAGE_SIZE = 15;
 
 export default async function CategoriesPage({ searchParams }: PageProps<'/categories'>) {
-  await requireStaff();
+  const staff = await requireStaff();
   const [params, t] = await Promise.all([searchParams, getDictionary()]);
   const page = Math.max(1, Number(params.page) || 1);
 
@@ -35,47 +36,36 @@ export default async function CategoriesPage({ searchParams }: PageProps<'/categ
   const total = categoryResult.count ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  const usage = new Map<string, number>();
+  const usage: Record<string, number> = {};
   for (const f of facilities ?? []) {
-    usage.set(f.category_id, (usage.get(f.category_id) ?? 0) + 1);
+    usage[f.category_id] = (usage[f.category_id] ?? 0) + 1;
   }
 
   return (
     <div className="space-y-6">
       <PageHeader title={t.categories.title} description={t.categories.description} />
 
-      <Card className="!p-0 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs text-text-muted">
-              <th className="px-5 py-3 font-medium">{t.categories.sortOrder}</th>
-              <th className="px-5 py-3 font-medium">{t.categories.name}</th>
-              <th className="px-5 py-3 font-medium">{t.categories.prefix}</th>
-              <th className="px-5 py-3 font-medium">{t.categories.facilityCount}</th>
-              <th className="px-5 py-3 font-medium">{t.categories.state}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {(categories ?? []).map((c) => (
-              <tr key={c.id}>
-                <td className="tabular px-5 py-3 text-text-muted">{c.sort_order}</td>
-                <td className="px-5 py-3 font-medium">{c.name}</td>
-                <td className="tabular px-5 py-3 text-text-muted">{c.code_prefix}</td>
-                <td className="tabular px-5 py-3">
-                  {usage.get(c.id) ?? 0} {t.common.count}
-                </td>
-                <td className="px-5 py-3">
-                  {c.is_active ? (
-                    <Badge tone="accent">{t.categories.active}</Badge>
-                  ) : (
-                    <Badge>{t.categories.inactive}</Badge>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      {/*
+        調査員には編集させない。カテゴリはアプリの絞り込みに直結し、
+        1つ変えるだけで全ドライバーの見え方が変わる。
+        書き込みは行レベル権限でも管理者・編集者に限っている。
+      */}
+      {staff.profile.role === 'surveyor' ? (
+        <ReadOnlyTable categories={categories ?? []} usage={usage} t={t} from={from} />
+      ) : (
+        <CategoryEditor
+          categories={categories ?? []}
+          usage={usage}
+          t={t}
+          /*
+            並べ替えの端判定は、表示中のページではなく全体で行う。
+            2ページ目の先頭を「これ以上前へ動かせない」と扱うと、
+            ページをまたぐ移動ができなくなる。
+          */
+          from={from}
+          total={total}
+        />
+      )}
 
       {lastPage > 1 && (
         <nav className="flex items-center justify-center gap-2" aria-label="ページ送り">
@@ -99,6 +89,57 @@ export default async function CategoriesPage({ searchParams }: PageProps<'/categ
         <p className="mt-3 text-sm text-text-muted">{t.categories.prefixNote}</p>
       </Card>
     </div>
+  );
+}
+
+/**
+ * 調査員に見せる表。編集の入口を持たない。
+ * 何があるかは知っておく必要があるため、隠さずに出す。
+ */
+function ReadOnlyTable({
+  categories,
+  usage,
+  t,
+  from,
+}: {
+  categories: { id: string; name: string; code_prefix: string; is_active: boolean }[];
+  usage: Record<string, number>;
+  t: Dictionary;
+  from: number;
+}) {
+  return (
+    <Card className="!p-0 overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-text-muted">
+            <th className="px-5 py-3 font-medium">{t.categories.sortOrder}</th>
+            <th className="px-5 py-3 font-medium">{t.categories.name}</th>
+            <th className="px-5 py-3 font-medium">{t.categories.prefix}</th>
+            <th className="px-5 py-3 font-medium">{t.categories.facilityCount}</th>
+            <th className="px-5 py-3 font-medium">{t.categories.state}</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {categories.map((c, i) => (
+            <tr key={c.id}>
+              <td className="tabular px-5 py-3 text-text-muted">{from + i + 1}</td>
+              <td className="px-5 py-3 font-medium">{c.name}</td>
+              <td className="tabular px-5 py-3 text-text-muted">{c.code_prefix}</td>
+              <td className="tabular px-5 py-3">
+                {usage[c.id] ?? 0} {t.common.count}
+              </td>
+              <td className="px-5 py-3">
+                {c.is_active ? (
+                  <Badge tone="accent">{t.categories.active}</Badge>
+                ) : (
+                  <Badge>{t.categories.inactive}</Badge>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
 
