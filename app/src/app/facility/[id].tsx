@@ -124,7 +124,7 @@ export default function FacilityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* 上部 */}
@@ -132,7 +132,7 @@ export default function FacilityScreen() {
         <Pressable onPress={() => router.back()} hitSlop={HIT_SLOP} accessibilityLabel="戻る">
           <Ionicons name="arrow-back" size={22} color={c.text} />
         </Pressable>
-        <Text style={styles.topTitle}>スポット詳細</Text>
+        <Text style={styles.topTitle}>車寄せ案内</Text>
         <View style={styles.topRight}>
           <Pressable onPress={onCopy} hitSlop={HIT_SLOP} accessibilityLabel="座標を複製">
             <Ionicons name="share-outline" size={20} color={c.text} />
@@ -220,24 +220,6 @@ export default function FacilityScreen() {
           </View>
         </View>
 
-        {/* 中身の切り替え */}
-        <View style={styles.tabs}>
-          {SECTIONS.map((s) => {
-            const on = s.key === section;
-            return (
-              <Pressable
-                key={s.key}
-                onPress={() => setSection(s.key)}
-                style={[styles.tab, on && styles.tabOn]}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: on }}
-              >
-                <Ionicons name={s.icon} size={17} color={on ? c.accent : c.textFaint} />
-                <Text style={[styles.tabText, on && styles.tabTextOn]}>{s.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
 
         <View style={styles.body}>
           {section === 'summary' && (
@@ -257,6 +239,35 @@ export default function FacilityScreen() {
           {section === 'cautions' && <CautionBlock cautions={all.cautions} styles={styles} />}
         </View>
       </ScrollView>
+
+      {/*
+        切り替えは画面の下へ固定する。
+
+        中身の上に置くと、写真や案内図を送ったあとに切り替えたくなった際、
+        いちど上まで戻す必要がある。探す画面の下部タブと同じ位置にすることで、
+        どの画面でも指の届く場所が変わらない。
+      */}
+      <View style={styles.tabs}>
+        {SECTIONS.map((item) => {
+          const on = item.key === section;
+          return (
+            <Pressable
+              key={item.key}
+              onPress={() => setSection(item.key)}
+              style={styles.tab}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+            >
+              <Ionicons
+                name={item.icon}
+                size={21}
+                color={on ? c.accent : c.textFaint}
+              />
+              <Text style={[styles.tabText, on && styles.tabTextOn]}>{item.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <PhotoViewer photos={viewable} index={openAt} onClose={() => setOpenAt(null)} />
     </SafeAreaView>
@@ -399,7 +410,7 @@ function makeStyles(c: Palette) {
     safe: { flex: 1, backgroundColor: c.bg },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     errorText: { fontSize: 13, color: c.textMuted },
-    page: { paddingBottom: SPACE.xl },
+    page: { paddingBottom: SPACE.lg },
 
     // --- 上部 ---
     topBar: {
@@ -484,16 +495,15 @@ function makeStyles(c: Palette) {
     actionMainText: { fontSize: 13, fontWeight: '700', color: c.accentText },
 
     // --- 中身の切り替え ---
+    // 探す画面の下部タブと同じ見た目にそろえる
     tabs: {
       flexDirection: 'row',
-      marginTop: SPACE.lg,
       borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: c.border,
+      borderTopColor: c.border,
       backgroundColor: c.surface,
+      paddingTop: 6,
     },
-    tab: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: SPACE.sm },
-    tabOn: { borderBottomWidth: 2, borderBottomColor: c.accent },
+    tab: { flex: 1, alignItems: 'center', gap: 3, paddingBottom: SPACE.sm },
     tabText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
     tabTextOn: { color: c.accent },
 

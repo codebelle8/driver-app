@@ -1,7 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme-context';
+
+/**
+ * 記号と文字が収まる高さ。
+ *
+ * 高さを指定せずに任せたところ、文字を描く余地が無くなって
+ * 記号だけになった。端末の下端の余白は別に足す。
+ */
+const BAR_HEIGHT = 70;
 
 /**
  * 画面下の切り替え。
@@ -15,6 +24,7 @@ import { useTheme } from '@/theme-context';
  */
 export default function TabsLayout() {
   const c = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -23,18 +33,21 @@ export default function TabsLayout() {
         tabBarActiveTintColor: c.accent,
         tabBarInactiveTintColor: c.textFaint,
         /*
-          高さと下の余白は指定しない。
+          中身の高さは決め打ちにし、端末の下端の余白はその上に足す。
 
-          端末ごとに下端のインジケータの高さが違い、決め打ちにすると
-          文字が切れる。安全領域に合わせる処理は Tabs 側が持っている。
+          高さを任せると文字が消え、逆に決め打ちだけにすると
+          下端のインジケータと重なる。両方を分けて指定する。
         */
         tabBarStyle: {
           backgroundColor: c.surface,
           borderTopColor: c.border,
           borderTopWidth: 1,
+          height: BAR_HEIGHT + insets.bottom,
+          paddingTop: 6,
+          // 下に余白を厚めに取ることで、記号と文字がまとめて上へ寄る
+          paddingBottom: 14 + insets.bottom,
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarIconStyle: { marginTop: 2 },
       }}
     >
       <Tabs.Screen

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrandLogo } from '@/components/brand';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import { fetchCategories, PAGE_SIZE, searchFacilities } from '@/lib/facilities';
 import { describeSyncedAt, ensureSynced, type SyncResult } from '@/lib/sync';
@@ -149,7 +150,8 @@ export default function SearchScreen() {
 
       {/* 見出しと検索欄 */}
       <View style={styles.head}>
-        <Text style={styles.title}>スポットを探す</Text>
+        {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
+        <BrandLogo height={34} />
         <Text style={styles.lead}>行きたい場所を見つけよう</Text>
 
         <View style={styles.searchBox}>
@@ -392,8 +394,7 @@ function makeStyles(c: Palette) {
 
     // --- 見出しと検索欄 ---
     head: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.md },
-    title: { fontSize: 26, fontWeight: '800', color: c.accent, letterSpacing: 0.2 },
-    lead: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    lead: { fontSize: 13, color: c.textMuted, marginTop: 6 },
     searchBox: {
       flexDirection: 'row',
       alignItems: 'center',
