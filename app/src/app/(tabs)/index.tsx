@@ -120,10 +120,35 @@ export default function SearchScreen() {
     setLoadingMore(false);
   }
 
+  /** 見出しに出す、いま効いている絞り込み */
+  const filterLabel = useMemo(() => {
+    const cat = categories.find((x) => x.id === categoryId);
+    if (query.trim() && cat) return `${cat.name}・「${query.trim()}」`;
+    if (cat) return cat.name;
+    return `「${query.trim()}」`;
+  }, [categories, categoryId, query]);
+
   const chips = useMemo(
     () => categories.filter((cat) => CATEGORY_ICON[cat.code]),
     [categories],
   );
+
+  /**
+   * 案内できる範囲。登録されている施設の所在地から求める。
+   *
+   * 都道府県が1つなら県名、複数なら件数で示す。
+   * 決め打ちの地名を出すと、対応していない場所でも案内できるように見える。
+   */
+  const area = useMemo(() => {
+    if (sync.facilityCount === 0) return '取り込み待ち';
+    const wards = new Set(recent.map((f) => f.city).filter(Boolean));
+    const pref = new Set(recent.map((f) => f.prefecture).filter(Boolean));
+    if (pref.size === 1) {
+      const name = [...pref][0];
+      return wards.size > 1 ? `${name}（${sync.facilityCount}件）` : name;
+    }
+    return `${sync.facilityCount} 件を登録`;
+  }, [recent, sync.facilityCount]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -133,12 +158,17 @@ export default function SearchScreen() {
           <Ionicons name="menu" size={22} color={c.text} />
         </Pressable>
 
+        {/*
+          「現在地」と書いて固定の地名を出していたが、端末の位置は
+          取得しておらず、事実と違う表示だった。
+          いま案内できる範囲を、登録データから求めて出す。
+        */}
         <View style={styles.place}>
           <Ionicons name="location" size={13} color={c.accent} />
           <View style={styles.placeText}>
-            <Text style={styles.placeLabel}>現在地</Text>
+            <Text style={styles.placeLabel}>案内できる範囲</Text>
             <Text style={styles.placeValue} numberOfLines={1}>
-              {sync.facilityCount > 0 ? '東京都千代田区' : '取得していません'}
+              {area}
             </Text>
           </View>
         </View>
@@ -184,6 +214,7 @@ export default function SearchScreen() {
           hasMore={hasMore}
           onEndReached={loadMore}
           onScrollChange={setAtTop}
+          label={filterLabel}
           onClear={() => {
             setQuery('');
             setCategoryId(null);
@@ -281,6 +312,7 @@ function ResultList({
   hasMore,
   onEndReached,
   onScrollChange,
+  label,
   onClear,
   styles,
   c,
@@ -292,6 +324,8 @@ function ResultList({
   hasMore: boolean;
   onEndReached: () => void;
   onScrollChange: (atTop: boolean) => void;
+  /** 何で絞っているか（例: ホテル / 「帝国」） */
+  label: string;
   onClear: () => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
@@ -309,8 +343,11 @@ function ResultList({
       onEndReachedThreshold={0.4}
       ListHeaderComponent={
         <View style={styles.resultHead}>
-          <Text style={styles.resultCount}>
-            該当 {facilities.length} 件{hasMore ? '（さらにあり）' : ''}
+          {/* 何で絞ったのかを出す。件数だけでは、何を見ているのか分からない。 */}
+          <Text style={styles.resultCount} numberOfLines={1}>
+            {label}
+            <Text style={styles.resultCountNum}>{`  ${facilities.length} 件`}</Text>
+            {hasMore ? '（さらにあり）' : ''}
           </Text>
           <Pressable onPress={onClear} hitSlop={HIT_SLOP}>
             <Text style={styles.resultClear}>絞り込みを外す</Text>
@@ -487,7 +524,8 @@ function makeStyles(c: Palette) {
       justifyContent: 'space-between',
       paddingBottom: SPACE.sm,
     },
-    resultCount: { fontSize: 12, color: c.textMuted },
+    resultCount: { flex: 1, fontSize: 12, color: c.text, fontWeight: '700' },
+    resultCountNum: { color: c.textMuted, fontWeight: '400' },
     resultClear: { fontSize: 12, color: c.accent, fontWeight: '600' },
 
     row: {
