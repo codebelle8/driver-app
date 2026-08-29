@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PhotoViewer } from '@/components/photo-viewer';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
@@ -25,461 +26,561 @@ import {
   type FacilityDetail,
   type Photo,
 } from '@/lib/types';
-import { HIT, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
+
+/**
+ * 施設の詳細。
+ *
+ * 画面の並びは「地図 → 名前と住所 → 操作 → 中身」。
+ * 到着直前に開く画面なので、どこへ着けるかを最初に見せ、
+ * ナビの開始を指の届く位置に置く。
+ *
+ * 下の切り替え（概要・写真・案内図・注意）は、1画面に全部を積むと
+ * 縦に長くなりすぎるため。走行前に見る場所を選べるようにする。
+ */
+
+type Section = 'summary' | 'photos' | 'diagram' | 'cautions';
+
+const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'summary', label: '概要', icon: 'business-outline' },
+  { key: 'photos', label: '写真', icon: 'images-outline' },
+  { key: 'diagram', label: '案内図', icon: 'map-outline' },
+  { key: 'cautions', label: '注意', icon: 'alert-circle-outline' },
+];
 
 export default function FacilityScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const c = useTheme();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = makeStyles(c);
 
   const [detail, setDetail] = useState<FacilityDetail | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [section, setSection] = useState<Section>('summary');
+  const [openAt, setOpenAt] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
-    fetchFacilityDetail(id)
-      .then((d) => alive && setDetail(d))
-      .catch(() => alive && setError('接続できませんでした。電波の状況をご確認ください。'))
-      .finally(() => alive && setLoading(false));
+    (async () => {
+      try {
+        const found = await fetchFacilityDetail(id);
+        if (alive) setDetail(found);
+      } catch {
+        if (alive) setError('施設を読み込めませんでした。');
+      }
+    })();
     return () => {
       alive = false;
     };
   }, [id]);
 
-  if (loading) {
+  const all = useMemo(() => {
+    if (!detail) return { photos: [] as Photo[], diagrams: [] as Photo[], cautions: [] as Caution[] };
+    const photos: Photo[] = [];
+    const diagrams: Photo[] = [];
+    const cautions: Caution[] = [];
+    for (const ep of detail.entryPoints) {
+      for (const p of detail.photosByEntryPoint[ep.id] ?? []) {
+        (p.kind === 'diagram' ? diagrams : photos).push(p);
+      }
+      cautions.push(...(detail.cautionsByEntryPoint[ep.id] ?? []));
+    }
+    return { photos, diagrams, cautions };
+  }, [detail]);
+
+  /** 拡大表示は案内図と写真を1つの並びとして扱う */
+  const viewable = useMemo(() => [...all.diagrams, ...all.photos], [all]);
+
+  if (error || (detail === null && !error)) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={c.accent} />
-      </View>
-    );
-  }
-
-  if (error || !detail) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>{error ?? '施設が見つかりませんでした。'}</Text>
-      </View>
-    );
-  }
-
-  const { facility, entryPoints, cautionsByEntryPoint, photosByEntryPoint } = detail;
-
-  return (
-    <ScrollView contentContainerStyle={styles.page}>
-      {/* 見出しは expo-router の作法どおり画面内から指定する */}
-      <Stack.Screen options={{ title: facility.name }} />
-
-      <View style={styles.header}>
-        <Text style={styles.name}>{facility.name}</Text>
-        <Text style={styles.address}>
-          {facility.prefecture}
-          {facility.city ?? ''}
-          {facility.address_line}
-        </Text>
-        {facility.summary && <Text style={styles.summary}>{facility.summary}</Text>}
-      </View>
-
-      {entryPoints.length === 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.emptyText}>
-            この施設の入口はまだ登録されていません。
-          </Text>
+      <SafeAreaView style={styles.safe}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={styles.center}>
+          {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : (
+            <ActivityIndicator color={c.accent} />
+          )}
         </View>
-      ) : (
-        entryPoints.map((ep) => (
-          <EntryPointCard
-            key={ep.id}
-            facilityName={facility.name}
-            entryPoint={ep}
-            cautions={cautionsByEntryPoint[ep.id] ?? []}
-            photos={photosByEntryPoint[ep.id] ?? []}
-            styles={styles}
-            c={c}
-          />
-        ))
-      )}
-    </ScrollView>
-  );
-}
+      </SafeAreaView>
+    );
+  }
 
-/** 走行前に一目で確かめたい条件 */
-interface Attribute {
-  icon: keyof typeof Ionicons.glyphMap;
-  text: string;
-}
-
-function EntryPointCard({
-  facilityName,
-  entryPoint: ep,
-  cautions,
-  photos,
-  styles,
-  c,
-}: {
-  facilityName: string;
-  entryPoint: EntryPoint;
-  cautions: Caution[];
-  photos: Photo[];
-  styles: ReturnType<typeof makeStyles>;
-  c: Palette;
-}) {
-  // 表示のたびに評価する。画面を開いたままの時間は短いため、
-  // 分ごとの更新までは行わない。
-  const { active, inactive } = useMemo(() => splitByActive(cautions), [cautions]);
-
-  /*
-    進入案内図は、他の写真と並べずに独立させる。
-
-    案内図は「どの車線から入り、どこで曲がるか」を線で示したもので、
-    現場写真とは役割が違う。横並びの中に紛れると、いちばん先に
-    見るべきものが埋もれる。
-  */
-  const diagrams = useMemo(() => photos.filter((p) => p.kind === 'diagram'), [photos]);
-  const shots = useMemo(() => photos.filter((p) => p.kind !== 'diagram'), [photos]);
-
-  // 拡大表示。案内図と写真を1つの並びとして扱い、開いた位置を渡す。
-  const viewable = useMemo(() => [...diagrams, ...shots], [diagrams, shots]);
-  const [openAt, setOpenAt] = useState<number | null>(null);
-
-  const hasNav = ep.nav_lat !== null && ep.nav_lng !== null;
-
-  // 高さ制限・屋根・24時間は、走行前に一目で確かめたい条件。
-  // 文字だけを並べるより、記号を添えたほうが視線が止まりやすい。
-  const attributes = [
-    ep.height_limit_cm !== null
-      ? { icon: 'resize-outline', text: `高さ制限 ${ep.height_limit_cm}cm` }
-      : null,
-    ep.is_roofed !== null
-      ? {
-          icon: ep.is_roofed ? 'umbrella-outline' : 'rainy-outline',
-          text: ep.is_roofed ? '屋根あり' : '屋根なし',
-        }
-      : null,
-    ep.is_24h !== null
-      ? {
-          icon: ep.is_24h ? 'time-outline' : 'lock-closed-outline',
-          text: ep.is_24h ? '24時間可' : '24時間不可',
-        }
-      : null,
-  ].filter(Boolean) as Attribute[];
+  const { facility, entryPoints } = detail!;
+  const main = entryPoints[0];
+  const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
 
   async function onNavigate() {
-    if (!hasNav) return;
-    const used = await openNavigation({
-      lat: ep.nav_lat!,
-      lng: ep.nav_lng!,
-      label: `${facilityName} ${ep.name}`,
-    });
-    if (used === 'web') {
-      // ナビアプリが見つからなかったことは伝えたほうがよい。
-      // 「思っていたのと違うものが開いた」と受け取られるため。
-      Alert.alert(
-        'ブラウザで開きました',
-        'ナビアプリが見つかりませんでした。地図で経路をご確認ください。',
-      );
-    }
+    if (!main || !hasNav) return;
+    const used = await openNavigation({ lat: main.nav_lat!, lng: main.nav_lng! });
+    if (!used) Alert.alert('地図アプリを開けませんでした');
   }
 
   async function onCopy() {
-    if (!hasNav) return;
-    const text = await copyCoordinates({ lat: ep.nav_lat!, lng: ep.nav_lng! });
+    if (!main || !hasNav) return;
+    const text = await copyCoordinates({ lat: main.nav_lat!, lng: main.nav_lng! });
     Alert.alert('座標を複製しました', text);
   }
 
   return (
-    <View style={styles.card}>
-      <View style={styles.cardHead}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{ep.code}</Text>
-        </View>
-        <View style={styles.cardHeadText}>
-          <Text style={styles.epName}>{ep.name}</Text>
-          <Text style={styles.epKind}>{ENTRY_POINT_KIND_LABEL[ep.kind]}</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* 上部 */}
+      <View style={styles.topBar}>
+        <Pressable onPress={() => router.back()} hitSlop={HIT_SLOP} accessibilityLabel="戻る">
+          <Ionicons name="arrow-back" size={22} color={c.text} />
+        </Pressable>
+        <Text style={styles.topTitle}>スポット詳細</Text>
+        <View style={styles.topRight}>
+          <Pressable onPress={onCopy} hitSlop={HIT_SLOP} accessibilityLabel="座標を複製">
+            <Ionicons name="share-outline" size={20} color={c.text} />
+          </Pressable>
+          <Pressable hitSlop={HIT_SLOP} accessibilityLabel="お気に入り">
+            <Ionicons name="heart-outline" size={20} color={c.text} />
+          </Pressable>
         </View>
       </View>
 
-      {/* いま該当する注意事項だけを、経路の説明より前に出す */}
-      {active.map((caution) => (
-        <View key={caution.id} style={styles.cautionActive}>
-          <View style={styles.cautionActiveHead}>
-            <Ionicons name="warning" size={15} color={c.danger} />
-            <Text style={styles.cautionActiveLabel}>
-              いま注意{describeSchedule(caution) ? `（${describeSchedule(caution)}）` : ''}
-            </Text>
+      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+        {/*
+          地図の場所。
+          地図そのものは、利用登録が済んでから入れる。
+          それまでは「ここに何が入るか」が分かる形で場所を確保しておく。
+        */}
+        <View style={styles.map}>
+          <View style={styles.mapPin}>
+            <Ionicons name="location" size={30} color={c.accent} />
           </View>
-          <Text style={styles.cautionActiveBody}>{caution.body}</Text>
-        </View>
-      ))}
-
-      {hasNav ? (
-        <Pressable
-          onPress={onNavigate}
-          onLongPress={onCopy}
-          style={styles.navButton}
-          accessibilityRole="button"
-          accessibilityLabel={`${ep.name}へナビを開始`}
-          accessibilityHint="長押しで座標を複製します"
-        >
-          <View style={styles.navButtonRow}>
-            <Ionicons name="navigate" size={22} color={c.accentText} />
-            <Text style={styles.navButtonText}>ここへナビ開始</Text>
+          <Text style={styles.mapName}>{facility.name}</Text>
+          <Text style={styles.mapSub}>
+            {main ? ENTRY_POINT_KIND_LABEL[main.kind] : '入口の登録なし'}
+          </Text>
+          <View style={styles.mapNote}>
+            <Text style={styles.mapNoteText}>地図は準備中です</Text>
           </View>
-          <Text style={styles.navButtonSub}>
-            進入レーンの入口へ案内します（長押しで座標を複製）
-          </Text>
-        </Pressable>
-      ) : (
-        <View style={styles.navMissing}>
-          <Text style={styles.navMissingText}>
-            この入口はナビ用の座標が未登録です。下の説明をご確認ください。
-          </Text>
+          <Pressable style={styles.mapLocate} hitSlop={HIT_SLOP} accessibilityLabel="現在地">
+            <Ionicons name="locate" size={17} color={c.text} />
+          </Pressable>
         </View>
-      )}
 
-      {ep.approach_from && (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>進入元</Text>
-          <Text style={styles.fieldValue}>{ep.approach_from}</Text>
-        </View>
-      )}
-
-      {ep.approach_text && (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>進入方法</Text>
-          <Text style={styles.approachText}>{ep.approach_text}</Text>
-        </View>
-      )}
-
-      {attributes.length > 0 && (
-        <View style={styles.attributes}>
-          {attributes.map((a) => (
-            <View key={a.text} style={styles.attribute}>
-              <Ionicons name={a.icon} size={14} color={c.textMuted} />
-              <Text style={styles.attributeText}>{a.text}</Text>
+        {/* 名前・住所 */}
+        <View style={styles.headBlock}>
+          <View style={styles.grip} />
+          <Text style={styles.name}>{facility.name}</Text>
+          {main && (
+            <View style={styles.kindRow}>
+              <Ionicons name="car-outline" size={13} color={c.textMuted} />
+              <Text style={styles.kindText}>{ENTRY_POINT_KIND_LABEL[main.kind]}</Text>
             </View>
-          ))}
-        </View>
-      )}
+          )}
+          <Text style={styles.address}>
+            {facility.prefecture}
+            {facility.city ?? ''}
+            {facility.address_line}
+          </Text>
 
-      {/* 進入案内図。叩くと画面いっぱいに開いて拡大できる。 */}
-      {diagrams.map((p, i) => (
+          {/* 操作 */}
+          <View style={styles.actions}>
+            <Pressable
+              onPress={onNavigate}
+              disabled={!hasNav}
+              style={({ pressed }) => [
+                styles.action,
+                styles.actionMain,
+                pressed && styles.actionPressed,
+                !hasNav && styles.actionOff,
+              ]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="navigate" size={15} color={c.accentText} />
+              <Text style={styles.actionMainText}>経路</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="star-outline" size={15} color={c.accent} />
+              <Text style={styles.actionText}>保存</Text>
+            </Pressable>
+            <Pressable
+              onPress={onCopy}
+              disabled={!hasNav}
+              style={({ pressed }) => [
+                styles.action,
+                pressed && styles.actionPressed,
+                !hasNav && styles.actionOff,
+              ]}
+              accessibilityRole="button"
+            >
+              <Ionicons name="share-social-outline" size={15} color={c.accent} />
+              <Text style={styles.actionText}>共有</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* 中身の切り替え */}
+        <View style={styles.tabs}>
+          {SECTIONS.map((s) => {
+            const on = s.key === section;
+            return (
+              <Pressable
+                key={s.key}
+                onPress={() => setSection(s.key)}
+                style={[styles.tab, on && styles.tabOn]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+              >
+                <Ionicons name={s.icon} size={17} color={on ? c.accent : c.textFaint} />
+                <Text style={[styles.tabText, on && styles.tabTextOn]}>{s.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.body}>
+          {section === 'summary' && (
+            <SummaryBlock entryPoints={entryPoints} styles={styles} c={c} />
+          )}
+          {section === 'photos' && (
+            <PhotoGrid
+              photos={all.photos}
+              offset={all.diagrams.length}
+              onOpen={setOpenAt}
+              styles={styles}
+            />
+          )}
+          {section === 'diagram' && (
+            <PhotoGrid photos={all.diagrams} offset={0} onOpen={setOpenAt} styles={styles} large />
+          )}
+          {section === 'cautions' && <CautionBlock cautions={all.cautions} styles={styles} />}
+        </View>
+      </ScrollView>
+
+      <PhotoViewer photos={viewable} index={openAt} onClose={() => setOpenAt(null)} />
+    </SafeAreaView>
+  );
+}
+
+/** 進入口ごとの説明と条件 */
+function SummaryBlock({
+  entryPoints,
+  styles,
+  c,
+}: {
+  entryPoints: EntryPoint[];
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+}) {
+  if (entryPoints.length === 0) {
+    return <Text style={styles.emptyText}>この施設の入口はまだ登録されていません。</Text>;
+  }
+
+  return (
+    <View style={styles.stack}>
+      {entryPoints.map((ep) => {
+        const attrs = [
+          ep.height_limit_cm !== null ? `高さ制限 ${ep.height_limit_cm}cm` : null,
+          ep.is_roofed !== null ? (ep.is_roofed ? '屋根あり' : '屋根なし') : null,
+          ep.is_24h !== null ? (ep.is_24h ? '24時間可' : '24時間不可') : null,
+        ].filter(Boolean) as string[];
+
+        return (
+          <View key={ep.id} style={styles.card}>
+            <View style={styles.cardHead}>
+              <View style={styles.cardBadge}>
+                <Text style={styles.cardBadgeText}>{ep.code}</Text>
+              </View>
+              <Text style={styles.cardTitle}>{ep.name}</Text>
+            </View>
+            {ep.approach_text && <Text style={styles.cardBody}>{ep.approach_text}</Text>}
+            {attrs.length > 0 && (
+              <View style={styles.chips}>
+                {attrs.map((a) => (
+                  <View key={a} style={styles.chip}>
+                    <Text style={styles.chipText}>{a}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function PhotoGrid({
+  photos,
+  offset,
+  onOpen,
+  styles,
+  large = false,
+}: {
+  photos: Photo[];
+  offset: number;
+  onOpen: (index: number) => void;
+  styles: ReturnType<typeof makeStyles>;
+  large?: boolean;
+}) {
+  if (photos.length === 0) {
+    return <Text style={styles.emptyText}>まだ登録されていません。</Text>;
+  }
+
+  return (
+    <View style={styles.photoWrap}>
+      {photos.map((p, i) => (
         <Pressable
           key={p.id}
-          onPress={() => setOpenAt(i)}
+          onPress={() => onOpen(offset + i)}
+          style={[styles.photoItem, large && styles.photoItemLarge]}
           accessibilityRole="imagebutton"
-          accessibilityLabel="進入案内図を拡大する"
-          style={({ pressed }) => [styles.diagramWrap, pressed && styles.diagramPressed]}
+          accessibilityLabel={`${PHOTO_KIND_LABEL[p.kind]}を拡大する`}
         >
           <Image
             source={{ uri: photoUrl(p.storage_path) }}
-            style={styles.diagram}
-            // 図は切り取ると意味が変わる。全体を収める。
-            contentFit="contain"
+            style={styles.photo}
+            contentFit={large ? 'contain' : 'cover'}
             transition={150}
             cachePolicy="disk"
           />
-          <View style={styles.zoomHint}>
-            <Ionicons name="expand-outline" size={14} color={c.accentText} />
-            <Text style={styles.zoomHintText}>拡大</Text>
+          <View style={styles.photoTag}>
+            <Text style={styles.photoTagText}>{PHOTO_KIND_LABEL[p.kind]}</Text>
           </View>
           {p.is_placeholder && (
-            <View style={styles.placeholderTag}>
-              <Text style={styles.placeholderTagText}>仮画像</Text>
+            <View style={styles.photoPlaceholder}>
+              <Text style={styles.photoPlaceholderText}>仮画像</Text>
             </View>
           )}
         </Pressable>
       ))}
+    </View>
+  );
+}
 
-      {shots.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.photos}
-        >
-          {shots.map((p, i) => (
-            <Pressable
-              key={p.id}
-              onPress={() => setOpenAt(diagrams.length + i)}
-              accessibilityRole="imagebutton"
-              accessibilityLabel={`${PHOTO_KIND_LABEL[p.kind]}の写真を拡大する`}
-              style={styles.photoWrap}
-            >
-              <Image
-                source={{ uri: photoUrl(p.storage_path) }}
-                style={styles.photo}
-                contentFit="cover"
-                transition={150}
-                // 既定値と同じだが明示しておく。同じ施設へ何度も向かうため、
-                // 2回目以降は電波が弱くても表示できることが要件にあたる。
-                cachePolicy="disk"
-              />
-              {p.caption && (
-                <Text style={styles.photoCaption} numberOfLines={2}>
-                  {p.caption}
-                </Text>
-              )}
-              {p.is_placeholder && (
-                <View style={styles.placeholderTag}>
-                  <Text style={styles.placeholderTagText}>仮画像</Text>
-                </View>
-              )}
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
+function CautionBlock({
+  cautions,
+  styles,
+}: {
+  cautions: Caution[];
+  styles: ReturnType<typeof makeStyles>;
+}) {
+  const { active, inactive } = useMemo(() => splitByActive(cautions), [cautions]);
 
-      <PhotoViewer photos={viewable} index={openAt} onClose={() => setOpenAt(null)} />
+  if (cautions.length === 0) {
+    return <Text style={styles.emptyText}>注意事項は登録されていません。</Text>;
+  }
 
-      {/* いま関係のない注意事項は、読み飛ばせるよう最後に控えめに置く */}
-      {inactive.length > 0 && (
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>そのほかの注意事項</Text>
-          {inactive.map((caution) => (
-            <Text key={caution.id} style={styles.cautionInactive}>
-              {describeSchedule(caution) ? `${describeSchedule(caution)}｜` : ''}
-              {caution.body}
-            </Text>
-          ))}
+  return (
+    <View style={styles.stack}>
+      {active.map((x) => (
+        <View key={x.id} style={styles.cautionNow}>
+          <Text style={styles.cautionLabel}>
+            いま注意{describeSchedule(x) ? `（${describeSchedule(x)}）` : ''}
+          </Text>
+          <Text style={styles.cautionBody}>{x.body}</Text>
         </View>
-      )}
+      ))}
+      {inactive.map((x) => (
+        <View key={x.id} style={styles.cautionOther}>
+          <Text style={styles.cautionOtherText}>
+            {describeSchedule(x) ? `${describeSchedule(x)}｜` : ''}
+            {x.body}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
 
 function makeStyles(c: Palette) {
   return StyleSheet.create({
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
-    errorText: { color: c.textMuted, fontSize: 15, paddingHorizontal: SPACE.xl, textAlign: 'center' },
+    safe: { flex: 1, backgroundColor: c.bg },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    errorText: { fontSize: 13, color: c.textMuted },
+    page: { paddingBottom: SPACE.xl },
 
-    page: { padding: SPACE.lg, gap: SPACE.lg, backgroundColor: c.bg },
-
-    header: { gap: SPACE.xs },
-    name: { fontSize: 22, fontWeight: '800', color: c.text },
-    address: { fontSize: 15, color: c.textMuted },
-    summary: { fontSize: 15, color: c.textMuted, lineHeight: 22, marginTop: SPACE.xs },
-
-    card: {
-      backgroundColor: c.surface,
-      borderRadius: RADIUS.lg,
-      borderWidth: 1,
-      borderColor: c.border,
-      padding: SPACE.lg,
-      gap: SPACE.md,
-    },
-    cardHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-    badge: {
-      width: 40,
-      height: 40,
-      borderRadius: RADIUS.sm,
-      backgroundColor: c.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    badgeText: { fontSize: 20, fontWeight: '800', color: c.accentText },
-    cardHeadText: { flex: 1 },
-    epName: { fontSize: 18, fontWeight: '700', color: c.text },
-    epKind: { fontSize: 13, color: c.textMuted },
-
-    // 走行前に押される主要な操作。指の位置が定まらない車内でも
-    // 確実に当たるよう、他より一段大きくしている。
-    navButton: {
-      minHeight: HIT.primary + 12,
-      borderRadius: RADIUS.md,
-      backgroundColor: c.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: SPACE.md,
-      paddingHorizontal: SPACE.lg,
-      gap: 2,
-    },
-    navButtonRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-    navButtonText: { fontSize: 19, fontWeight: '800', color: c.accentText },
-    navButtonSub: { fontSize: 12, color: c.accentText, opacity: 0.85 },
-
-    navMissing: {
-      borderRadius: RADIUS.md,
-      borderWidth: 1,
-      borderColor: c.border,
-      backgroundColor: c.surface2,
-      padding: SPACE.md,
-    },
-    navMissingText: { fontSize: 14, color: c.textMuted, lineHeight: 20 },
-
-    cautionActive: {
-      borderRadius: RADIUS.md,
-      backgroundColor: c.dangerSoft,
-      borderLeftWidth: 4,
-      borderLeftColor: c.danger,
-      padding: SPACE.md,
-      gap: 2,
-    },
-    cautionActiveHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    cautionActiveLabel: { fontSize: 12, fontWeight: '700', color: c.danger },
-    cautionActiveBody: { fontSize: 16, color: c.text, lineHeight: 23 },
-    cautionInactive: { fontSize: 14, color: c.textMuted, lineHeight: 21, marginTop: 2 },
-
-    field: { gap: SPACE.xs },
-    fieldLabel: { fontSize: 12, fontWeight: '700', color: c.textFaint },
-    fieldValue: { fontSize: 16, color: c.text },
-    // 走行前に一度読んで頭に入れる文章。行間を広めに取る。
-    approachText: { fontSize: 17, color: c.text, lineHeight: 27 },
-
-    attributes: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
-    attribute: {
+    // --- 上部 ---
+    topBar: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 5,
-      borderRadius: RADIUS.sm,
-      backgroundColor: c.surface2,
-      borderWidth: 1,
-      borderColor: c.border,
-      paddingHorizontal: SPACE.md,
-      paddingVertical: 6,
+      paddingHorizontal: SPACE.lg,
+      paddingVertical: SPACE.sm,
     },
-    attributeText: { fontSize: 13, color: c.textMuted },
+    topTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: c.text },
+    topRight: { flexDirection: 'row', gap: SPACE.md },
 
-    photos: { gap: SPACE.md, paddingVertical: SPACE.xs },
-    // 進入案内図は横いっぱいに置く。図の細部を読ませるため、写真より大きく取る。
-    diagramWrap: {
-      marginTop: SPACE.md,
+    // --- 地図の場所 ---
+    map: {
+      height: 260,
+      marginHorizontal: SPACE.lg,
       borderRadius: RADIUS.md,
+      backgroundColor: c.surface2,
       borderWidth: 1,
       borderColor: c.border,
-      backgroundColor: c.surface2,
+      alignItems: 'center',
+      justifyContent: 'center',
       overflow: 'hidden',
     },
-    diagramPressed: { borderColor: c.accent },
-    diagram: { width: '100%', aspectRatio: 4 / 3 },
-    // 叩けば拡がることが分かるようにする。図だけでは操作できると気づけない。
-    zoomHint: {
+    mapPin: { marginBottom: 2 },
+    mapName: { fontSize: 15, fontWeight: '800', color: c.text },
+    mapSub: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+    mapNote: {
+      marginTop: SPACE.md,
+      paddingHorizontal: SPACE.md,
+      paddingVertical: 4,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.bg,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    mapNoteText: { fontSize: 10, color: c.textFaint },
+    mapLocate: {
       position: 'absolute',
-      right: SPACE.sm,
-      bottom: SPACE.sm,
+      right: SPACE.md,
+      bottom: SPACE.md,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+
+    // --- 名前と操作 ---
+    headBlock: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md },
+    grip: {
+      alignSelf: 'center',
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.border,
+      marginBottom: SPACE.md,
+    },
+    name: { fontSize: 20, fontWeight: '800', color: c.text },
+    kindRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+    kindText: { fontSize: 12, color: c.textMuted },
+    address: { fontSize: 12, color: c.textMuted, marginTop: 4 },
+
+    actions: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.md },
+    action: {
+      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      backgroundColor: c.accent,
+      justifyContent: 'center',
+      gap: 5,
+      height: 40,
       borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: c.accent,
+    },
+    actionMain: { backgroundColor: c.accent, borderColor: c.accent },
+    actionPressed: { opacity: 0.75 },
+    actionOff: { opacity: 0.4 },
+    actionText: { fontSize: 13, fontWeight: '700', color: c.accent },
+    actionMainText: { fontSize: 13, fontWeight: '700', color: c.accentText },
+
+    // --- 中身の切り替え ---
+    tabs: {
+      flexDirection: 'row',
+      marginTop: SPACE.lg,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+    },
+    tab: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: SPACE.sm },
+    tabOn: { borderBottomWidth: 2, borderBottomColor: c.accent },
+    tabText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+    tabTextOn: { color: c.accent },
+
+    body: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md },
+    stack: { gap: SPACE.sm },
+    emptyText: { fontSize: 12, color: c.textFaint, textAlign: 'center', paddingVertical: SPACE.xl },
+
+    card: {
+      padding: SPACE.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    cardHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+    cardBadge: {
+      width: 26,
+      height: 26,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardBadgeText: { fontSize: 12, fontWeight: '800', color: c.accentText },
+    cardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+    cardBody: { fontSize: 13, color: c.text, lineHeight: 20, marginTop: SPACE.sm },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: SPACE.sm },
+    chip: {
       paddingHorizontal: SPACE.sm,
       paddingVertical: 3,
-    },
-    zoomHintText: { color: c.accentText, fontSize: 11, fontWeight: '700' },
-    photoWrap: { width: 220, gap: SPACE.xs },
-    photo: { width: 220, height: 150, borderRadius: RADIUS.md, backgroundColor: c.surface2 },
-    photoCaption: { fontSize: 12, color: c.textMuted },
-    placeholderTag: {
-      position: 'absolute',
-      top: SPACE.sm,
-      left: SPACE.sm,
-      backgroundColor: c.warnSoft,
       borderRadius: RADIUS.sm,
-      paddingHorizontal: SPACE.sm,
-      paddingVertical: 2,
+      backgroundColor: c.surface2,
+      borderWidth: 1,
+      borderColor: c.border,
     },
-    placeholderTagText: { fontSize: 11, color: c.warn, fontWeight: '700' },
+    chipText: { fontSize: 11, color: c.textMuted },
 
-    emptyText: { fontSize: 15, color: c.textMuted },
+    photoWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
+    photoItem: {
+      width: '48%',
+      flexGrow: 1,
+      aspectRatio: 4 / 3,
+      borderRadius: RADIUS.md,
+      overflow: 'hidden',
+      backgroundColor: c.surface2,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    photoItemLarge: { width: '100%' },
+    photo: { width: '100%', height: '100%' },
+    photoTag: {
+      position: 'absolute',
+      left: 6,
+      bottom: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: RADIUS.sm,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+    },
+    photoTagText: { fontSize: 10, color: '#ffffff', fontWeight: '600' },
+    photoPlaceholder: {
+      position: 'absolute',
+      right: 6,
+      top: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.warnSoft,
+    },
+    photoPlaceholderText: { fontSize: 10, color: c.warn, fontWeight: '700' },
+
+    cautionNow: {
+      padding: SPACE.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.dangerSoft,
+      borderWidth: 1,
+      borderColor: c.danger,
+    },
+    cautionLabel: { fontSize: 11, fontWeight: '800', color: c.danger },
+    cautionBody: { fontSize: 13, color: c.text, lineHeight: 20, marginTop: 3 },
+    cautionOther: {
+      padding: SPACE.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    cautionOtherText: { fontSize: 12, color: c.textMuted, lineHeight: 18 },
   });
 }

@@ -67,6 +67,14 @@ export const HIT = {
   primary: 56,
 } as const;
 
+/**
+ * 小さな記号の当たり判定を広げる量。
+ *
+ * 見た目は 20px 前後でも、走行前の車内では指が正確に狙えない。
+ * 押せる範囲だけを外側へ広げ、見た目は変えない。
+ */
+export const HIT_SLOP = { top: 10, bottom: 10, left: 10, right: 10 } as const;
+
 export const SPACE = {
   xs: 4,
   sm: 8,

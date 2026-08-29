@@ -4,8 +4,6 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { BrandLogo } from '@/components/brand';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -64,36 +62,13 @@ function Shell() {
       <View style={[styles.root, { backgroundColor: c.bg }]}>
       <Stack
         screenOptions={{
-          /*
-            見出しと検索欄は同じ地の色にし、ひとつの「操作する面」として扱う。
-            本文との境目は、その面の下辺に引いた境界線と、
-            一覧側の地の色を一段変えることで示す。
-
-            headerStyle は背景色しか受け付けないため、
-            境界線はここではなく画面側 (index.tsx の top) に置いている。
-          */
-          headerStyle: { backgroundColor: c.surface },
-          headerTintColor: c.text,
-          headerTitleStyle: { fontWeight: '700', fontSize: 17 },
+          // 画面ごとに見出しを持つため、共通の見出しは出さない
+          headerShown: false,
           contentStyle: { backgroundColor: c.bg },
-          headerShadowVisible: false,
         }}
       >
-        <Stack.Screen
-          name="index"
-          options={{
-            // 検索画面はアプリの入口なので、文字ではなくロゴを出す
-            headerTitle: () => <BrandLogo />,
-            headerTitleAlign: 'left',
-            // 表示の切り替えは検索画面に置く。詳細画面にも出すと、
-            // 走行前に押したい「ナビ開始」から視線が逸れる。
-            headerRight: () => <ThemeToggle />,
-          }}
-        />
-        <Stack.Screen
-          name="facility/[id]"
-          options={{ title: '', headerBackTitle: '検索' }}
-        />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="facility/[id]" />
       </Stack>
       </View>
     </SafeAreaProvider>
