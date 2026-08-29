@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 import { createClient } from './supabase/server';
 import type { AdminProfile } from './supabase/database.types';
@@ -17,8 +18,13 @@ export interface Staff {
  * ログインできること（認証）と、操作できること（認可）は別物。
  * Supabase の利用者を作っただけでは admin_profiles に行が無く、
  * 権限をまったく持たない。ここで両方を確認する。
+ *
+ * cache() で包んでいる理由:
+ *   レイアウトと各画面の両方がこれを呼ぶため、1回の表示で
+ *   admin_profiles を2回引いていた。cache() は1回の描画の中でだけ
+ *   結果を使い回すので、利用者をまたいで混ざることはない。
  */
-export async function requireStaff(): Promise<Staff> {
+export const requireStaff = cache(async function requireStaff(): Promise<Staff> {
   const supabase = await createClient();
 
   /*
@@ -53,7 +59,7 @@ export async function requireStaff(): Promise<Staff> {
   if (!profile || !profile.is_active) redirect('/login?error=no_permission');
 
   return { userId: user.id, email: user.email, profile };
-}
+});
 
 /**
  * 公開・削除を行える者だけを通す。調査員は弾く。

@@ -183,7 +183,15 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
               const count = entryCount.get(f.id) ?? 0;
               return (
                 <li key={f.id}>
+                  {/*
+                    先読みを明示する。
+
+                    既定でも要求自体は飛んでいるが、force-dynamic の画面では
+                    外枠しか取れず、押したあとに結局サーバーへ問い合わせていた。
+                    明示すると同じ回数の要求で中身まで取れるため、要求数は変わらない。
+                  */}
                   <Link
+                    prefetch
                     href={`/facilities/${f.id}`}
                     className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-surface-2"
                   >

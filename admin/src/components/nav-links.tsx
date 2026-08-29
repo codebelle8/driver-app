@@ -54,6 +54,17 @@ export function NavLinks({
           <Link
             key={href}
             href={href}
+            /*
+              先読みを明示的に有効にする。
+
+              各画面は force-dynamic のため、既定の先読みでは何も取得されない。
+              押してから初めてサーバーへ問い合わせるので、毎回 600ms 前後かかる。
+              明示すると、画面に見えた時点で内容を取りにいくため、
+              押した瞬間に切り替わる。
+
+              取得先はこの5画面だけで、いずれも管理者が日常的に行き来する。
+            */
+            prefetch
             aria-current={active ? 'page' : undefined}
             className={
               'flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm transition-colors sm:px-2.5 ' +
