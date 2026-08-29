@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+/**
+ * 目盛りと数値に使う見かけ上の進捗。
+ * 実際の進捗は測れない（いつ終わるか分からない）ため、
+ * 以前も指数関数で近づけるだけの見せかけだった。
+ * 針とランプは CSS で動かすので、ここは静止した表示の基準にすぎない。
+ */
+const SHOWN_PROGRESS = 72;
+
 
 /**
  * 読み込み中の表示。
@@ -26,17 +33,18 @@ export function SteeringLoader({
   /** 重ねて表示する場合は高さ指定を外して使う */
   className?: string;
 }) {
-  const [progress, setProgress] = useState(0);
+  /*
+    動きは CSS に任せ、React では一度しか描かない。
 
-  useEffect(() => {
-    const started = Date.now();
-    const id = setInterval(() => {
-      const elapsed = (Date.now() - started) / 1000;
-      // 最初は速く、後半はゆるやかに 95% へ近づく
-      setProgress(Math.min(95, 95 * (1 - Math.exp(-elapsed / 1.6))));
-    }, 60);
-    return () => clearInterval(id);
-  }, []);
+    以前は 60ms ごとに setState しており、520行の SVG が毎秒17回
+    描き直されていた。React では画面遷移は低優先度で扱われるため、
+    常時走るこの更新に負けて、切り替えが最大8秒待たされていた。
+    読み込み表示が、それが示している処理そのものを遅くしていた。
+
+    CSS のアニメーションは合成処理で動くので、
+    画面遷移の処理と取り合いにならない。
+  */
+  const progress = SHOWN_PROGRESS;
 
   return (
     <div
@@ -47,7 +55,7 @@ export function SteeringLoader({
     >
       <div className="flex items-center justify-center gap-4 sm:gap-8">
         <Gauge value={progress} caption="LOAD" unit="%" redlineFrom={80} />
-        <SteeringWheel progress={progress} />
+        <SteeringWheel />
         <Gauge value={progress} caption="DATA" unit="%" redlineFrom={80} mirrored />
       </div>
 
@@ -60,10 +68,9 @@ export function SteeringLoader({
 /* ========================================================================== */
 
 /** スポーツステアリング（革巻きリム＋カーボンスポーク） */
-function SteeringWheel({ progress }: { progress: number }) {
+function SteeringWheel() {
   // リム上部のシフトインジケーターを進捗に合わせて点灯させる
   const lampCount = 9;
-  const litLamps = Math.round((progress / 100) * lampCount);
 
   return (
     <svg width="238" height="238" viewBox="0 0 240 240" className="shrink-0" aria-hidden>
@@ -253,16 +260,17 @@ function SteeringWheel({ progress }: { progress: number }) {
         {Array.from({ length: lampCount }, (_, i) => {
           const angle = (-52 + i * 13) * (Math.PI / 180);
           const r = 96;
-          const lit = i < litLamps;
           const color = i >= 7 ? 'var(--c-danger)' : i >= 5 ? '#e0a33e' : 'var(--c-accent)';
           return (
             <circle
               key={i}
+              className="kn-lamp"
+              // 左から順に点くよう、1つずつ遅らせる
+              style={{ animationDelay: `${i * 0.11}s` }}
               cx={120 + r * Math.sin(angle)}
               cy={120 - r * Math.cos(angle)}
               r="3.1"
-              fill={lit ? color : '#31383d'}
-              opacity={lit ? 1 : 0.85}
+              fill={color}
             />
           );
         })}
@@ -488,11 +496,8 @@ function Gauge({
 
         {/* 針 */}
         <g
-          style={{
-            transform: `rotate(${angleOf(value)}deg)`,
-            transformOrigin: `${C}px ${C}px`,
-            transition: 'transform 120ms linear',
-          }}
+          className="kn-needle"
+          style={{ transformOrigin: `${C}px ${C}px` }}
         >
           {/* 先端に向かって細くなる形状＋逆側のカウンターウェイト */}
           <path

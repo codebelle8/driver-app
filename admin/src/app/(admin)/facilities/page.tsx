@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { PageLink } from '@/components/page-link';
+
 import { PlusIcon } from '@/components/icons';
 import {
   Badge,
@@ -184,14 +186,18 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
               return (
                 <li key={f.id}>
                   {/*
-                    先読みを明示する。
+                    先読みを明示的に止める。
 
-                    既定でも要求自体は飛んでいるが、force-dynamic の画面では
-                    外枠しか取れず、押したあとに結局サーバーへ問い合わせていた。
-                    明示すると同じ回数の要求で中身まで取れるため、要求数は変わらない。
+                    行は15件あり、押されるのはたいてい1件。既定のままだと
+                    15件ぶんの要求が飛び、force-dynamic のため1件ずつ
+                    サーバーで描画される。実測では合計32件が同時最大9件で飛び、
+                    落ち着くまで20秒以上かかっていた。その最中にページ送りを
+                    押すと後ろに並ばされ、14秒待たされる。
+
+                    指定を外すだけでは既定の先読みが残るため、false を明示する。
                   */}
                   <Link
-                    prefetch
+                    prefetch={false}
                     href={`/facilities/${f.id}`}
                     className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 transition-colors hover:bg-surface-2"
                   >
@@ -237,35 +243,3 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
   );
 }
 
-/** ページ送りのボタン。端では押せないことが見て分かるようにする。 */
-function PageLink({
-  href,
-  disabled,
-  children,
-}: {
-  href: string;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
-  const base =
-    'rounded-lg border px-4 py-2 text-sm font-medium transition-colors';
-
-  if (disabled) {
-    return (
-      <span
-        aria-disabled="true"
-        className={`${base} border-border text-text-faint`}
-      >
-        {children}
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      className={`${base} border-border text-text hover:border-accent hover:text-accent`}
-    >
-      {children}
-    </Link>
-  );
-}

@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { SteeringLoader } from "@/components/steering-loader";
@@ -21,21 +21,37 @@ import { SteeringLoader } from "@/components/steering-loader";
  *   チラつきになる。少し待ってから出す。
  */
 const SHOW_DELAY_MS = 180;
-/** 遷移が検知できないまま残り続けないための保険 */
-const SAFETY_TIMEOUT_MS = 15000;
+/**
+ * 遷移が検知できないまま残り続けないための保険。
+ *
+ * 実測でサーバーの応答は 300ms 前後なので、3秒あれば十分に余裕がある。
+ * 以前は15秒にしていたが、消し忘れが起きたときの待ち時間がそのまま
+ * 利用者の待ち時間になっていた。短くして被害を抑える。
+ */
+const SAFETY_TIMEOUT_MS = 3000;
 
 export function NavigationOverlay({ label }: { label: string }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, setPending] = useState(false);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 遷移が完了したら消す
+  /*
+    遷移が完了したら消す。
+
+    **検索文字列まで見る必要がある。**
+    ページ送りで変わるのは ?page=2 の部分だけで、pathname は /history のまま。
+    pathname だけを見ていたため、ページ送りでは消えるきっかけが無く、
+    表示が画面を覆ったまま残っていた。次の「次へ」が押せず、
+    上の保険が働くまで待たされていた（実測で毎回14.5秒）。
+  */
+  const query = searchParams.toString();
   useEffect(() => {
     if (showTimer.current) clearTimeout(showTimer.current);
     if (safetyTimer.current) clearTimeout(safetyTimer.current);
     setPending(false);
-  }, [pathname]);
+  }, [pathname, query]);
 
   useEffect(() => {
     function start() {
@@ -102,6 +118,14 @@ export function NavigationOverlay({ label }: { label: string }) {
   return (
     <div
       data-testid="navigation-overlay"
+      /*
+        操作を受け付けないようにする。
+
+        これは「処理中」を伝えるためのもので、操作を止めるためのものではない。
+        受け付ける状態にしておくと、万一消し忘れたときに画面全体が
+        押せなくなる。実際にそれが起きて、ページ送りが15秒待たされていた。
+      */
+      style={{ pointerEvents: "none" }}
       className="nav-overlay fixed inset-0 z-50 flex items-center justify-center bg-bg/10 backdrop-blur-[1px]"
     >
       <SteeringLoader label={label} className="" />

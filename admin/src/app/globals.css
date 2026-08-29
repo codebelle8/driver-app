@@ -232,3 +232,48 @@ body {
     animation: none;
   }
 }
+
+/* -----------------------------------------------------------------------------
+   読み込み表示の動き
+
+   以前は React の状態を 60ms ごとに更新して動かしていたが、
+   520行の SVG が毎秒17回描き直され、画面遷移（React では低優先度）を
+   押しのけていた。実測で切り替えが最大8秒待たされていた。
+
+   CSS のアニメーションは合成処理で動くため、画面遷移と取り合いにならない。
+----------------------------------------------------------------------------- */
+
+/* 計器の針。振り切ってから少し戻る、実車の始動時の動きに寄せる */
+@keyframes kn-needle-sweep {
+  0%   { transform: rotate(-125deg); }
+  55%  { transform: rotate(40deg); }
+  70%  { transform: rotate(26deg); }
+  100% { transform: rotate(46deg); }
+}
+
+.kn-needle {
+  animation: kn-needle-sweep 1.9s cubic-bezier(0.34, 0.8, 0.4, 1) infinite alternate;
+}
+
+/* ハンドル上部のランプ。左から順に点く */
+@keyframes kn-lamp-lit {
+  0%, 30%   { opacity: 0.18; }
+  55%, 100% { opacity: 1; }
+}
+
+.kn-lamp {
+  opacity: 0.18;
+  animation: kn-lamp-lit 1.9s ease-out infinite alternate;
+}
+
+/* 動きを抑える設定の利用者には、静止した状態で見せる */
+@media (prefers-reduced-motion: reduce) {
+  .kn-needle {
+    animation: none;
+    transform: rotate(26deg);
+  }
+  .kn-lamp {
+    animation: none;
+    opacity: 1;
+  }
+}

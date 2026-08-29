@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { PageLink } from '@/components/page-link';
+
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { getDictionary, getLocale } from '@/lib/i18n/server';
@@ -159,28 +161,3 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
   );
 }
 
-/** ページ送りのボタン。端では押せないことが見て分かるようにする。 */
-function PageLink({
-  href,
-  disabled,
-  children,
-}: {
-  href: string;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
-  const base = 'rounded-lg border px-4 py-2 text-sm font-medium transition-colors';
-
-  if (disabled) {
-    return (
-      <span aria-disabled="true" className={`${base} border-border text-text-faint`}>
-        {children}
-      </span>
-    );
-  }
-  return (
-    <Link href={href} className={`${base} border-border text-text hover:border-accent hover:text-accent`}>
-      {children}
-    </Link>
-  );
-}
