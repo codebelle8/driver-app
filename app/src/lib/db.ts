@@ -14,7 +14,7 @@
  */
 import * as SQLite from 'expo-sqlite';
 
-import { normalizeSearchText } from './search';
+import { buildSearchText } from './search';
 import type { Caution, Category, EntryPoint, Facility, Photo } from './types';
 
 const DB_NAME = 'kurumayose.db';
@@ -178,19 +178,16 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
     }
 
     for (const f of payload.facilities) {
-      // サーバー側 (facilities_refresh_search_text) と同じ組み立て方
-      const searchText = normalizeSearchText(
-        [
-          f.name,
-          f.name_kana,
-          f.aliases.join(' '),
-          f.prefecture,
-          f.city ?? '',
-          f.address_line,
-        ]
-          .filter(Boolean)
-          .join(' '),
-      );
+      // サーバー側 (facilities_refresh_search_text) と同じ組み立て方。
+      // 別名も1つずつ渡す。まとめてから変換すると別名同士の切れ目が消える。
+      const searchText = buildSearchText([
+        f.name,
+        f.name_kana,
+        ...f.aliases,
+        f.prefecture,
+        f.city,
+        f.address_line,
+      ]);
 
       await db.runAsync(
         `insert into facilities
