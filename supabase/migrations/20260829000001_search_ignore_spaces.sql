@@ -73,7 +73,7 @@ begin
     public.normalize_search_text(new.name_kana),
     (
       select string_agg(public.normalize_search_text(a), ' ')
-      from unnest(coalesce(new.aliases, '{}')) as a
+      from unnest(coalesce(new.aliases, '{}'::text[])) as a
     ),
     public.normalize_search_text(new.prefecture),
     public.normalize_search_text(new.city),
@@ -88,6 +88,9 @@ $$;
 --
 -- search_text は before update のトリガが組み立てるため、
 -- 行を更新すれば自動で作り直される。
--- 操作履歴には35件の更新として記録される。
+--
+-- 操作履歴には残らない。record_audit() は差分から updated_at と search_text を
+-- 除いたうえで、残りが空なら記録しないため。name は同じ値を入れているので
+-- 差分が生じない。雑音にならず都合がよい。
 -- -----------------------------------------------------------------------------
 update public.facilities set name = name;

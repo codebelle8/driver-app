@@ -117,7 +117,12 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
         title={t.facilities.title}
         description={
           total > PAGE_SIZE
-            ? `${total} ${t.facilities.showing}（${from + 1}〜${Math.min(from + PAGE_SIZE, total)} 件目）`
+            ? // 「35 shown（1〜15 件目）」のように言語が混ざらないよう、
+              // 範囲の言い回しごと辞書に持たせる
+              t.common.range
+                .replace('{from}', String(from + 1))
+                .replace('{to}', String(Math.min(from + PAGE_SIZE, total)))
+                .replace('{total}', String(total))
             : `${total} ${t.facilities.showing}`
         }
         actions={
@@ -227,15 +232,15 @@ export default async function FacilitiesPage({ searchParams }: PageProps<'/facil
         別途の作り込みは要らない。
       */}
       {lastPage > 1 && (
-        <nav className="flex items-center justify-center gap-2" aria-label="ページ送り">
+        <nav className="flex items-center justify-center gap-2" aria-label={t.common.pagination}>
           <PageLink href={pageHref(page - 1)} disabled={page <= 1}>
-            前へ
+            {t.common.prev}
           </PageLink>
           <span className="tabular px-3 text-sm text-text-muted">
             {page} / {lastPage}
           </span>
           <PageLink href={pageHref(page + 1)} disabled={page >= lastPage}>
-            次へ
+            {t.common.next}
           </PageLink>
         </nav>
       )}

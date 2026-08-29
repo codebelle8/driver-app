@@ -111,6 +111,10 @@ const ja = {
   common: {
     save: '保存',
     saving: '保存しています…',
+    prev: '前へ',
+    next: '次へ',
+    pagination: 'ページ送り',
+    range: '{from}〜{to} 件目',
     saved: '保存しました',
     cancel: 'キャンセル',
     delete: '削除',
@@ -463,6 +467,10 @@ const en: Dictionary = {
   common: {
     save: 'Save',
     saving: 'Saving…',
+    prev: 'Previous',
+    next: 'Next',
+    pagination: 'Pagination',
+    range: '{from}-{to} of {total}',
     saved: 'Saved',
     cancel: 'Cancel',
     delete: 'Delete',

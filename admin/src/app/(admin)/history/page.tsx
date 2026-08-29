@@ -141,15 +141,15 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
       </Card>
 
       {lastPage > 1 && (
-        <nav className="flex items-center justify-center gap-2" aria-label="ページ送り">
+        <nav className="flex items-center justify-center gap-2" aria-label={t.common.pagination}>
           <PageLink href={page > 2 ? `/history?page=${page - 1}` : '/history'} disabled={page <= 1}>
-            前へ
+            {t.common.prev}
           </PageLink>
           <span className="tabular px-3 text-sm text-text-muted">
             {page} / {lastPage}
           </span>
           <PageLink href={`/history?page=${page + 1}`} disabled={page >= lastPage}>
-            次へ
+            {t.common.next}
           </PageLink>
         </nav>
       )}
