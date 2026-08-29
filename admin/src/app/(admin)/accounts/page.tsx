@@ -1,4 +1,5 @@
 import { createAccount, setAccountActive, setAccountRole } from '@/app/actions/accounts';
+import { AccountDeleteButton } from '@/components/account-delete';
 import { AccountForm } from '@/components/account-form';
 import { RoleSelect } from '@/components/role-select';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
@@ -97,19 +98,29 @@ export default async function AccountsPage() {
                         )}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        {/* 削除を用意しないのは、消すと操作履歴の追跡ができなくなるため */}
+                        {/*
+                          停止と削除を並べる。削除は取り消せず、操作履歴の実行者も
+                          空欄になるため、弱い見た目で右端に置いている。
+                        */}
                         {!isMe && (
-                          <form action={setAccountActive}>
-                            <input type="hidden" name="user_id" value={p.user_id} />
-                            <input
-                              type="hidden"
-                              name="active"
-                              value={p.is_active ? 'false' : 'true'}
+                          <div className="flex items-center justify-end">
+                            <form action={setAccountActive}>
+                              <input type="hidden" name="user_id" value={p.user_id} />
+                              <input
+                                type="hidden"
+                                name="active"
+                                value={p.is_active ? 'false' : 'true'}
+                              />
+                              <Button type="submit" variant="ghost">
+                                {p.is_active ? a.suspend : a.resume}
+                              </Button>
+                            </form>
+                            <AccountDeleteButton
+                              userId={p.user_id}
+                              name={p.display_name}
+                              labels={{ delete: a.delete, confirm: a.deleteConfirm }}
                             />
-                            <Button type="submit" variant="ghost">
-                              {p.is_active ? a.suspend : a.resume}
-                            </Button>
-                          </form>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -131,6 +142,11 @@ export default async function AccountsPage() {
             </div>
           ))}
         </dl>
+
+        {/* 停止と削除は取り違えると取り返しがつかないため、違いを添える */}
+        <p className="mt-4 border-t border-border pt-4 text-sm leading-relaxed text-text-muted">
+          {a.deleteNote}
+        </p>
       </Card>
     </div>
   );

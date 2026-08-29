@@ -80,6 +80,14 @@ const ja = {
     inactive: '停止中',
     suspend: '停止する',
     resume: '再開する',
+    delete: '削除',
+    deleteConfirm:
+      '{name} さんのアカウントを完全に削除します。元に戻せません。' +
+      '操作履歴の実行者欄が空欄になります。' +
+      'ログインを止めるだけであれば「停止する」をお使いください。よろしいですか？',
+    deleteNote:
+      '「停止する」はログインを止めるだけで、お名前も操作履歴も残ります。' +
+      '「削除」は認証情報ごと消すため、操作履歴の実行者が空欄になります。通常は停止をお勧めします。',
     self: 'ご自身',
     empty: 'まだアカウントがありません。',
     roleNote: '役割ごとにできることが異なります。',
@@ -424,6 +432,14 @@ const en: Dictionary = {
     inactive: 'Suspended',
     suspend: 'Suspend',
     resume: 'Resume',
+    delete: 'Delete',
+    deleteConfirm:
+      'Permanently delete the account for {name}. This cannot be undone. ' +
+      'The actor in the activity history will be left blank. ' +
+      'To only stop them signing in, use Suspend instead. Are you sure?',
+    deleteNote:
+      'Suspend only stops sign-in; the name and activity history remain. ' +
+      'Delete removes the credentials, so the actor is left blank. Suspend is usually the better choice.',
     self: 'You',
     empty: 'No accounts yet.',
     roleNote: 'Each role can do different things.',

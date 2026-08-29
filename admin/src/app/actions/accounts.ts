@@ -107,7 +107,68 @@ export async function createAccount(
   };
 }
 
-/** 有効・停止を切り替える。停止しても記録は残るため、削除は用意しない。 */
+/**
+ * アカウントを完全に削除する。
+ *
+ * **「停止」との違い:**
+ *   停止はログインを止めるだけで、名前も操作履歴も残る。
+ *   削除は認証情報ごと消すため、操作履歴の実行者欄が空欄になる
+ *   （audit_logs.actor_id が on delete set null のため、記録自体は残る）。
+ *   誰が何をしたか追えなくなるので、通常は停止を勧める。
+ *
+ * 退職者の個人情報を残さない、といった目的では削除が要る。
+ */
+export async function deleteAccount(
+  _prev: AccountActionState,
+  formData: FormData,
+): Promise<AccountActionState> {
+  const me = await requireAdmin();
+
+  const userId = String(formData.get('user_id') ?? '');
+  if (!userId) return { message: 'アカウントが特定できませんでした' };
+
+  // 自分を消すと、その場で締め出されたうえ取り消せない
+  if (userId === me.userId) {
+    return { message: 'ご自身のアカウントは削除できません。' };
+  }
+
+  const supabase = await createClient();
+
+  const { data: target } = await supabase
+    .from('admin_profiles')
+    .select('display_name, role')
+    .eq('user_id', userId)
+    .single();
+
+  if (!target) return { message: 'アカウントが見つかりませんでした' };
+
+  /*
+    最後の管理者を消すと、誰もアカウントを操作できなくなる。
+    復旧には Supabase の管理画面から直接 SQL を実行するしかない。
+    停止のときと同じ理由で塞ぐ。
+  */
+  if (target.role === 'admin') {
+    const { count } = await supabase
+      .from('admin_profiles')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('role', 'admin')
+      .eq('is_active', true);
+
+    if ((count ?? 0) <= 1) {
+      return { message: '管理者が1人だけのため削除できません。先に別の管理者を用意してください。' };
+    }
+  }
+
+  // 認証情報を消すと admin_profiles も連鎖して消える (on delete cascade)
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return { message: `削除できませんでした: ${error.message}` };
+
+  revalidatePath('/accounts');
+  return { ok: true, message: `${target.display_name} さんのアカウントを削除しました。` };
+}
+
+/** 有効・停止を切り替える。停止ならログインを止めるだけで、記録は残る。 */
 export async function setAccountActive(formData: FormData): Promise<void> {
   const me = await requireAdmin();
 
