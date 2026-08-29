@@ -50,6 +50,7 @@ interface FacilityRow {
   summary: string | null;
   lat: number | null;
   lng: number | null;
+  updated_at: string;
 }
 
 function toFacility(row: FacilityRow): Facility {
@@ -182,7 +183,7 @@ export async function searchFacilities(options: {
 
   const rows = await db.getAllAsync<FacilityRow>(
     `select id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng
+            address_line, summary, lat, lng, updated_at
        from facilities
        ${where}
       order by name_kana
@@ -200,7 +201,7 @@ export async function fetchFacilityDetail(id: string): Promise<FacilityDetail | 
 
   const facilityRow = await db.getFirstAsync<FacilityRow>(
     `select id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng
+            address_line, summary, lat, lng, updated_at
        from facilities where id = ?`,
     id,
   );

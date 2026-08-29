@@ -44,6 +44,8 @@ export interface Facility {
   summary: string | null;
   lat: number | null;
   lng: number | null;
+  /** 最後に内容が変わった時刻。お知らせの並びに使う。 */
+  updated_at: string;
 }
 
 export interface Caution {

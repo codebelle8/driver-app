@@ -26,7 +26,7 @@ const DB_NAME = 'kurumayose.db';
 export const ALIAS_SEPARATOR = ';';
 
 /** 端末側の表の形。作り直しが必要になったら上げる。 */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -63,7 +63,9 @@ async function openDatabase(): Promise<SQLite.SQLiteDatabase> {
       lng          real,
       -- 検索用に正規化した文字列。取り込む際に組み立てる。
       -- サーバー側の search_text と同じ作り方にしないと結果がずれる。
-      search_text  text not null default ''
+      search_text  text not null default '',
+      -- 最後に内容が変わった時刻。お知らせの並びに使う。
+      updated_at   text not null default ''
     );
 
     create index if not exists facilities_search_idx on facilities (search_text);
@@ -192,8 +194,8 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
       await db.runAsync(
         `insert into facilities
            (id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng, search_text)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            address_line, summary, lat, lng, search_text, updated_at)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         f.id,
         f.code,
         f.name,
@@ -207,6 +209,7 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
         f.lat,
         f.lng,
         searchText,
+        f.updated_at ?? '',
       );
     }
 

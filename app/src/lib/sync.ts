@@ -68,7 +68,7 @@ export async function fetchCatalog(): Promise<CatalogPayload> {
       fetchAll<Category>('categories', 'id, code, name, sort_order', 'sort_order'),
       fetchAll<Facility>(
         'facilities',
-        'id, code, name, name_kana, aliases, category_id, prefecture, city, address_line, summary, lat, lng',
+        'id, code, name, name_kana, aliases, category_id, prefecture, city, address_line, summary, lat, lng, updated_at',
         'name_kana',
       ),
       fetchAll<EntryPoint>(

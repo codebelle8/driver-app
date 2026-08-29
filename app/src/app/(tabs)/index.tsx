@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/brand';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import { fetchCategories, PAGE_SIZE, searchFacilities } from '@/lib/facilities';
+import { countUnseen, fetchNotices, getSeenAt } from '@/lib/notices';
 import { describeSyncedAt, ensureSynced, type SyncResult } from '@/lib/sync';
 import type { Category, Facility } from '@/lib/types';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
@@ -69,6 +70,7 @@ export default function SearchScreen() {
     syncedAt: null,
   });
   const [atTop, setAtTop] = useState(true);
+  const [unseen, setUnseen] = useState(0);
 
   const listRef = useRef<FlatList<Facility>>(null);
   const isFiltered = Boolean(query.trim() || categoryId);
@@ -90,6 +92,9 @@ export default function SearchScreen() {
       // 閲覧履歴を残す仕組みは運用版で入れる。
       setRecent(first.rows.slice(0, 3));
       setLoading(false);
+
+      const [notices, seenAt] = await Promise.all([fetchNotices(), getSeenAt()]);
+      if (alive) setUnseen(countUnseen(notices, seenAt));
     })();
     return () => {
       alive = false;
@@ -173,9 +178,23 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <Pressable hitSlop={HIT_SLOP} accessibilityLabel="お知らせ" style={styles.topIcon}>
-          <Ionicons name="notifications-outline" size={21} color={c.text} />
-        </Pressable>
+        <Link href="/notices" asChild>
+          <Pressable
+            hitSlop={HIT_SLOP}
+            accessibilityLabel={
+              unseen > 0 ? `お知らせ ${unseen} 件` : 'お知らせ'
+            }
+            style={styles.topIcon}
+          >
+            <Ionicons name="notifications-outline" size={21} color={c.text} />
+            {/* 数そのものより「何かある」ことが分かればよい。二桁は 9+ に丸める。 */}
+            {unseen > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unseen > 9 ? '9+' : unseen}</Text>
+              </View>
+            )}
+          </Pressable>
+        </Link>
       </View>
 
       {/* 見出しと検索欄 */}
@@ -424,6 +443,19 @@ function makeStyles(c: Palette) {
       paddingBottom: SPACE.md,
     },
     topIcon: { width: 28, alignItems: 'center' },
+    badge: {
+      position: 'absolute',
+      top: -4,
+      right: -2,
+      minWidth: 16,
+      height: 16,
+      borderRadius: 8,
+      paddingHorizontal: 3,
+      backgroundColor: c.danger,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badgeText: { fontSize: 10, fontWeight: '800', color: '#ffffff' },
     place: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
     placeText: { flex: 1 },
     placeLabel: { fontSize: 10, color: c.textFaint },

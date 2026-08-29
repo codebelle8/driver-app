@@ -69,6 +69,7 @@ function Shell() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="facility/[id]" />
+        <Stack.Screen name="notices" />
       </Stack>
       </View>
     </SafeAreaProvider>

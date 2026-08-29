@@ -26,7 +26,12 @@ function isoWeekday(date: Date): number {
  * 時刻が未設定なら常時該当。
  * `time_from > time_to` の場合は日をまたぐ（例 22:00〜05:00）。
  */
-export function isActiveNow(caution: Caution, now: Date = new Date()): boolean {
+export function isActiveNow(
+  // 実際に見るのは時間帯と曜日だけ。必要な分だけ受け取れるようにしておくと、
+  // お知らせのように別の形で持っている行からも判定できる。
+  caution: Pick<Caution, 'time_from' | 'time_to' | 'weekdays'>,
+  now: Date = new Date(),
+): boolean {
   const { time_from, time_to, weekdays } = caution;
 
   const minutes = now.getHours() * 60 + now.getMinutes();
