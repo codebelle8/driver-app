@@ -23,11 +23,31 @@ if (!url || !anonKey) {
   );
 }
 
+/**
+ * 1回の問い合わせに待つ上限。
+ *
+ * 制限を付けないと、電波が弱く「繋がってはいるが応答が返らない」場所で
+ * 永久に待ち続ける。このアプリが使われるのは地下駐車場や高架下で、
+ * まさにその状態になりやすい。
+ *
+ * 待つのをやめても、端末に取り込み済みの内容で動く。
+ */
+const REQUEST_TIMEOUT_MS = 15_000;
+
 export const supabase = createClient(url, anonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
+  },
+  global: {
+    fetch: (input, init) => {
+      const abort = new AbortController();
+      const timer = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+      return fetch(input, { ...init, signal: abort.signal }).finally(() =>
+        clearTimeout(timer),
+      );
+    },
   },
 });
 

@@ -142,6 +142,36 @@ export async function fetchCategories(): Promise<Category[]> {
 }
 
 /**
+ * 案内できる範囲。
+ *
+ * 端末に入っている施設の所在地から求める。決め打ちの地名を出すと、
+ * 対応していない場所にいても案内できるように見えてしまう。
+ */
+export async function fetchCoverage(): Promise<{
+  prefectures: string[];
+  cities: number;
+  /** 端末に入っている総数。通信を待たずに件数を出すために使う。 */
+  total: number;
+}> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ prefecture: string; cities: number; n: number }>(
+    `select prefecture, count(distinct city) as cities, count(*) as n
+       from facilities
+      where prefecture <> ''
+      group by prefecture
+      order by count(*) desc`,
+  );
+  const counted = await db.getFirstAsync<{ n: number }>(
+    'select count(*) as n from facilities',
+  );
+  return {
+    prefectures: rows.map((r) => r.prefecture),
+    cities: rows.reduce((n, r) => n + r.cities, 0),
+    total: counted?.n ?? 0,
+  };
+}
+
+/**
  * 施設を検索する。
  *
  * `search_text` には施設名・よみがな・別名・住所がまとめて入っている。
@@ -150,6 +180,13 @@ export async function fetchCategories(): Promise<Category[]> {
  */
 export interface SearchPage {
   rows: Facility[];
+  /**
+   * 絞り込みに当てはまる総数。
+   *
+   * rows は一度に15件しか返らないため、これが無いと画面には
+   * 「15件」としか出せず、全部で何件あるのかが伝わらない。
+   */
+  total: number;
   /** さらに読み込める分があるか */
   hasMore: boolean;
 }
@@ -177,9 +214,17 @@ export async function searchFacilities(options: {
   }
 
   const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
-  // 1件多く取り、続きがあるかを判断する。
-  // 総件数を別途数えるより問い合わせが1回少なくて済む。
-  params.push(PAGE_SIZE + 1, offset);
+
+  /*
+    総数も数える。問い合わせは2回になるが、
+    端末内の索引付きの表を数えるだけで、体感できるほどの間は空かない。
+    「15件」とだけ出して全体が分からないほうが、走行前の判断を妨げる。
+  */
+  const counted = await db.getFirstAsync<{ n: number }>(
+    `select count(*) as n from facilities ${where}`,
+    params,
+  );
+  const total = counted?.n ?? 0;
 
   const rows = await db.getAllAsync<FacilityRow>(
     `select id, code, name, name_kana, aliases, category_id, prefecture, city,
@@ -188,11 +233,14 @@ export async function searchFacilities(options: {
        ${where}
       order by name_kana
       limit ? offset ?`,
-    params,
+    [...params, PAGE_SIZE, offset],
   );
 
-  const hasMore = rows.length > PAGE_SIZE;
-  return { rows: rows.slice(0, PAGE_SIZE).map(toFacility), hasMore };
+  return {
+    rows: rows.map(toFacility),
+    total,
+    hasMore: offset + rows.length < total,
+  };
 }
 
 /** 詳細画面に必要なものを集める */
