@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { saveEntryPoint } from '@/app/actions/entry-points';
 import type { ActionState } from '@/app/actions/facilities';
+import { CoordPicker } from '@/components/coord-picker';
 import { PlusIcon } from '@/components/icons';
 import { Alert, Button, Field, inputClass } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -42,6 +43,20 @@ export function EntryPointEditor({
   );
   const err = (key: string) => state.errors?.[key];
   const e = t.entryPoint;
+
+  /*
+    座標は地図と数値欄の両方から変わる。片方だけが持つと必ずずれるので、
+    ここで1つにまとめ、どちらもこの値を見て描く。
+  */
+  const asText = (v: number | null | undefined) => (v === null || v === undefined ? '' : String(v));
+  const [nav, setNav] = useState({
+    lat: asText(entryPoint?.nav_lat),
+    lng: asText(entryPoint?.nav_lng),
+  });
+  const [dropoff, setDropoff] = useState({
+    lat: asText(entryPoint?.dropoff_lat),
+    lng: asText(entryPoint?.dropoff_lng),
+  });
 
   if (state.ok && onDone) {
     // 保存が完了したら入力欄を閉じる
@@ -117,11 +132,28 @@ export function EntryPointEditor({
       <div className="rounded-lg border border-border-strong bg-surface-2 p-4">
         <p className="mb-1 text-sm font-medium">{e.navTitle}</p>
         <p className="mb-4 text-xs leading-relaxed text-text-faint">{e.navHint}</p>
+        {/* 地図で置いた点が、下の数値欄にそのまま入る */}
+        <div className="mb-5">
+          <CoordPicker
+            nav={nav}
+            dropoff={dropoff}
+            onChange={(which, value) => (which === 'nav' ? setNav(value) : setDropoff(value))}
+            labels={{
+              nav: e.navTitle,
+              dropoff: e.dropoffTitle,
+              hint: e.mapHint,
+              missingKey: e.mapMissingKey,
+              failed: e.mapFailed,
+            }}
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={e.navLat} error={err('nav_lat')}>
             <input
               name="nav_lat"
-              defaultValue={entryPoint?.nav_lat ?? ''}
+              value={nav.lat}
+              onChange={(ev) => setNav((v) => ({ ...v, lat: ev.target.value }))}
               className={`${inputClass} tabular`}
               placeholder="35.6656"
             />
@@ -129,7 +161,8 @@ export function EntryPointEditor({
           <Field label={e.navLng} error={err('nav_lng')}>
             <input
               name="nav_lng"
-              defaultValue={entryPoint?.nav_lng ?? ''}
+              value={nav.lng}
+              onChange={(ev) => setNav((v) => ({ ...v, lng: ev.target.value }))}
               className={`${inputClass} tabular`}
               placeholder="139.7604"
             />
@@ -142,14 +175,16 @@ export function EntryPointEditor({
           <Field label={e.dropoffLat} error={err('dropoff_lat')}>
             <input
               name="dropoff_lat"
-              defaultValue={entryPoint?.dropoff_lat ?? ''}
+              value={dropoff.lat}
+              onChange={(ev) => setDropoff((v) => ({ ...v, lat: ev.target.value }))}
               className={`${inputClass} tabular`}
             />
           </Field>
           <Field label={e.dropoffLng} error={err('dropoff_lng')}>
             <input
               name="dropoff_lng"
-              defaultValue={entryPoint?.dropoff_lng ?? ''}
+              value={dropoff.lng}
+              onChange={(ev) => setDropoff((v) => ({ ...v, lng: ev.target.value }))}
               className={`${inputClass} tabular`}
             />
           </Field>
