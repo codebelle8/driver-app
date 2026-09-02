@@ -1,10 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,8 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PhotoViewer } from '@/components/photo-viewer';
+import { FacilityMap } from '@/components/facility-map';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
 import { fetchFacilityDetail } from '@/lib/facilities';
+import { recordVisit } from '@/lib/history';
 import { copyCoordinates, openNavigation } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
 import {
@@ -39,6 +42,9 @@ import { useTheme } from '@/theme-context';
  * 下の切り替え（概要・写真・案内図・注意）は、1画面に全部を積むと
  * 縦に長くなりすぎるため。走行前に見る場所を選べるようにする。
  */
+
+/** 地図の高さ。周囲の道が読める程度に取る。 */
+const MAP_HEIGHT = 260;
 
 type Section = 'summary' | 'photos' | 'diagram' | 'cautions';
 
@@ -66,6 +72,12 @@ export default function FacilityScreen() {
       try {
         const found = await fetchFacilityDetail(id);
         if (alive) setDetail(found);
+        /*
+          読めたものだけを履歴に残す。
+          存在しない id で開かれた場合まで残すと、履歴から
+          開けない行が並ぶことになる。
+        */
+        if (found) void recordVisit(id);
       } catch {
         if (alive) setError('施設を読み込めませんでした。');
       }
@@ -108,6 +120,9 @@ export default function FacilityScreen() {
   }
 
   const { facility, entryPoints } = detail!;
+  // タイルを並べるのに実寸が要る。左右の余白ぶんを引く。
+  const mapWidth = Dimensions.get('window').width - SPACE.lg * 2;
+
   const main = entryPoints[0];
   const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
 
@@ -145,24 +160,23 @@ export default function FacilityScreen() {
 
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         {/*
-          地図の場所。
-          地図そのものは、利用登録が済んでから入れる。
-          それまでは「ここに何が入るか」が分かる形で場所を確保しておく。
+          車寄せのまわりの地図。
+
+          出すのは進入口の座標であって、建物の中心ではない。
+          着けたい場所そのものを見せないと、この画面の意味がない。
+          進入口に座標が無ければ施設の座標へ落とす。
+
+          地図を押してナビを開始する作りはやめた。指で動かす操作と
+          区別が付かないため。ナビの開始は下の「経路」が担う。
         */}
         <View style={styles.map}>
-          <View style={styles.mapPin}>
-            <Ionicons name="location" size={30} color={c.accent} />
-          </View>
-          <Text style={styles.mapName}>{facility.name}</Text>
-          <Text style={styles.mapSub}>
-            {main ? ENTRY_POINT_KIND_LABEL[main.kind] : '入口の登録なし'}
-          </Text>
-          <View style={styles.mapNote}>
-            <Text style={styles.mapNoteText}>地図は準備中です</Text>
-          </View>
-          <Pressable style={styles.mapLocate} hitSlop={HIT_SLOP} accessibilityLabel="現在地">
-            <Ionicons name="locate" size={17} color={c.text} />
-          </Pressable>
+          <FacilityMap
+            lat={main?.nav_lat ?? facility.lat}
+            lng={main?.nav_lng ?? facility.lng}
+            label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
+            width={mapWidth}
+            height={MAP_HEIGHT}
+          />
         </View>
 
         {/* 名前・住所 */}
@@ -424,43 +438,13 @@ function makeStyles(c: Palette) {
 
     // --- 地図の場所 ---
     map: {
-      height: 260,
+      height: MAP_HEIGHT,
       marginHorizontal: SPACE.lg,
       borderRadius: RADIUS.md,
-      backgroundColor: c.surface2,
       borderWidth: 1,
       borderColor: c.border,
-      alignItems: 'center',
-      justifyContent: 'center',
       overflow: 'hidden',
     },
-    mapPin: { marginBottom: 2 },
-    mapName: { fontSize: 15, fontWeight: '800', color: c.text },
-    mapSub: { fontSize: 11, color: c.textMuted, marginTop: 1 },
-    mapNote: {
-      marginTop: SPACE.md,
-      paddingHorizontal: SPACE.md,
-      paddingVertical: 4,
-      borderRadius: RADIUS.sm,
-      backgroundColor: c.bg,
-      borderWidth: 1,
-      borderColor: c.border,
-    },
-    mapNoteText: { fontSize: 10, color: c.textFaint },
-    mapLocate: {
-      position: 'absolute',
-      right: SPACE.md,
-      bottom: SPACE.md,
-      width: 34,
-      height: 34,
-      borderRadius: 17,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-
     // --- 名前と操作 ---
     headBlock: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md },
     grip: {
