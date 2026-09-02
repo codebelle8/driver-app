@@ -1,10 +1,17 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { describeWhen, fetchNotices, markSeen, type Notice } from '@/lib/notices';
+import {
+  fetchNotices,
+  getRead,
+  markAllRead,
+  markRead,
+  type Notice,
+} from '@/lib/notices';
+import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -14,8 +21,8 @@ import { useTheme } from '@/theme-context';
  * 並びは「いま効いている注意 → 最近変わった施設」。
  * 現地でいま効いている条件のほうが、更新の知らせより切迫している。
  *
- * 開いた時点で「見た」ことにする。次に開いたとき、それ以降に
- * 変わったものだけが新着として数えられる。
+ * 既読は1件ずつ。押したものだけを読んだことにする。
+ * 開いただけで全部を既読にすると、どれを見たのかが分からなくなる。
  */
 export default function NoticesScreen() {
   const c = useTheme();
@@ -23,21 +30,39 @@ export default function NoticesScreen() {
   const router = useRouter();
 
   const [notices, setNotices] = useState<Notice[] | null>(null);
+  const [read, setRead] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const list = await fetchNotices();
+      const [list, already] = await Promise.all([fetchNotices(), getRead()]);
       if (!alive) return;
       setNotices(list);
-      // 一覧を出せたことを確かめてから印を付ける。
-      // 先に付けると、読み込みに失敗したときに新着が消える。
-      await markSeen();
+      setRead(already);
     })();
     return () => {
       alive = false;
     };
   }, []);
+
+  /*
+    開いただけでは既読にしない。
+
+    まとめて消すと、どれを見てどれを見ていないのかが分からなくなる。
+    押した1件だけを既読にし、未読の数はその分だけ減らす。
+  */
+  function onOpen(id: string) {
+    setRead((prev) => new Set(prev).add(id));
+    void markRead(id);
+  }
+
+  async function onReadAll() {
+    const ids = (notices ?? []).map((n) => n.id);
+    setRead(new Set(ids));
+    await markAllRead(ids);
+  }
+
+  const unread = (notices ?? []).filter((n) => !read.has(n.id)).length;
 
   const cautions = (notices ?? []).filter((n) => n.kind === 'caution');
   const updated = (notices ?? []).filter((n) => n.kind === 'updated');
@@ -50,8 +75,16 @@ export default function NoticesScreen() {
         <Pressable onPress={() => router.back()} hitSlop={HIT_SLOP} accessibilityLabel="戻る">
           <Ionicons name="arrow-back" size={22} color={c.text} />
         </Pressable>
-        <Text style={styles.topTitle}>お知らせ</Text>
-        <View style={styles.topSpacer} />
+        <Text style={styles.topTitle}>
+          お知らせ{unread > 0 ? ` (${unread})` : ''}
+        </Text>
+        {unread > 0 ? (
+          <Pressable onPress={onReadAll} hitSlop={HIT_SLOP} accessibilityLabel="すべて既読にする">
+            <Text style={styles.readAll}>すべて既読</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.topSpacer} />
+        )}
       </View>
 
       {notices === null ? (
@@ -70,7 +103,15 @@ export default function NoticesScreen() {
             <>
               <Text style={styles.section}>いま効いている注意</Text>
               {cautions.map((n) => (
-                <NoticeRow key={n.id} notice={n} styles={styles} c={c} urgent />
+                <NoticeRow
+                  key={n.id}
+                  notice={n}
+                  styles={styles}
+                  c={c}
+                  urgent
+                  unread={!read.has(n.id)}
+                  onOpen={onOpen}
+                />
               ))}
             </>
           )}
@@ -79,7 +120,14 @@ export default function NoticesScreen() {
             <>
               <Text style={styles.section}>最近変わった施設</Text>
               {updated.map((n) => (
-                <NoticeRow key={n.id} notice={n} styles={styles} c={c} />
+                <NoticeRow
+                  key={n.id}
+                  notice={n}
+                  styles={styles}
+                  c={c}
+                  unread={!read.has(n.id)}
+                  onOpen={onOpen}
+                />
               ))}
             </>
           )}
@@ -98,15 +146,23 @@ function NoticeRow({
   styles,
   c,
   urgent = false,
+  unread,
+  onOpen,
 }: {
   notice: Notice;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
   urgent?: boolean;
+  unread: boolean;
+  onOpen: (id: string) => void;
 }) {
   return (
     <Link href={`/facility/${notice.facilityId}`} asChild>
-      <Pressable style={urgent ? styles.rowUrgent : styles.row} accessibilityRole="link">
+      <Pressable
+        onPress={() => onOpen(notice.id)}
+        style={urgent ? styles.rowUrgent : styles.row}
+        accessibilityRole="link"
+      >
         <View style={urgent ? styles.iconUrgent : styles.icon}>
           <Ionicons
             name={urgent ? 'alert-circle' : 'refresh-circle'}
@@ -115,9 +171,13 @@ function NoticeRow({
           />
         </View>
         <View style={styles.body}>
-          <Text style={styles.name} numberOfLines={1}>
-            {notice.facilityName}
-          </Text>
+          <View style={styles.nameRow}>
+            {/* 未読はここで見分ける。数字だけだとどれが新しいのか分からない。 */}
+            {unread && <View style={styles.dot} />}
+            <Text style={unread ? styles.nameUnread : styles.name} numberOfLines={1}>
+              {notice.facilityName}
+            </Text>
+          </View>
           <Text style={styles.text} numberOfLines={2}>
             {notice.body}
           </Text>
@@ -140,6 +200,7 @@ function makeStyles(c: Palette) {
     },
     topTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: c.text },
     topSpacer: { width: 22 },
+    readAll: { fontSize: 12, color: c.accent, fontWeight: '600' },
 
     page: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
     section: {
@@ -193,7 +254,10 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     body: { flex: 1 },
-    name: { fontSize: 13, fontWeight: '700', color: c.text },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.accent },
+    name: { flex: 1, fontSize: 13, fontWeight: '400', color: c.textMuted },
+    nameUnread: { flex: 1, fontSize: 13, fontWeight: '700', color: c.text },
     text: { fontSize: 12, color: c.textMuted, marginTop: 2, lineHeight: 17 },
     when: { fontSize: 11, color: c.textFaint, marginTop: 3 },
 

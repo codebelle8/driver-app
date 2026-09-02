@@ -24,8 +24,16 @@ import type { CautionSeverity } from './types';
 /** 「最近」とみなす範囲。これより古い変更は出さない。 */
 const RECENT_DAYS = 14;
 
-/** 最後に開いた時刻を覚える鍵 */
-const SEEN_KEY = 'kn_notices_seen_at';
+/** 読んだお知らせの控え */
+const READ_KEY = 'kn_notices_read';
+
+/**
+ * 控えておく上限。
+ *
+ * 際限なく貯めると、端末に残す量が増え続ける。
+ * 古いものは一覧から落ちるため、控えも同じだけあれば足りる。
+ */
+const READ_LIMIT = 300;
 
 export type NoticeKind = 'caution' | 'updated';
 
@@ -106,7 +114,8 @@ export async function fetchNotices(): Promise<Notice[]> {
   );
 
   const updated: Notice[] = updatedRows.map((r) => ({
-    id: 'u:' + r.id,
+    // 同じ施設が再び更新されたら別の1件として数える。時刻まで含める。
+    id: 'u:' + r.id + ':' + r.updated_at,
     kind: 'updated' as const,
     facilityId: r.id,
     facilityName: r.name,
@@ -117,45 +126,42 @@ export async function fetchNotices(): Promise<Notice[]> {
   return [...cautions, ...updated];
 }
 
-/** 前回このアプリでお知らせを開いた時刻 */
-export async function getSeenAt(): Promise<Date | null> {
-  const raw = await AsyncStorage.getItem(SEEN_KEY);
-  if (!raw) return null;
-  const at = new Date(raw);
-  return Number.isNaN(at.getTime()) ? null : at;
+/** これまでに読んだお知らせの控え */
+export async function getRead(): Promise<Set<string>> {
+  const raw = await AsyncStorage.getItem(READ_KEY);
+  if (!raw) return new Set();
+  try {
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? new Set(list.map(String)) : new Set();
+  } catch {
+    // 壊れていたら控えを捨てる。全件が未読に戻るだけで、害はない。
+    return new Set();
+  }
 }
 
-export async function markSeen(): Promise<void> {
-  await AsyncStorage.setItem(SEEN_KEY, new Date().toISOString());
+/** 1件を読んだことにする */
+export async function markRead(id: string): Promise<void> {
+  const read = await getRead();
+  if (read.has(id)) return;
+  read.add(id);
+  const list = [...read].slice(-READ_LIMIT);
+  await AsyncStorage.setItem(READ_KEY, JSON.stringify(list));
+}
+
+/** まとめて読んだことにする（一覧の「すべて既読」） */
+export async function markAllRead(ids: string[]): Promise<void> {
+  const read = await getRead();
+  for (const id of ids) read.add(id);
+  const list = [...read].slice(-READ_LIMIT);
+  await AsyncStorage.setItem(READ_KEY, JSON.stringify(list));
 }
 
 /**
- * まだ見ていない件数。
+ * まだ読んでいない件数。
  *
- * 注意事項は、いま効いていれば常に数える。見たかどうかに関わらず
- * 現地で効いているため、数を消してしまうと気づけなくなる。
+ * 読んだ分だけ減り、新しく出たものが増える。
+ * 開いただけでまとめて既読にはしない。どれを見たのかが分からなくなるため。
  */
-export function countUnseen(notices: Notice[], seenAt: Date | null): number {
-  return notices.filter((n) => {
-    if (n.kind === 'caution') return true;
-    if (!seenAt) return true;
-    return new Date(n.at) > seenAt;
-  }).length;
-}
-
-/** 「3日前」のような短い言い方 */
-export function describeWhen(at: string): string {
-  const t = new Date(at).getTime();
-  if (Number.isNaN(t)) return '';
-
-  const minutes = Math.floor((Date.now() - t) / 60000);
-  if (minutes < 1) return 'たった今';
-  if (minutes < 60) return `${minutes}分前`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
-
-  const days = Math.floor(hours / 24);
-  if (days === 1) return '昨日';
-  return `${days}日前`;
+export function countUnread(notices: Notice[], read: Set<string>): number {
+  return notices.filter((n) => !read.has(n.id)).length;
 }
