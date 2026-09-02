@@ -5,6 +5,7 @@ import { RoleSelect } from '@/components/role-select';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
+import { isOwnerEmail } from '@/lib/owner';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { AdminRole } from '@/lib/supabase/database.types';
 
@@ -65,6 +66,14 @@ export default async function AccountsPage() {
                   const isMe = p.user_id === me.userId;
                   // 最後の管理者から権限を外すと、誰もアカウントを操作できなくなる
                   const lastAdmin = isMe && p.role === 'admin' && activeAdmins <= 1;
+                  /*
+                    所有者の行は、削除も停止も役割の変更もさせない。
+
+                    ここで隠すのは操作の入口だけで、実際に止めているのは
+                    データベース側のトリガー。画面だけでは、API を
+                    直接呼ばれたときに通ってしまう。
+                  */
+                  const owner = isOwnerEmail(emailById.get(p.user_id));
 
                   return (
                     <tr key={p.user_id}>
@@ -72,6 +81,11 @@ export default async function AccountsPage() {
                         {p.display_name}
                         {isMe && (
                           <span className="ml-2 text-xs text-text-muted">（{a.self}）</span>
+                        )}
+                        {owner && (
+                          <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent">
+                            所有者
+                          </span>
                         )}
                       </td>
                       <td className="px-5 py-3 text-text-muted">
@@ -81,7 +95,7 @@ export default async function AccountsPage() {
                         <RoleSelect
                           userId={p.user_id}
                           value={p.role as AdminRole}
-                          disabled={lastAdmin}
+                          disabled={lastAdmin || owner}
                           labels={{
                             admin: t.role.admin,
                             editor: t.role.editor,
@@ -102,7 +116,7 @@ export default async function AccountsPage() {
                           停止と削除を並べる。削除は取り消せず、操作履歴の実行者も
                           空欄になるため、弱い見た目で右端に置いている。
                         */}
-                        {!isMe && (
+                        {!isMe && !owner && (
                           <div className="flex items-center justify-end">
                             <form action={setAccountActive}>
                               <input type="hidden" name="user_id" value={p.user_id} />
@@ -121,6 +135,11 @@ export default async function AccountsPage() {
                               labels={{ delete: a.delete, confirm: a.deleteConfirm }}
                             />
                           </div>
+                        )}
+                        {owner && !isMe && (
+                          <span className="text-xs text-text-muted">
+                            所有者のため操作できません
+                          </span>
                         )}
                       </td>
                     </tr>

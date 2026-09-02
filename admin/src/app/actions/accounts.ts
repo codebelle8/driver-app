@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireAdmin } from '@/lib/auth';
+import { isOwnerEmail } from '@/lib/owner';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { AdminRole } from '@/lib/supabase/database.types';
 
@@ -26,6 +27,18 @@ function generatePassword(length = 14): string {
   const bytes = new Uint32Array(length);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (n) => alphabet[n % alphabet.length]).join('');
+}
+
+/**
+ * 対象が所有者かどうか。
+ *
+ * メールアドレスは認証情報の側にしか無いため、admin 権限で引く。
+ * 判定の意味と、実際に止めている層については @/lib/owner を参照。
+ */
+async function isOwner(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data } = await admin.auth.admin.getUserById(userId);
+  return isOwnerEmail(data?.user?.email);
 }
 
 const ROLES: AdminRole[] = ['admin', 'editor', 'surveyor'];
@@ -132,6 +145,10 @@ export async function deleteAccount(
     return { message: 'ご自身のアカウントは削除できません。' };
   }
 
+  if (await isOwner(userId)) {
+    return { message: '所有者のアカウントは削除できません。' };
+  }
+
   const supabase = await createClient();
 
   const { data: target } = await supabase
@@ -178,6 +195,8 @@ export async function setAccountActive(formData: FormData): Promise<void> {
   // 自分を停止すると、その場で管理画面から締め出される
   if (userId === me.userId && !active) return;
 
+  if (!active && (await isOwner(userId))) return;
+
   const supabase = await createClient();
   await supabase.from('admin_profiles').update({ is_active: active }).eq('user_id', userId);
 
@@ -191,6 +210,9 @@ export async function setAccountRole(formData: FormData): Promise<void> {
   const userId = String(formData.get('user_id') ?? '');
   const role = formData.get('role');
   if (!isRole(role)) return;
+
+  // 所有者を降格させてから消す、という順序を塞ぐ
+  if (role !== 'admin' && (await isOwner(userId))) return;
 
   const supabase = await createClient();
 
