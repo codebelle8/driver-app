@@ -150,8 +150,23 @@ function metres(a, b) {
 /** 未調査の断り書き。これが入っているものは「注記なし」と同じ扱い。 */
 const PLACEHOLDER = '現地調査前です。座標のみ登録されています。到着後の進入方法は追ってお知らせします。';
 
-/** 2点目の進入口の呼び名。一覧に2つ座標があるものだけが持つ。 */
-const SECOND_POINT_NAME = '進入路 2点目';
+/*
+  進入路が2種類ある施設の呼び名。
+
+  クライアント様のご回答（2026-08-30）:
+    「進入路が２種類ある施設はナビポイント２か所座標があります。」
+
+  つまり2つ目の座標は「同じ進入路の別地点」ではなく、
+  別の進入路そのものにあたる。乗務員の方はどちらを使うか選ぶことになるため、
+  1つ目と2つ目が対等に並ぶ呼び名にする。
+*/
+function routeName(base, index) {
+  return `${base}（進入路 ${index}）`;
+}
+
+/** 2つ目の進入路の説明。現地の詳細は未調査。 */
+const SECOND_ROUTE_TEXT =
+  '進入路が2種類あるうちの2つ目です。現地調査前のため、進入方法は追ってお知らせします。';
 
 const plan = [];
 let same = 0;
@@ -170,7 +185,9 @@ for (const row of rows) {
   if (f.name_kana !== row.kana) diffs.push({ kind: 'よみ', now: f.name_kana, next: row.kana });
 
   const wantKind = row.hasDropoff ? 'dropoff' : 'entrance';
-  const wantEpName = row.hasDropoff ? '車寄せ' : 'エントランス';
+  const baseName = row.hasDropoff ? '車寄せ' : 'エントランス';
+  // 進入路が2種類あるときだけ、1つ目にも番号を付けて対等に並べる
+  const wantEpName = row.coordB ? routeName(baseName, 1) : baseName;
 
   const a = eps[0];
   if (a) {
@@ -206,8 +223,8 @@ for (const row of rows) {
 
   const b = eps[1];
   if (row.coordB && b) {
-    if (b.name !== SECOND_POINT_NAME) {
-      diffs.push({ kind: '2点目の呼び名', now: b.name, next: SECOND_POINT_NAME });
+    if (b.name !== routeName(baseName, 2)) {
+      diffs.push({ kind: '2点目の呼び名', now: b.name, next: routeName(baseName, 2) });
     }
     const d = metres({ lat: b.nav_lat, lng: b.nav_lng }, row.coordB);
     if (d > 1) {
@@ -229,7 +246,7 @@ for (const row of rows) {
     same++;
     continue;
   }
-  plan.push({ row, f, eps, diffs, wantKind, wantEpName });
+  plan.push({ row, f, eps, diffs, wantKind, wantEpName, baseName });
 }
 
 console.log('一覧 ' + rows.length + ' 件を突き合わせました');
@@ -255,7 +272,7 @@ if (!APPLY) {
   console.log('');
   let n = 0;
   for (const p of plan) {
-    const { row, f, eps, wantKind, wantEpName } = p;
+    const { row, f, eps, wantKind, wantEpName, baseName } = p;
 
     // 当方が付けた正式名称は別名として残す。検索は従来どおり届かせる。
     const aliases = new Set(f.aliases ?? []);
@@ -290,10 +307,10 @@ if (!APPLY) {
     if (row.coordB) {
       const body = {
         kind: wantKind,
-        name: SECOND_POINT_NAME,
+        name: routeName(baseName, 2),
         nav_lat: row.coordB.lat,
         nav_lng: row.coordB.lng,
-        approach_text: '一覧に2点目の座標が示されています。1点目と併せてご確認ください。',
+        approach_text: SECOND_ROUTE_TEXT,
         sort_order: 2,
       };
       if (eps[1]) {
