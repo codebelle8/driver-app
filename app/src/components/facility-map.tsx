@@ -1,3 +1,4 @@
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Component, useEffect, useState, type ReactNode } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
@@ -11,7 +12,9 @@ import { StaticMap } from '@/components/static-map';
  *   そのまま読み込むと、Expo Go ではアプリごと起動しなくなる。
  *   （現在地の追加時に同じ失敗をしており、その繰り返しを避ける。）
  *
- *   読み込めた場合は Google、読み込めない場合は国土地理院の地図に戻す。
+ *   Expo Go では読み込みそのものを行わず、国土地理院の地図を使う。
+ *   （読み込んでしまうと、描画の段でネイティブごと落ちる。
+ *     JS の例外ではないので、受け皿を置いても捕まえられない。）
  *   利用者から見れば、どちらでも「車寄せの位置が分かる」ことは変わらない。
  *
  *   ビルドしたアプリ … Google
@@ -31,10 +34,23 @@ interface Loaded {
 
 let cached: Loaded | null | undefined;
 
+/**
+ * Expo Go で動いているか。
+ *
+ * Expo Go には react-native-maps のネイティブ側が入っていない。
+ * JS の読み込みは通ってしまい、描画の段でネイティブごと落ちる。
+ * これは JS の例外ではないため、try/catch でも ErrorBoundary でも
+ * 捕まえられず、アプリが落ちて再読み込みを繰り返す。
+ *
+ * 捕まえられない以上、**読み込む前に避ける**しかない。
+ */
+const IN_EXPO_GO =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
 async function loadMaps(): Promise<Loaded | null> {
   if (cached !== undefined) return cached;
-  // web には対応していない。最初から静止画の地図を使う。
-  if (Platform.OS === 'web') {
+  // web と Expo Go では使えない。最初から静止画の地図にする。
+  if (Platform.OS === 'web' || IN_EXPO_GO) {
     cached = null;
     return null;
   }
