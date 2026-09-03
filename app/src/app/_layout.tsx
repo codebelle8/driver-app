@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { IntroVideo } from '@/components/intro-video';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -32,6 +33,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <Shell />
+      {/*
+        導入映像。画面より上に重ね、終わるか押されたら消える。
+
+        ロゴだけを出す層も作ったが、システムの起動画面と合わせて
+        3枚重なることになるため、映像に一本化した。
+      */}
+      <IntroVideo />
     </ThemeProvider>
   );
 }

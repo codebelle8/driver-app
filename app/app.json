@@ -40,12 +40,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0B192F",
-          "image": "./assets/brand/splash.png",
-          "imageWidth": 280,
+          "image": "./assets/brand/splash-mark.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
           "dark": {
             "backgroundColor": "#0B192F",
-            "image": "./assets/brand/splash.png"
+            "image": "./assets/brand/splash-mark.png"
           }
         }
       ],
@@ -57,7 +57,12 @@
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
