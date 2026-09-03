@@ -45,17 +45,36 @@ function unescape(s) {
     .replace(/&amp;/g, '&');
 }
 
-/** <t> の中身を順に取り出す（Excel の共有文字列・Word の本文とも同じ形） */
+/** <t> の中身を順に取り出す（Word の本文・セル内の文字列に使う） */
 function texts(xml) {
   return [...xml.matchAll(/<(?:a:)?t(?:\s[^>]*)?>([\s\S]*?)<\/(?:a:)?t>/g)].map((m) =>
     unescape(m[1]),
   );
 }
 
+/**
+ * Excel の共有文字列を、1項目ずつ取り出す。
+ *
+ * **ふりがなを外す必要がある。**
+ *   日本語のセルには <rPh> としてふりがなが併記されており、その中にも
+ *   <t> が入っている。単純に <t> を並べると、ふりがなが独立した項目として
+ *   数えられ、以降の索引がすべてずれる。
+ *   実際「帝国ホテル東京」のふりがな「テイコク」が別項目になり、
+ *   列が総崩れになった。
+ *
+ * 1つの <si> は、書式ごとに <r><t>…</t></r> へ分かれることがある。
+ * ふりがなを落としたうえで、残った <t> を繋いで1項目とする。
+ */
+function sharedStrings(xml) {
+  return [...xml.matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) =>
+    texts(m[1].replace(/<rPh[\s\S]*?<\/rPh>/g, '')).join(''),
+  );
+}
+
 // --- Excel ------------------------------------------------------------------
 const shared = entry('xl/sharedStrings.xml');
 if (shared !== null) {
-  const strings = texts(shared);
+  const strings = sharedStrings(shared);
   console.log(`  共有文字列 ${strings.length} 個`);
 
   for (let n = 1; n <= 10; n++) {

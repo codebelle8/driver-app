@@ -73,8 +73,9 @@ export async function fetchCatalog(): Promise<CatalogPayload> {
       fetchAll<Category>('categories', 'id, code, name, sort_order', 'sort_order'),
       fetchAll<Facility>(
         'facilities',
-        'id, code, name, name_kana, aliases, category_id, prefecture, city, address_line, summary, lat, lng, updated_at',
-        'name_kana',
+        'id, code, name, name_kana, aliases, category_id, prefecture, city, address_line, summary, lat, lng, sort_order, updated_at',
+        // クライアント様の表の番号順。よみが揃っていないため、かな順にはしない。
+        'sort_order',
       ),
       fetchAll<EntryPoint>(
         'entry_points',

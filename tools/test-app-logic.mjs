@@ -13,7 +13,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-import { normalizeSearchText, toSearchPattern } from '../app/src/lib/search.ts';
+import { buildSearchText, normalizeSearchText, toSearchPattern } from '../app/src/lib/search.ts';
 import { describeSchedule, isActiveNow, splitByActive } from '../app/src/lib/cautions.ts';
 
 // sync.ts は接続設定を読み込み時に見るため、先に入れてから動的に読み込む。
@@ -77,7 +77,78 @@ check('変換表に無いカタカナは据え置き（ヴ）', normalizeSearchT
 check('前後を % で挟む', toSearchPattern('汐留'), '%汐留%');
 check('カタカナ入力もひらがなの語で照合', toSearchPattern('シオドメ'), '%しおどめ%');
 check('空文字は検索しない', toSearchPattern('   '), null);
-check('ilike の記号は落とす', toSearchPattern('100%_ホテル'), '%100 ほてる%');
+// 空白も無視するようにしたため、記号を落とした跡に空白は残らない
+check('ilike の記号は落とす', toSearchPattern('100%_ホテル'), '%100ほてる%');
+
+/*
+  端末側で組み立てる照合用の文字列。
+
+  アプリは施設を端末の中で絞る（app/src/lib/facilities.ts）。
+  当たり判定は searchText.includes(検索語) だけなので、
+  この文字列に何が入るかが検索の可否をそのまま決める。
+*/
+console.log('\n端末側の照合文字列:\n');
+
+/** catalog.ts の index() と同じ順で組み立てる */
+const searchTextOf = (f) =>
+  buildSearchText([
+    f.name,
+    f.name_kana,
+    ...(f.aliases ?? []),
+    f.prefecture,
+    f.city,
+    f.address_line,
+    f.category,
+  ]);
+
+const hoshinoya = searchTextOf({
+  name: '星のや東京',
+  name_kana: 'ほしのやとうきょう',
+  aliases: ['星のや'],
+  prefecture: '東京都',
+  city: '千代田区',
+  address_line: '大手町一丁目',
+  category: 'ホテル',
+});
+
+// 施設名に「ホテル」が無くても、区分から辿れること（ご要望による）
+check(
+  'カテゴリ名1文字で当たる',
+  hoshinoya.includes(normalizeSearchText('ホ')),
+  true,
+);
+check('漢字で当たる', hoshinoya.includes(normalizeSearchText('星のや')), true);
+check(
+  'よみがなで当たる',
+  hoshinoya.includes(normalizeSearchText('ホシノヤ')),
+  true,
+);
+check('住所で当たる', hoshinoya.includes(normalizeSearchText('大手町')), true);
+check(
+  '無関係な語では当たらない',
+  hoshinoya.includes(normalizeSearchText('帝国')),
+  false,
+);
+
+/*
+  項目のつなぎ目をまたぐ語は当たらないこと。
+
+  以前、先に繋いでから正規化していたため、「丸ノ内ホテル」の
+  名前の末尾とよみの先頭がつながって別の施設に当たっていた。
+*/
+const marunouchi = searchTextOf({
+  name: '丸ノ内ホテル',
+  name_kana: 'まるのうちほてる',
+  prefecture: '東京都',
+  city: '千代田区',
+  address_line: '丸の内一丁目',
+  category: 'ホテル',
+});
+check(
+  '項目をまたぐ語は当たらない',
+  marunouchi.includes(normalizeSearchText('丸の内ほてるまるのうち')),
+  false,
+);
 
 console.log('\n注意事項の時間帯:\n');
 

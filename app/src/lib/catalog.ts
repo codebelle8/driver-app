@@ -70,12 +70,23 @@ let loading: Promise<Catalog> | null = null;
 /*
   探すための文字列を添える。
 
-  組み立ては search.ts に任せる。サーバー側 (facilities_refresh_search_text)
-  と同じ規則で、項目ごとに正規化してから繋ぐ。先に繋いでから正規化すると、
-  「丸ノ内ホテル」が「ホテルメトロポリタン丸の内」に当たるような
-  項目をまたいだ誤検出が起きる。
+  組み立ては search.ts に任せる。項目ごとに正規化してから繋ぐ。
+  先に繋いでから正規化すると、「丸ノ内ホテル」が
+  「ホテルメトロポリタン丸の内」に当たるような、項目をまたいだ
+  誤検出が起きる。
+
+  **カテゴリ名も入れる。**
+    「ホ」の1文字でホテルが出てほしい、というご要望による。
+    施設名に「ホテル」を含まないもの（「星のや東京」など）も、
+    これで区分から辿れる。
+
+  **漢字はそのまま残る。**
+    正規化はカタカナをひらがなへ寄せるだけなので、漢字で打てば
+    漢字のまま当たり、よみがなで打てばよみがなに当たる。
 */
-function index(facilities: Facility[]): IndexedFacility[] {
+function index(facilities: Facility[], categories: Category[]): IndexedFacility[] {
+  const categoryName = new Map(categories.map((c) => [c.id, c.name]));
+
   return facilities.map((f) => ({
     ...f,
     searchText: buildSearchText([
@@ -85,6 +96,7 @@ function index(facilities: Facility[]): IndexedFacility[] {
       f.prefecture,
       f.city,
       f.address_line,
+      categoryName.get(f.category_id),
     ]),
   }));
 }
@@ -101,7 +113,7 @@ async function readStored(): Promise<Catalog> {
     const p = JSON.parse(raw) as CatalogPayload;
     return {
       categories: p.categories ?? [],
-      facilities: index(p.facilities ?? []),
+      facilities: index(p.facilities ?? [], p.categories ?? []),
       entryPoints: p.entryPoints ?? [],
       cautions: p.cautions ?? [],
       photos: p.photos ?? [],
@@ -140,7 +152,7 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
 
   memory = {
     categories: payload.categories,
-    facilities: index(payload.facilities),
+    facilities: index(payload.facilities, payload.categories),
     entryPoints: payload.entryPoints,
     cautions: payload.cautions,
     photos: payload.photos,

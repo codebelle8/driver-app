@@ -115,8 +115,17 @@ export async function searchFacilities(options: {
   if (needle) hit = hit.filter((f) => f.searchText.includes(needle));
   if (options.categoryId) hit = hit.filter((f) => f.category_id === options.categoryId);
 
-  // よみがな順。SQLite の order by name_kana と同じ並び。
-  const sorted = [...hit].sort((a, b) => a.name_kana.localeCompare(b.name_kana, 'ja'));
+  /*
+    クライアント様の表の番号順。
+
+    よみがな順にしないのは、漢字を含む名前のよみが揃っておらず
+    （193件中150件が未入力）、推測で埋めると誤った位置に並ぶため。
+    表の番号はエリアごとにまとまっており、これを保てば
+    お手元の一覧と画面が1対1で対応し、照合しやすい。
+  */
+  const sorted = [...hit].sort(
+    (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'),
+  );
   const rows = sorted.slice(offset, offset + PAGE_SIZE);
 
   return {

@@ -44,6 +44,14 @@ export interface Facility {
   summary: string | null;
   lat: number | null;
   lng: number | null;
+  /**
+   * 一覧に出す順。クライアント様の表の番号をそのまま入れる。
+   *
+   * よみがな順にしないのは、漢字を含む名前のよみが揃っておらず、
+   * 推測で埋めると誤った位置に並ぶため。表の番号はエリアごとに
+   * まとまっており、これを保てば一覧と画面が1対1で対応する。
+   */
+  sort_order: number;
   /** 最後に内容が変わった時刻。お知らせの並びに使う。 */
   updated_at: string;
 }
