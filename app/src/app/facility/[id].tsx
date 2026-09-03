@@ -19,6 +19,7 @@ import { FacilityMap } from '@/components/facility-map';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
 import { fetchFacilityDetail } from '@/lib/facilities';
 import { recordVisit } from '@/lib/history';
+import { ensureSynced } from '@/lib/sync';
 import { copyCoordinates, openNavigation } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
 import {
@@ -70,8 +71,24 @@ export default function FacilityScreen() {
     let alive = true;
     (async () => {
       try {
+        /*
+          取り込みの完了を待つ。
+
+          この画面は、共有された URL から直接開かれることがある。
+          その場合は探す画面を通らないため、以前は取り込みが
+          一度も走らず、端末のデータベースが空のままだった。
+          結果として「施設を読み込めませんでした」で行き止まりになる。
+
+          ensureSynced は結果を控えているので、探す画面から来た
+          場合は待たされない。
+        */
+        await ensureSynced();
+
         const found = await fetchFacilityDetail(id);
-        if (alive) setDetail(found);
+        if (!alive) return;
+        setDetail(found);
+        if (!found) setError('この施設は見つかりませんでした。');
+
         /*
           読めたものだけを履歴に残す。
           存在しない id で開かれた場合まで残すと、履歴から
@@ -110,9 +127,29 @@ export default function FacilityScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.center}>
           {error ? (
-            <Text style={styles.errorText}>{error}</Text>
+            <>
+              <Ionicons name="alert-circle-outline" size={30} color={c.textFaint} />
+              <Text style={styles.errorText}>{error}</Text>
+              {/*
+                行き止まりにしない。
+                共有された URL から直接開かれ、読めなかった場合、
+                戻る先が無いと画面から出られなくなる。
+              */}
+              <Pressable
+                onPress={() => router.replace('/')}
+                style={({ pressed }) => [styles.errorAction, pressed && styles.errorActionOn]}
+                accessibilityRole="button"
+              >
+                <Ionicons name="search" size={15} color={c.accent} />
+                <Text style={styles.errorActionText}>施設を探す</Text>
+              </Pressable>
+            </>
           ) : (
-            <ActivityIndicator color={c.accent} />
+            <>
+              <ActivityIndicator color={c.accent} />
+              {/* 何を待っているのかを書く。無言で回るだけでは不安になる。 */}
+              <Text style={styles.errorText}>施設の情報を読み込んでいます…</Text>
+            </>
           )}
         </View>
       </SafeAreaView>
@@ -422,8 +459,22 @@ function CautionBlock({
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
-    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-    errorText: { fontSize: 13, color: c.textMuted },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.xl },
+    errorText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    errorAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: SPACE.sm,
+      paddingHorizontal: SPACE.md,
+      paddingVertical: 9,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    errorActionOn: { backgroundColor: c.surface2 },
+    errorActionText: { fontSize: 13, fontWeight: '700', color: c.accent },
     page: { paddingBottom: SPACE.lg },
 
     // --- 上部 ---

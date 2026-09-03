@@ -4,7 +4,10 @@ import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { useEffect } from 'react';
+
 import { IntroVideo } from '@/components/intro-video';
+import { ensureSynced } from '@/lib/sync';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -30,6 +33,20 @@ import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
  * 画面より外側に無いと、切り替えても再描画されない。
  */
 export default function RootLayout() {
+  /*
+    取り込みを、どの画面から入っても一度だけ走らせる。
+
+    以前は探す画面でしか走らせておらず、共有された URL から
+    施設の画面を直接開くと、端末のデータベースが空のまま
+    「読み込めませんでした」で行き止まりになっていた。
+
+    ここで走らせておけば、どの入口から来ても同じ結果になる。
+    結果は ensureSynced が控えるため、二重には走らない。
+  */
+  useEffect(() => {
+    void ensureSynced();
+  }, []);
+
   return (
     <ThemeProvider>
       <Shell />

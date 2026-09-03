@@ -1,8 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/theme-context';
+
+/**
+ * 画面下の切り替え。
+ *
+ * 以前はタブを置かず検索画面だけにしていた。ドライバーの用途は
+ * 「次に向かう施設を1件調べる」に尽きる、という判断だったが、
+ * ご提示の構成に合わせてタブを設ける。
+ *
+ * お気に入り・マイページは、初期版では置き場所のみ。
+ */
 
 /**
  * 記号と文字が収まる高さ。
@@ -12,16 +23,14 @@ import { useTheme } from '@/theme-context';
  */
 const BAR_HEIGHT = 70;
 
-/**
- * 画面下の切り替え。
- *
- * 以前はタブを置かず検索画面だけにしていた。ドライバーの用途は
- * 「次に向かう施設を1件調べる」に尽きる、という判断だったが、
- * ご提示の構成に合わせてタブを設ける。
- *
- * お気に入り・履歴・マイページは、初期版では置き場所のみ。
- * 中身は運用版で埋める。
- */
+/** タブの並び。名前と記号を1か所にまとめる。 */
+const TABS = [
+  { name: 'index', label: '探す', on: 'search', off: 'search-outline' },
+  { name: 'favorites', label: 'お気に入り', on: 'star', off: 'star-outline' },
+  { name: 'history', label: '履歴', on: 'time', off: 'time-outline' },
+  { name: 'mypage', label: 'マイページ', on: 'person', off: 'person-outline' },
+] as const;
+
 export default function TabsLayout() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
@@ -47,45 +56,46 @@ export default function TabsLayout() {
           // 下に余白を厚めに取ることで、記号と文字がまとめて上へ寄る
           paddingBottom: 14 + insets.bottom,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: '探す',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'search' : 'search-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'お気に入り',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'star' : 'star-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: '履歴',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'time' : 'time-outline'} size={22} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="mypage"
-        options={{
-          title: 'マイページ',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
-          ),
-        }}
-      />
+      {TABS.map((t) => (
+        <Tabs.Screen
+          key={t.name}
+          name={t.name}
+          options={{
+            title: t.label,
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={focused ? t.on : t.off} size={22} color={color} />
+            ),
+            /*
+              文字を自分で描く。
+
+              tabBarLabelStyle を渡しても、文字の箱に height: 11px と
+              overflow: hidden が入り、日本語の上下が切り落とされていた。
+              行の高さを指定しても箱の高さは変わらなかったため、
+              内部の作りに任せず、こちらで描く。
+            */
+            tabBarLabel: ({ color }) => (
+              <View style={styles.labelBox}>
+                <Text style={[styles.label, { color }]} numberOfLines={1}>
+                  {t.label}
+                </Text>
+              </View>
+            ),
+          }}
+        />
+      ))}
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  // 文字が収まる高さを確保する。切り落とさない。
+  labelBox: { height: 18, justifyContent: 'center', alignItems: 'center' },
+  label: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
