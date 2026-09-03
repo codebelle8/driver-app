@@ -18,7 +18,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { isActiveNow } from './cautions';
-import { getDatabase } from './db';
+import { fetchCautionsWithFacility, fetchRecentlyUpdated } from './facilities';
 import type { CautionSeverity } from './types';
 
 /** 「最近」とみなす範囲。これより古い変更は出さない。 */
@@ -49,23 +49,6 @@ export interface Notice {
   severity?: CautionSeverity;
 }
 
-interface CautionRow {
-  id: string;
-  body: string;
-  severity: string;
-  time_from: string | null;
-  time_to: string | null;
-  weekdays: string;
-  facility_id: string;
-  facility_name: string;
-}
-
-interface UpdatedRow {
-  id: string;
-  name: string;
-  updated_at: string;
-}
-
 /**
  * お知らせを組み立てる。
  *
@@ -73,54 +56,32 @@ interface UpdatedRow {
  * 「更新されました」より切迫しているため。
  */
 export async function fetchNotices(): Promise<Notice[]> {
-  const db = await getDatabase();
+  const withFacility = await fetchCautionsWithFacility();
 
-  const cautionRows = await db.getAllAsync<CautionRow>(
-    `select c.id, c.body, c.severity, c.time_from, c.time_to, c.weekdays,
-            f.id as facility_id, f.name as facility_name
-       from cautions c
-       join entry_points e on e.id = c.entry_point_id
-       join facilities f on f.id = e.facility_id
-      order by c.sort_order`,
-  );
-
-  const cautions: Notice[] = cautionRows
-    .filter((r) =>
-      isActiveNow({
-        time_from: r.time_from,
-        time_to: r.time_to,
-        weekdays: r.weekdays ? r.weekdays.split(',').map(Number).filter(Number.isInteger) : [],
-      }),
-    )
-    .map((r) => ({
-      id: 'c:' + r.id,
+  const cautions: Notice[] = withFacility
+    .filter(({ caution }) => isActiveNow(caution))
+    .map(({ caution, facility }) => ({
+      id: 'c:' + caution.id,
       kind: 'caution' as const,
-      facilityId: r.facility_id,
-      facilityName: r.facility_name,
-      body: r.body,
+      facilityId: facility.id,
+      facilityName: facility.name,
+      body: caution.body,
       // 注意事項は「いま効いている」ことが要点で、いつ書かれたかは問わない
       at: new Date().toISOString(),
-      severity: r.severity as CautionSeverity,
+      severity: caution.severity,
     }));
 
   const since = new Date(Date.now() - RECENT_DAYS * 86400_000).toISOString();
-  const updatedRows = await db.getAllAsync<UpdatedRow>(
-    `select id, name, updated_at
-       from facilities
-      where updated_at <> '' and updated_at >= ?
-      order by updated_at desc
-      limit 30`,
-    since,
-  );
+  const recent = await fetchRecentlyUpdated(since, 30);
 
-  const updated: Notice[] = updatedRows.map((r) => ({
+  const updated: Notice[] = recent.map((f) => ({
     // 同じ施設が再び更新されたら別の1件として数える。時刻まで含める。
-    id: 'u:' + r.id + ':' + r.updated_at,
+    id: 'u:' + f.id + ':' + f.updated_at,
     kind: 'updated' as const,
-    facilityId: r.id,
-    facilityName: r.name,
+    facilityId: f.id,
+    facilityName: f.name,
     body: '案内の内容が更新されました。向かう前にご確認ください。',
-    at: r.updated_at,
+    at: f.updated_at,
   }));
 
   return [...cautions, ...updated];

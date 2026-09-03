@@ -1,27 +1,29 @@
 /**
  * 施設データの取得。
  *
- * **サーバーではなく端末内のデータベースから読む。**
+ * **サーバーではなく端末の中から読む。**
  *   このアプリが使われるのは地下駐車場や高架下で、目的地に近づくほど
  *   電波が悪くなる。到着直前に「読み込み中」で止まっては意味がない。
  *   サーバーへの問い合わせは起動時の取り込み (sync.ts) に限り、
  *   画面の表示は常に端末の中だけで完結させる。
  *
+ * **全件をメモリで絞る。**
+ *   以前は SQLite に入れて SQL で照会していたが、web 版が必要とする
+ *   OPFS は Safari で使えず、iPhone で動かなかった。
+ *   対象は150件程度で、配列を絞るほうが速く、どのブラウザでも同じ結果になる。
+ *
  * 公開されていないものは、そもそも取り込み時にサーバー側の RLS が弾く。
  * 端末に届いた時点で、すべて公開済みのもの。
  */
-import { ALIAS_SEPARATOR, getDatabase } from './db';
-import { toSearchPattern } from './search';
+import { getCatalog } from './catalog';
+import { normalizeSearchText } from './search';
 import type {
   Caution,
-  CautionSeverity,
   Category,
   EntryPoint,
-  EntryPointKind,
   Facility,
   FacilityDetail,
   Photo,
-  PhotoKind,
 } from './types';
 
 /**
@@ -33,112 +35,9 @@ import type {
  */
 export const PAGE_SIZE = 15;
 
-// --- 端末側の形から、アプリが扱う形へ ------------------------------------------
-// SQLite には配列も真偽値も無いため、保存時に文字列と 0/1 へ潰している。
-// 読み出す側で元へ戻す。
-
-interface FacilityRow {
-  id: string;
-  code: string;
-  name: string;
-  name_kana: string;
-  aliases: string;
-  category_id: string;
-  prefecture: string;
-  city: string | null;
-  address_line: string;
-  summary: string | null;
-  lat: number | null;
-  lng: number | null;
-  updated_at: string;
-}
-
-function toFacility(row: FacilityRow): Facility {
-  return {
-    ...row,
-    aliases: row.aliases ? row.aliases.split(ALIAS_SEPARATOR).filter(Boolean) : [],
-  };
-}
-
-interface EntryPointRow {
-  id: string;
-  facility_id: string;
-  code: string;
-  kind: string;
-  name: string;
-  approach_text: string | null;
-  approach_from: string | null;
-  nav_lat: number | null;
-  nav_lng: number | null;
-  dropoff_lat: number | null;
-  dropoff_lng: number | null;
-  height_limit_cm: number | null;
-  is_roofed: number | null;
-  is_24h: number | null;
-  sort_order: number;
-}
-
-/** 0/1 と null を、真偽値と「未回答」へ戻す */
-function toBool(value: number | null): boolean | null {
-  return value === null ? null : value === 1;
-}
-
-function toEntryPoint(row: EntryPointRow): EntryPoint {
-  return {
-    ...row,
-    kind: row.kind as EntryPointKind,
-    is_roofed: toBool(row.is_roofed),
-    is_24h: toBool(row.is_24h),
-  };
-}
-
-interface CautionRow {
-  id: string;
-  entry_point_id: string;
-  body: string;
-  severity: string;
-  time_from: string | null;
-  time_to: string | null;
-  weekdays: string;
-  sort_order: number;
-}
-
-function toCaution(row: CautionRow): Caution {
-  return {
-    ...row,
-    severity: row.severity as CautionSeverity,
-    weekdays: row.weekdays
-      ? row.weekdays.split(',').map(Number).filter(Number.isInteger)
-      : [],
-  };
-}
-
-interface PhotoRow {
-  id: string;
-  facility_id: string | null;
-  entry_point_id: string | null;
-  kind: string;
-  storage_path: string;
-  caption: string | null;
-  is_placeholder: number;
-  sort_order: number;
-}
-
-function toPhoto(row: PhotoRow): Photo {
-  return {
-    ...row,
-    kind: row.kind as PhotoKind,
-    is_placeholder: row.is_placeholder === 1,
-  };
-}
-
-// --- 取得 ---------------------------------------------------------------------
-
 export async function fetchCategories(): Promise<Category[]> {
-  const db = await getDatabase();
-  return db.getAllAsync<Category>(
-    'select id, code, name, sort_order from categories order by sort_order',
-  );
+  const c = await getCatalog();
+  return [...c.categories].sort((a, b) => a.sort_order - b.sort_order);
 }
 
 /**
@@ -153,31 +52,34 @@ export async function fetchCoverage(): Promise<{
   /** 端末に入っている総数。通信を待たずに件数を出すために使う。 */
   total: number;
 }> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<{ prefecture: string; cities: number; n: number }>(
-    `select prefecture, count(distinct city) as cities, count(*) as n
-       from facilities
-      where prefecture <> ''
-      group by prefecture
-      order by count(*) desc`,
+  const { facilities } = await getCatalog();
+
+  // 件数の多い都道府県から並べる
+  const byPref = new Map<string, Set<string>>();
+  for (const f of facilities) {
+    if (!f.prefecture) continue;
+    const cities = byPref.get(f.prefecture) ?? new Set<string>();
+    if (f.city) cities.add(f.city);
+    byPref.set(f.prefecture, cities);
+  }
+
+  const counts = new Map<string, number>();
+  for (const f of facilities) {
+    if (!f.prefecture) continue;
+    counts.set(f.prefecture, (counts.get(f.prefecture) ?? 0) + 1);
+  }
+
+  const prefectures = [...byPref.keys()].sort(
+    (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0),
   );
-  const counted = await db.getFirstAsync<{ n: number }>(
-    'select count(*) as n from facilities',
-  );
+
   return {
-    prefectures: rows.map((r) => r.prefecture),
-    cities: rows.reduce((n, r) => n + r.cities, 0),
-    total: counted?.n ?? 0,
+    prefectures,
+    cities: [...byPref.values()].reduce((n, s) => n + s.size, 0),
+    total: facilities.length,
   };
 }
 
-/**
- * 施設を検索する。
- *
- * `search_text` には施設名・よみがな・別名・住所がまとめて入っている。
- * この列は取り込み時にサーバーと同じ規則で正規化しているため、
- * 「ていこく」でも「うちさいわい」でも「帝国」でも同じ施設に届く。
- */
 export interface SearchPage {
   rows: Facility[];
   /**
@@ -191,116 +93,105 @@ export interface SearchPage {
   hasMore: boolean;
 }
 
+/**
+ * 施設を検索する。
+ *
+ * 施設名・よみがな・別名・住所をまとめた文字列に対して部分一致で当てる。
+ * この文字列は取り込み時にサーバーと同じ規則で正規化しているため、
+ * 「ていこく」でも「うちさいわい」でも「帝国」でも同じ施設に届く。
+ */
 export async function searchFacilities(options: {
   query?: string;
   categoryId?: string | null;
   /** 0 から始まる読み込み位置 */
   offset?: number;
 }): Promise<SearchPage> {
-  const db = await getDatabase();
+  const { facilities } = await getCatalog();
   const offset = options.offset ?? 0;
 
-  const conditions: string[] = [];
-  const params: (string | number)[] = [];
+  const needle = options.query ? normalizeSearchText(options.query) : '';
 
-  const pattern = options.query ? toSearchPattern(options.query) : null;
-  if (pattern) {
-    conditions.push('search_text like ?');
-    params.push(pattern);
-  }
-  if (options.categoryId) {
-    conditions.push('category_id = ?');
-    params.push(options.categoryId);
-  }
+  let hit = facilities;
+  if (needle) hit = hit.filter((f) => f.searchText.includes(needle));
+  if (options.categoryId) hit = hit.filter((f) => f.category_id === options.categoryId);
 
-  const where = conditions.length ? `where ${conditions.join(' and ')}` : '';
-
-  /*
-    総数も数える。問い合わせは2回になるが、
-    端末内の索引付きの表を数えるだけで、体感できるほどの間は空かない。
-    「15件」とだけ出して全体が分からないほうが、走行前の判断を妨げる。
-  */
-  const counted = await db.getFirstAsync<{ n: number }>(
-    `select count(*) as n from facilities ${where}`,
-    params,
-  );
-  const total = counted?.n ?? 0;
-
-  const rows = await db.getAllAsync<FacilityRow>(
-    `select id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng, updated_at
-       from facilities
-       ${where}
-      order by name_kana
-      limit ? offset ?`,
-    [...params, PAGE_SIZE, offset],
-  );
+  // よみがな順。SQLite の order by name_kana と同じ並び。
+  const sorted = [...hit].sort((a, b) => a.name_kana.localeCompare(b.name_kana, 'ja'));
+  const rows = sorted.slice(offset, offset + PAGE_SIZE);
 
   return {
-    rows: rows.map(toFacility),
-    total,
-    hasMore: offset + rows.length < total,
+    rows,
+    total: sorted.length,
+    hasMore: offset + rows.length < sorted.length,
   };
 }
 
 /** 詳細画面に必要なものを集める */
 export async function fetchFacilityDetail(id: string): Promise<FacilityDetail | null> {
-  const db = await getDatabase();
+  const c = await getCatalog();
 
-  const facilityRow = await db.getFirstAsync<FacilityRow>(
-    `select id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng, updated_at
-       from facilities where id = ?`,
-    id,
-  );
-  if (!facilityRow) return null;
+  const facility = c.facilities.find((f) => f.id === id);
+  if (!facility) return null;
 
-  const entryPointRows = await db.getAllAsync<EntryPointRow>(
-    `select id, facility_id, code, kind, name, approach_text, approach_from,
-            nav_lat, nav_lng, dropoff_lat, dropoff_lng, height_limit_cm,
-            is_roofed, is_24h, sort_order
-       from entry_points where facility_id = ?
-      order by sort_order, code`,
-    id,
-  );
+  const entryPoints = c.entryPoints
+    .filter((e) => e.facility_id === id)
+    .sort((a, b) => a.sort_order - b.sort_order || a.code.localeCompare(b.code));
 
-  const entryPoints = entryPointRows.map(toEntryPoint);
-  const ids = entryPoints.map((ep) => ep.id);
+  const ids = new Set(entryPoints.map((e) => e.id));
 
   const cautionsByEntryPoint: Record<string, Caution[]> = {};
-  const photosByEntryPoint: Record<string, Photo[]> = {};
-
-  if (ids.length) {
-    // in (?, ?, ...) の形にする。件数は施設あたり数件なので問題にならない。
-    const placeholders = ids.map(() => '?').join(', ');
-
-    const cautionRows = await db.getAllAsync<CautionRow>(
-      `select id, entry_point_id, body, severity, time_from, time_to, weekdays, sort_order
-         from cautions where entry_point_id in (${placeholders})
-        order by sort_order`,
-      ids,
-    );
-    for (const row of cautionRows) {
-      (cautionsByEntryPoint[row.entry_point_id] ??= []).push(toCaution(row));
-    }
-
-    const photoRows = await db.getAllAsync<PhotoRow>(
-      `select id, facility_id, entry_point_id, kind, storage_path, caption,
-              is_placeholder, sort_order
-         from photos where entry_point_id in (${placeholders})
-        order by sort_order`,
-      ids,
-    );
-    for (const row of photoRows) {
-      if (!row.entry_point_id) continue;
-      (photosByEntryPoint[row.entry_point_id] ??= []).push(toPhoto(row));
-    }
+  for (const x of c.cautions) {
+    if (!ids.has(x.entry_point_id)) continue;
+    (cautionsByEntryPoint[x.entry_point_id] ??= []).push(x);
+  }
+  for (const list of Object.values(cautionsByEntryPoint)) {
+    list.sort((a, b) => a.sort_order - b.sort_order);
   }
 
-  return {
-    facility: toFacility(facilityRow),
-    entryPoints,
-    cautionsByEntryPoint,
-    photosByEntryPoint,
-  };
+  const photosByEntryPoint: Record<string, Photo[]> = {};
+  for (const p of c.photos) {
+    if (!p.entry_point_id || !ids.has(p.entry_point_id)) continue;
+    (photosByEntryPoint[p.entry_point_id] ??= []).push(p);
+  }
+  for (const list of Object.values(photosByEntryPoint)) {
+    list.sort((a, b) => a.sort_order - b.sort_order);
+  }
+
+  return { facility, entryPoints, cautionsByEntryPoint, photosByEntryPoint };
 }
+
+/** 履歴の並べ替えに使う。id から施設を引く。 */
+export async function fetchFacilitiesByIds(ids: string[]): Promise<Map<string, Facility>> {
+  const { facilities } = await getCatalog();
+  const want = new Set(ids);
+  return new Map(facilities.filter((f) => want.has(f.id)).map((f) => [f.id, f]));
+}
+
+/** お知らせに使う。進入口と施設を結んだ形で返す。 */
+export async function fetchCautionsWithFacility(): Promise<
+  { caution: Caution; facility: Facility }[]
+> {
+  const c = await getCatalog();
+  const epToFacility = new Map(c.entryPoints.map((e) => [e.id, e.facility_id]));
+  const byId = new Map(c.facilities.map((f) => [f.id, f]));
+
+  const out: { caution: Caution; facility: Facility }[] = [];
+  for (const x of [...c.cautions].sort((a, b) => a.sort_order - b.sort_order)) {
+    const fid = epToFacility.get(x.entry_point_id);
+    const facility = fid ? byId.get(fid) : undefined;
+    if (facility) out.push({ caution: x, facility });
+  }
+  return out;
+}
+
+/** お知らせに使う。最近変わった施設を新しい順に返す。 */
+export async function fetchRecentlyUpdated(since: string, limit: number): Promise<Facility[]> {
+  const { facilities } = await getCatalog();
+  return facilities
+    .filter((f) => f.updated_at && f.updated_at >= since)
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+    .slice(0, limit);
+}
+
+/** 型の再輸出。呼ぶ側が catalog を意識しなくて済むように。 */
+export type { EntryPoint };

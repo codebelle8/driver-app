@@ -9,7 +9,12 @@
  *   取り込めなければ前回の内容がそのまま残る。圏外での起動は
  *   むしろ想定される場面なので、失敗は異常ではなく通常の分岐として扱う。
  */
-import { getCachedFacilityCount, getSyncedAt, replaceCatalog, type CatalogPayload } from './db';
+import {
+  getCachedFacilityCount,
+  getSyncedAt,
+  replaceCatalog,
+  type CatalogPayload,
+} from './catalog';
 import { supabase } from './supabase';
 import type { Caution, Category, EntryPoint, Facility, Photo } from './types';
 

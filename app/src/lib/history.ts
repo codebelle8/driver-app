@@ -16,7 +16,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { ALIAS_SEPARATOR, getDatabase } from './db';
+import { fetchFacilitiesByIds } from './facilities';
 import type { Facility } from './types';
 
 const KEY = 'kn_history';
@@ -84,28 +84,13 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   const visits = await readVisits();
   if (visits.length === 0) return [];
 
-  const db = await getDatabase();
-  const placeholders = visits.map(() => '?').join(', ');
-  const rows = await db.getAllAsync<Facility & { aliases: string }>(
-    `select id, code, name, name_kana, aliases, category_id, prefecture, city,
-            address_line, summary, lat, lng, updated_at
-       from facilities
-      where id in (${placeholders})`,
-    visits.map((v) => v.id),
-  );
+  const byId = await fetchFacilitiesByIds(visits.map((v) => v.id));
 
-  const byId = new Map(rows.map((r) => [r.id, r]));
   const out: HistoryEntry[] = [];
   for (const v of visits) {
-    const row = byId.get(v.id);
-    if (!row) continue;
-    out.push({
-      facility: {
-        ...row,
-        aliases: row.aliases ? row.aliases.split(ALIAS_SEPARATOR).filter(Boolean) : [],
-      },
-      at: v.at,
-    });
+    const facility = byId.get(v.id);
+    if (!facility) continue;
+    out.push({ facility, at: v.at });
   }
   return out;
 }
