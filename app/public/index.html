@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--
+  ブラウザで開いたときの土台。
+
+  web.output が "single" のとき、expo はこのファイルを雛形として使う。
+  （"static" の場合は src/app/+html.tsx が使われるが、この構成では
+    単一ページのほうが offline との相性がよいため single にしている。）
+
+  manifest と Service Worker の指定は、この層にしか置けない。
+-->
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!--
+      user-scalable=no。走行前に片手で扱うため、
+      二本指の拡大で画面が崩れないようにする。
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>車寄せナビ</title>
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0B192F" />
+
+    <!--
+      iPhone 向け。Safari は manifest だけでは足りず、こちらを見る。
+      ホーム画面へ追加していただくと、保存データが消えにくくなる。
+    -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="車寄せナビ" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+
+    <style id="expo-reset">
+      /* 画面いっぱいに広げる */
+      html, body { height: 100%; }
+      body { overflow: hidden; }
+      #root { display: flex; height: 100%; flex: 1; }
+
+      /*
+        地色。読み込みの一瞬だけ白が出るのを防ぐ。
+        夜間の車内で白い画面が出ると、目が眩む。
+      */
+      html, body, #root { background-color: #0B192F; }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <script>
+      // 電波が無くても開けるようにする常駐処理
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {
+            // 登録できなくても、通信できる場所では動く
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+# Vercel へ送らないもの
+#
+# 既定では作業用のファイルまで丸ごと送られ、2GB を超えて失敗した。
+# ビルドに要るのは、ソースと package.json と設定だけ。
+
+# ネイティブの生成物。PWA では使わない。
+android/
+ios/
+
+# 依存は Vercel 側で入れ直す
+node_modules/
+
+# 書き出したもの。向こうで作り直す。
+dist/
+.expo/
+web-build/
+
+# 作業用
+*.apk
+*.aab
+.gradle/
+build/
+
+# 秘匿情報。環境変数として登録済みで、送る必要はない。
+.env
+.env.*
+!.env.example

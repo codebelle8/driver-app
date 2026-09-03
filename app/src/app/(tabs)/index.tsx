@@ -24,7 +24,7 @@ import {
 import { fetchHistory, type HistoryEntry } from '@/lib/history';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
 import { describePlace } from '@/lib/place';
-import { describeSyncedAt, ensureSynced, type SyncResult } from '@/lib/sync';
+import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
 import type { Category, Facility } from '@/lib/types';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
@@ -89,6 +89,8 @@ export default function SearchScreen() {
   /** 絞り込まずに全件を並べているか */
   const [showAll, setShowAll] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  /** 取り込みを試している最中か。失敗の表示と押し分ける。 */
+  const [syncing, setSyncing] = useState(true);
   /** 絞り込みに当てはまる総数。画面に出ている件数とは別。 */
   const [matched, setMatched] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -142,6 +144,7 @@ export default function SearchScreen() {
       const result = await ensureSynced();
       if (!alive) return;
       setSync(result);
+      setSyncing(false);
 
       const { cats, area } = await readLocal();
       if (!alive) return;
@@ -193,6 +196,23 @@ export default function SearchScreen() {
       };
     }, []),
   );
+
+  /*
+    取り込み直す。
+
+    失敗したまま何もできないのは、利用者にとって行き止まりにあたる。
+    電波の届く場所へ移動したあと、その場でやり直せるようにする。
+  */
+  const retry = useCallback(async () => {
+    setSyncing(true);
+    const result = await resync();
+    setSync(result);
+    setSyncing(false);
+
+    const { cats, area } = await readLocal();
+    setCategories(cats);
+    setCoverage(area);
+  }, [readLocal]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -429,14 +449,39 @@ export default function SearchScreen() {
           </View>
 
           {/*
-            まだ取り込めていないときに「未取得に取得」と読める文になっていた。
-            取り込み済みかどうかで、言い方を分ける。
+            取り込みの状態を必ず出す。
+
+            以前は失敗しても「まだ取り込めていません」としか出ず、
+            理由も、やり直す手立ても示していなかった。
+            利用者から見れば、ただの行き止まりにあたる。
           */}
-          <Text style={styles.foot}>
-            {sync.syncedAt
-              ? `端末に ${sync.facilityCount} 件（${describeSyncedAt(sync.syncedAt)}に取得）`
-              : 'まだ取り込めていません'}
-          </Text>
+          {syncing ? (
+            <View style={styles.syncRow}>
+              <ActivityIndicator size="small" color={c.accent} />
+              <Text style={styles.foot}>施設の情報を取り込んでいます…</Text>
+            </View>
+          ) : !sync.ok ? (
+            <View style={styles.syncFail}>
+              <Ionicons name="cloud-offline-outline" size={20} color={c.danger} />
+              <Text style={styles.syncFailText}>
+                {sync.message ?? '情報を取得できませんでした。'}
+              </Text>
+              <Pressable
+                onPress={retry}
+                style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
+                accessibilityRole="button"
+              >
+                <Ionicons name="refresh" size={15} color={c.accent} />
+                <Text style={styles.retryText}>取り込み直す</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text style={styles.foot}>
+              {sync.syncedAt
+                ? `端末に ${sync.facilityCount} 件（${describeSyncedAt(sync.syncedAt)}に取得）`
+                : 'まだ取り込めていません'}
+            </Text>
+          )}
         </ScrollView>
       )}
 
@@ -728,6 +773,42 @@ function makeStyles(c: Palette) {
     recentEmpty: { padding: SPACE.lg, fontSize: 12, color: c.textFaint, textAlign: 'center' },
 
     foot: { marginTop: SPACE.lg, fontSize: 11, color: c.textFaint, textAlign: 'center' },
+    syncRow: {
+      marginTop: SPACE.lg,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: SPACE.sm,
+    },
+    syncFail: {
+      marginTop: SPACE.lg,
+      alignItems: 'center',
+      gap: SPACE.sm,
+      padding: SPACE.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.dangerSoft,
+      borderWidth: 1,
+      borderColor: c.danger,
+    },
+    syncFailText: {
+      fontSize: 12,
+      color: c.text,
+      textAlign: 'center',
+      lineHeight: 18,
+    },
+    retry: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: SPACE.md,
+      paddingVertical: 8,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    retryPressed: { backgroundColor: c.surface2 },
+    retryText: { fontSize: 13, fontWeight: '700', color: c.accent },
 
     // --- 絞り込みの結果 ---
     list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },

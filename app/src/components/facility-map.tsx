@@ -1,97 +1,48 @@
-import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { Component, useEffect, useState, type ReactNode } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { StaticMap } from '@/components/static-map';
 
 /**
  * 施設の地図。
  *
- * **2通りの出し方を持つ理由**
- *   Google の地図はネイティブの組み込みを要するため、Expo Go には入っていない。
- *   そのまま読み込むと、Expo Go ではアプリごと起動しなくなる。
- *   （現在地の追加時に同じ失敗をしており、その繰り返しを避ける。）
+ * **Google マップ（Maps JavaScript API）を使う**
+ *   クライアント様のご要望が「Google マップ連携」であり、
+ *   管理画面でも同じ API を使っている。鍵は1本で足りる。
  *
- *   Expo Go では読み込みそのものを行わず、国土地理院の地図を使う。
- *   （読み込んでしまうと、描画の段でネイティブごと落ちる。
- *     JS の例外ではないので、受け皿を置いても捕まえられない。）
- *   利用者から見れば、どちらでも「車寄せの位置が分かる」ことは変わらない。
- *
- *   ビルドしたアプリ … Google
- *   Expo Go / web   … 国土地理院
+ * **鍵が無い・読み込めない場合は国土地理院へ落とす**
+ *   地図が出ないより、別の地図でも位置が分かるほうがよい。
+ *   鍵の設定が済んでいない環境でも、アプリは成り立つ。
  *
  * **動かせる地図にしている**
  *   Google の地図は指で動かせるのが当たり前の形で、動かない地図は
- *   壊れているように見える。ナビの開始は下の「経路」が担うため、
- *   地図を押してナビが始まる作りはやめた（拡大縮小と衝突するため）。
+ *   壊れているように見える。ナビの開始は下の「経路」が担う。
  */
 
-interface Loaded {
-  MapView: React.ComponentType<Record<string, unknown>>;
-  Marker: React.ComponentType<Record<string, unknown>>;
-  PROVIDER_GOOGLE: unknown;
+/** 地図の寄り具合。建物と前の道路が読める程度。 */
+const ZOOM = 17;
+
+let loading: Promise<void> | null = null;
+
+/** Google の地図を読み込む。一度きり。 */
+function loadMaps(key: string): Promise<void> {
+  if (typeof document === 'undefined') return Promise.reject(new Error('web ではありません'));
+  const w = window as unknown as { google?: { maps?: unknown } };
+  if (w.google?.maps) return Promise.resolve();
+  if (loading) return loading;
+
+  loading = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src =
+      'https://maps.googleapis.com/maps/api/js' +
+      `?key=${encodeURIComponent(key)}&language=ja&region=JP`;
+    el.async = true;
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error('地図を読み込めませんでした'));
+    document.head.appendChild(el);
+  });
+  return loading;
 }
-
-let cached: Loaded | null | undefined;
-
-/**
- * Expo Go で動いているか。
- *
- * Expo Go には react-native-maps のネイティブ側が入っていない。
- * JS の読み込みは通ってしまい、描画の段でネイティブごと落ちる。
- * これは JS の例外ではないため、try/catch でも ErrorBoundary でも
- * 捕まえられず、アプリが落ちて再読み込みを繰り返す。
- *
- * 捕まえられない以上、**読み込む前に避ける**しかない。
- */
-const IN_EXPO_GO =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
-
-async function loadMaps(): Promise<Loaded | null> {
-  if (cached !== undefined) return cached;
-  // web と Expo Go では使えない。最初から静止画の地図にする。
-  if (Platform.OS === 'web' || IN_EXPO_GO) {
-    cached = null;
-    return null;
-  }
-  try {
-    const m = await import('react-native-maps');
-    cached = {
-      MapView: m.default as unknown as Loaded['MapView'],
-      Marker: m.Marker as unknown as Loaded['Marker'],
-      PROVIDER_GOOGLE: m.PROVIDER_GOOGLE,
-    };
-  } catch {
-    // Expo Go にはネイティブ側が入っていない。静止画の地図で代替する。
-    cached = null;
-  }
-  return cached;
-}
-
-/**
- * 描画中の失敗を受け止める。
- *
- * 読み込み (import) が通っても、ネイティブ側が入っていなければ
- * 描く段になって落ちる。Expo Go がこの状態にあたる。
- * try/catch は読み込みしか守れないため、描画側にも受け皿を置く。
- */
-class MapBoundary extends Component<
-  { fallback: ReactNode; children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
-
-/** 地図の見せる範囲。数字が小さいほど寄る。約 250m 四方。 */
-const SPAN = 0.0025;
 
 export function FacilityMap({
   lat,
@@ -107,59 +58,49 @@ export function FacilityMap({
   width: number;
   height: number;
 }) {
-  const [maps, setMaps] = useState<Loaded | null | undefined>(cached);
+  const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const box = useRef<View>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (!key || lat === null || lng === null) return;
     let alive = true;
-    loadMaps().then((m) => {
-      if (alive) setMaps(m);
-    });
+
+    loadMaps(key)
+      .then(() => {
+        // View の実体は div。web でのみ触れる。
+        const el = box.current as unknown as HTMLElement | null;
+        if (!alive || !el) return;
+
+        const g = (window as unknown as { google: typeof google }).google;
+        const map = new g.maps.Map(el, {
+          center: { lat, lng },
+          zoom: ZOOM,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          keyboardShortcuts: false,
+        });
+
+        new g.maps.Marker({ map, position: { lat, lng }, title: label });
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+
     return () => {
       alive = false;
     };
-  }, []);
+  }, [key, lat, lng, label]);
 
-  // 読み込みの結果が出るまで、また使えない場合は国土地理院の地図
-  if (!maps || lat === null || lng === null) {
+  // 鍵が無い・読み込めない・座標が無い場合は国土地理院の地図
+  if (!key || failed || lat === null || lng === null) {
     return <StaticMap lat={lat} lng={lng} label={label} width={width} height={height} />;
   }
 
-  const { MapView, Marker, PROVIDER_GOOGLE } = maps;
-
-  const fallback = (
-    <StaticMap lat={lat} lng={lng} label={label} width={width} height={height} />
-  );
-
-  return (
-    <MapBoundary fallback={fallback}>
-    <View style={[styles.wrap, { width, height }]}>
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={StyleSheet.absoluteFill}
-        initialRegion={{
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: SPAN,
-          longitudeDelta: SPAN,
-        }}
-        // 走行前に開く画面なので、余計な操作の入口は出さない
-        showsMyLocationButton={false}
-        toolbarEnabled={false}
-        rotateEnabled={false}
-        pitchEnabled={false}
-      >
-        <Marker
-          coordinate={{ latitude: lat, longitude: lng }}
-          title={label}
-          // 建物ではなく、着ける場所を指している
-          anchor={{ x: 0.5, y: 1 }}
-        />
-      </MapView>
-    </View>
-    </MapBoundary>
-  );
+  return <View ref={box} style={[styles.map, { width, height }]} />;
 }
 
 const styles = StyleSheet.create({
-  wrap: { overflow: 'hidden' },
+  map: { overflow: 'hidden' },
 });
