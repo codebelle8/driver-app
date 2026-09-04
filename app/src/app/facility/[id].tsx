@@ -14,11 +14,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { IconButton } from '@/components/icon-button';
 import { PhotoViewer } from '@/components/photo-viewer';
 import { FacilityMap } from '@/components/facility-map';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
 import { fetchFacilityDetail } from '@/lib/facilities';
 import { useLayout } from '@/lib/layout';
+import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
 import { ensureSynced } from '@/lib/sync';
 import { copyCoordinates, openNavigation } from '@/lib/nav';
@@ -76,6 +78,8 @@ export default function FacilityScreen() {
   const [error, setError] = useState<string | null>(null);
   const [section, setSection] = useState<Section>('summary');
   const [openAt, setOpenAt] = useState<number | null>(null);
+  /** この施設をお気に入りに留めてあるか */
+  const [pinned, setPinned] = useState(false);
   /** 広い画面で地図を置く枠の実寸 */
   const [mapBox, setMapBox] = useState({ width: 0, height: 0 });
   const { width: winWidth } = Dimensions.get('window');
@@ -112,6 +116,29 @@ export default function FacilityScreen() {
         if (alive) setError('施設を読み込めませんでした。');
       }
     })();
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  /*
+    留めてあるかを読む。
+
+    施設が変わったら読み直す。共有された URL から直接開かれることも
+    あるため、画面を出すたびに確かめる。
+
+    **早期 return より前に置くこと。**
+      この下には「読み込み中」「開けなかった」で描画を打ち切る分岐がある。
+      その後ろへ置くと、状態によってフックの数が変わり、React が
+      「Rendered more hooks than during the previous render」で止まる。
+      実際にそれで画面が真っ白になった。
+  */
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    isFavorite(id).then((v) => {
+      if (alive) setPinned(v);
+    });
     return () => {
       alive = false;
     };
@@ -191,6 +218,19 @@ export default function FacilityScreen() {
   const main = entryPoints[0];
   const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
 
+  /*
+    留める／外すを切り替える。
+
+    先に画面を変えてから書き込む。押した手応えが遅れると、
+    効いていないと思ってもう一度押されやすい。
+  */
+  async function onPin() {
+    if (!id) return;
+    setPinned((v) => !v);
+    const now = await toggleFavorite(id);
+    setPinned(now);
+  }
+
   async function onNavigate() {
     if (!main || !hasNav) return;
     const used = await openNavigation({ lat: main.nav_lat!, lng: main.nav_lng! });
@@ -208,18 +248,29 @@ export default function FacilityScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* 上部 */}
+      {/*
+        上部の帯。
+
+        記号はすべて IconButton を通す。以前は Pressable に記号を置いた
+        だけで、乗せても押しても見た目が変わらなかった。
+      */}
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={HIT_SLOP} accessibilityLabel="戻る">
-          <Ionicons name="arrow-back" size={22} color={c.text} />
-        </Pressable>
+        <IconButton icon="arrow-back" size={22} label="戻る" onPress={() => router.back()} />
         <Text style={styles.topTitle}>車寄せ案内</Text>
         <View style={styles.topRight}>
-          <Pressable onPress={onCopy} hitSlop={HIT_SLOP} accessibilityLabel="座標を複製">
-            <Ionicons name="share-outline" size={20} color={c.text} />
-          </Pressable>
-          <Pressable hitSlop={HIT_SLOP} accessibilityLabel="お気に入り">
-            <Ionicons name="heart-outline" size={20} color={c.text} />
-          </Pressable>
+          <IconButton
+            icon="share-outline"
+            label="座標を複製"
+            onPress={onCopy}
+            disabled={!hasNav}
+          />
+          <IconButton
+            icon="heart-outline"
+            iconOn="heart"
+            on={pinned}
+            label={pinned ? 'お気に入りから外す' : 'お気に入りに入れる'}
+            onPress={onPin}
+          />
         </View>
       </View>
 
@@ -279,9 +330,10 @@ export default function FacilityScreen() {
             <Pressable
               onPress={onNavigate}
               disabled={!hasNav}
-              style={({ pressed }) => [
+              style={({ hovered, pressed }) => [
                 styles.action,
                 styles.actionMain,
+                hovered && styles.actionMainHover,
                 pressed && styles.actionPressed,
                 !hasNav && styles.actionOff,
               ]}
@@ -290,18 +342,32 @@ export default function FacilityScreen() {
               <Ionicons name="navigate" size={15} color={c.accentText} />
               <Text style={styles.actionMainText}>経路</Text>
             </Pressable>
+            {/*
+              上の心印と同じ働き。押す場所が2つあるのは、
+              走行前に急いで押す場面で、指の届く側を選べるようにするため。
+              状態は同じものを見ているので、片方を押せば両方が変わる。
+            */}
             <Pressable
-              style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
+              onPress={onPin}
+              style={({ hovered, pressed }) => [
+                styles.action,
+                hovered && styles.actionHover,
+                pressed && styles.actionPressed,
+                pinned && styles.actionOn,
+              ]}
               accessibilityRole="button"
+              accessibilityState={{ selected: pinned }}
+              accessibilityLabel={pinned ? 'お気に入りから外す' : 'お気に入りに入れる'}
             >
-              <Ionicons name="star-outline" size={15} color={c.accent} />
-              <Text style={styles.actionText}>保存</Text>
+              <Ionicons name={pinned ? 'star' : 'star-outline'} size={15} color={c.accent} />
+              <Text style={styles.actionText}>{pinned ? '保存済み' : '保存'}</Text>
             </Pressable>
             <Pressable
               onPress={onCopy}
               disabled={!hasNav}
-              style={({ pressed }) => [
+              style={({ hovered, pressed }) => [
                 styles.action,
+                hovered && styles.actionHover,
                 pressed && styles.actionPressed,
                 !hasNav && styles.actionOff,
               ]}
@@ -656,6 +722,11 @@ function makeStyles(c: Palette) {
     },
     actionMain: { backgroundColor: c.accent, borderColor: c.accent },
     actionPressed: { opacity: 0.75 },
+    /* マウスを乗せたとき。押せることを見た目で示す。 */
+    actionHover: { backgroundColor: c.surface2, borderColor: c.borderStrong },
+    actionMainHover: { opacity: 0.9 },
+    /* 留めてある状態 */
+    actionOn: { backgroundColor: c.accentSoft, borderColor: c.accent },
     actionOff: { opacity: 0.4 },
     actionText: { fontSize: 13, fontWeight: '700', color: c.accent },
     actionMainText: { fontSize: 13, fontWeight: '700', color: c.accentText },
