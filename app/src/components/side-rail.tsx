@@ -1,7 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-// Tabs と同じ場所から型を取る。bottom-tabs を直に指すと、
-// expo-router の内部構成（build/ の下）に依存してしまう。
-import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { usePathname, useRouter } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrandLogo } from '@/components/brand';
@@ -27,6 +25,12 @@ import { useTheme } from '@/theme-context';
  *   緑で、青の上に濃い文字が乗って読めなかった。下地の形も、マウスを
  *   乗せたときの反応も指定では届かない。
  *
+ * **画面の並びの外側に置く**
+ *   以前はタブの並びの一部として描いていた。施設の詳細やお知らせは
+ *   タブの外側にある画面で、そこへ移ると左メニューごと消えていた。
+ *   PC では常に見えているべきものなので、画面の外へ出し、
+ *   いまどこにいるかは経路（pathname）から自分で決める。
+ *
  * **幅はここで決める**
  *   自前で描くと tabBarStyle は届かない。指定していたのに左メニューが
  *   画面の半分を占めていた。
@@ -43,9 +47,24 @@ export const RAIL_WIDTH = 256;
 /** ロゴを置く帯の高さ。右側の上部の帯と揃える。 */
 export const HEADER_HEIGHT = 72;
 
-export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) {
+/**
+ * 行先の並び。
+ *
+ * (tabs)/_layout.tsx と同じ並び・同じ名前にすること。狭い画面では
+ * あちらが下の帯を描き、広い画面ではこちらが左メニューを描く。
+ */
+const NAV = [
+  { path: '/', label: '探す', on: 'search', off: 'search-outline' },
+  { path: '/favorites', label: 'お気に入り', on: 'star', off: 'star-outline' },
+  { path: '/history', label: '履歴', on: 'time', off: 'time-outline' },
+  { path: '/mypage', label: 'マイページ', on: 'person', off: 'person-outline' },
+] as const;
+
+export function SideRail() {
   const c = useTheme();
   const s = makeStyles(c);
+  const router = useRouter();
+  const here = usePathname();
 
   return (
     <View style={s.rail}>
@@ -54,26 +73,31 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
       </View>
 
       <View style={s.nav}>
-        {state.routes.map((route, i) => {
-          const { options } = descriptors[route.key];
-          const focused = state.index === i;
-          const label = options.title ?? route.name;
+        {NAV.map((t) => {
+          /*
+            いまどこにいるか。
+
+            施設の詳細やお知らせはタブの外側にあり、どの行先にも
+            当てはまらない。その場合はどれも選ばれていない形にする。
+            「探す」を選んだままにすると、探す画面に居ると誤解させる。
+          */
+          const focused = here === t.path;
 
           return (
             <Pressable
-              key={route.key}
+              key={t.path}
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
-              accessibilityLabel={label}
+              /*
+                読み上げ向けに、選ばれていることを文言でも添える。
+
+                accessibilityState の selected は、ブラウザ側の属性
+                （aria-selected）に落ちない。見た目では緑の下地で
+                分かるが、耳で聞く方には何も伝わらない。
+              */
+              accessibilityLabel={focused ? `${t.label}（表示中）` : t.label}
               onPress={() => {
-                const event = navigation.emit({
-                  type: 'tabPress',
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!focused && !event.defaultPrevented) {
-                  navigation.navigate(route.name, route.params);
-                }
+                if (!focused) router.navigate(t.path);
               }}
               style={({ hovered, pressed }) => [
                 s.item,
@@ -88,7 +112,7 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
                   {/* 選んでいる行先の左端に立てる線 */}
                   <View style={focused ? s.bar : s.barOff} />
                   <Ionicons
-                    name={iconOf(route.name, focused)}
+                    name={(focused ? t.on : t.off) as keyof typeof Ionicons.glyphMap}
                     size={20}
                     color={focused ? c.accent : hovered ? c.text : c.textMuted}
                   />
@@ -99,7 +123,7 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
                     ]}
                     numberOfLines={1}
                   >
-                    {label}
+                    {t.label}
                   </Text>
                 </>
               )}
@@ -118,24 +142,6 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
       </View>
     </View>
   );
-}
-
-/**
- * 経路名から記号を引く。
- *
- * タブの並びは (tabs)/_layout.tsx が決めており、そこと同じ対応を持つ。
- * 記号を options に載せて渡すこともできるが、載せると描く側と決める側が
- * 二重になる。名前から引くほうが、増やしたときに1か所で済む。
- */
-function iconOf(name: string, focused: boolean) {
-  const map: Record<string, [on: string, off: string]> = {
-    index: ['search', 'search-outline'],
-    favorites: ['star', 'star-outline'],
-    history: ['time', 'time-outline'],
-    mypage: ['person', 'person-outline'],
-  };
-  const pair = map[name] ?? ['ellipse', 'ellipse-outline'];
-  return (focused ? pair[0] : pair[1]) as keyof typeof Ionicons.glyphMap;
 }
 
 const makeStyles = (c: Palette) =>

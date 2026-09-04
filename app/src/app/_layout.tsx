@@ -7,6 +7,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 
 import { IntroVideo } from '@/components/intro-video';
+import { SideRail } from '@/components/side-rail';
+import { useLayout } from '@/lib/layout';
 import { ensureSynced } from '@/lib/sync';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
 
@@ -64,6 +66,7 @@ export default function RootLayout() {
 function Shell() {
   const c = useTheme();
   const { theme } = useThemeControl();
+  const { isWide } = useLayout();
 
   return (
     /*
@@ -84,7 +87,15 @@ function Shell() {
         ブラウザで開いた際、この指定が無いと画面の余った部分に
         既定の白が残り、暗い配色の中に白い帯が出る。
       */}
-      <View style={[styles.root, { backgroundColor: c.bg }]}>
+      {/*
+        広い画面では左メニューを画面の並びの外へ置く。
+
+        以前はタブの並びの一部として描いていた。施設の詳細やお知らせは
+        タブの外側にある画面で、そこへ移ると左メニューごと消えていた。
+        PC では常に見えているべきものなので、ここで横に並べる。
+      */}
+      <View style={[styles.root, styles.shell, { backgroundColor: c.bg }, isWide && styles.shellWide]}>
+      {isWide && <SideRail />}
       <Stack
         screenOptions={{
           // 画面ごとに見出しを持つため、共通の見出しは出さない
@@ -104,4 +115,6 @@ function Shell() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  shell: { flexDirection: 'column' },
+  shellWide: { flexDirection: 'row' },
 });

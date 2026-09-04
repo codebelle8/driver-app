@@ -3,7 +3,6 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SideRail } from '@/components/side-rail';
 import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
 
@@ -47,16 +46,18 @@ export default function TabsLayout() {
   return (
     <Tabs
       /*
-        広い画面の左メニューは自前で描く（components/side-rail.tsx）。
-        既定の左メニューは選択中の項目に明るい青の下地を敷き、
-        緑の配色に合わないうえ、その上の文字が読めなかった。
+        広い画面では帯を出さない。
+
+        左メニューは画面の並びの外側（app/_layout.tsx）が描く。
+        施設の詳細やお知らせはタブの外側にあり、ここで描くと
+        そちらへ移った時に消えてしまう。
       */
-      tabBar={isWide ? (props) => <SideRail {...props} /> : undefined}
+      tabBar={isWide ? () => null : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: c.accent,
         tabBarInactiveTintColor: c.textFaint,
-        tabBarPosition: isWide ? 'left' : 'bottom',
+
         /*
           中身の高さは決め打ちにし、端末の下端の余白はその上に足す。
 
