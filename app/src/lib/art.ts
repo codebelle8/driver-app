@@ -1,41 +1,32 @@
 /**
  * 画面に敷く写真の置き場。
  *
- * **なぜ1か所にまとめるか**
- *   ご提示の画面図には2枚の写真が入る。まだ受け取っていないため、
- *   いまは写真を使わない見た目にしてある。届いたときに画面ごとを
- *   探して回らずに済むよう、取り込みと有無の判定をここへ集めた。
+ * **ファイルを置くだけで入れ替わる。**
+ *   app/public/ の中身は、そのままサイトの直下へ配られる。
+ *   下の場所へ置いて配備し直せば反映され、コードは触らない。
  *
- * **差し替えの手順**
- *   1. 次の2枚を置く。
- *        app/src/assets/art/hero.jpg  … 上部。ホテルの車寄せに車が着いた図
- *        app/src/assets/art/rail.jpg  … 左メニューの下半分。並木道と車
- *   2. 下の HAS_ART を true にする。
- *   3. require の行のコメントを外す。
+ *     app/public/art/hero.jpg  … 上部。呼びかけと検索欄の右側
+ *     app/public/art/rail.jpg  … 左メニューの下半分
  *
- *   画面側は触らない。
+ *   置いていないあいだは読み込みに失敗し、下敷きの淡い緑がそのまま残る。
+ *   失敗を異常として扱わず、通常の分岐として設計している。
  *
- * **寸法の目安**（横長で、右側に主題を置くと収まりがよい）
- *   hero.jpg … 1600×760 前後
- *   rail.jpg …  520×760 前後（縦長）
+ * **require で束ねない理由**
+ *   require はファイルが無いと束ね（bundle）の時点で失敗し、画面が
+ *   まったく出なくなる。「まだ写真が無い」状態は当面続くため、
+ *   置いていないことがアプリを壊す作りにはしない。
+ *
+ * **ブラウザでのみ使う**
+ *   この2枚が出るのは 1024px 以上の広い画面で、実際にはブラウザに限られる。
+ *   端末側では public/ の仕組みが無く、この道は通らない。
  */
+import { Platform } from 'react-native';
 
-/**
- * 写真が入っているか。
- *
- * false のあいだは、写真の代わりに淡い緑の面を敷く。
- * 「読み込みに失敗した箱」ではなく、それ自体で成り立つ面にしてある。
- */
-export const HAS_ART = false;
+/** 上部に敷く写真の在り処 */
+export const HERO_ART_URL = '/art/hero.jpg';
 
-/*
-  写真を置いたら、次の2行のコメントを外して上の HAS_ART を true にする。
+/** 左メニューの下半分に敷く写真の在り処 */
+export const RAIL_ART_URL = '/art/rail.jpg';
 
-  ファイルが無いまま require を書くと、束ね（bundle）の時点で失敗して
-  画面がまったく出なくなる。そのため既定では書かない。
-*/
-// export const HERO_ART = require('@/assets/art/hero.jpg');
-// export const RAIL_ART = require('@/assets/art/rail.jpg');
-
-export const HERO_ART: number | null = null;
-export const RAIL_ART: number | null = null;
+/** 写真を読みに行くか。ブラウザのときだけ。 */
+export const CAN_LOAD_ART = Platform.OS === 'web';
