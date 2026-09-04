@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
 import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, type Palette } from '@/theme';
+import { PageWidth } from '@/components/page-width';
 import { useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -33,6 +34,8 @@ export default function MyPageScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
+      <PageWidth>
       <View style={styles.head}>
         <Text style={styles.heading}>マイページ</Text>
       </View>
@@ -68,6 +71,7 @@ export default function MyPageScreen() {
       <Text style={styles.note}>
         施設情報は端末の中に保存され、電波の届かない場所でも表示できます。
       </Text>
+      </PageWidth>
     </SafeAreaView>
   );
 }

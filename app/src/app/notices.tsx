@@ -13,6 +13,7 @@ import {
 } from '@/lib/notices';
 import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { PageWidth } from '@/components/page-width';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -69,6 +70,8 @@ export default function NoticesScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
+      <PageWidth>
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.topBar}>
@@ -137,6 +140,7 @@ export default function NoticesScreen() {
           </Text>
         </ScrollView>
       )}
+      </PageWidth>
     </SafeAreaView>
   );
 }

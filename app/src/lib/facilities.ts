@@ -105,9 +105,18 @@ export async function searchFacilities(options: {
   categoryId?: string | null;
   /** 0 から始まる読み込み位置 */
   offset?: number;
+  /**
+   * 一度に読む件数。既定は PAGE_SIZE。
+   *
+   * 広い画面では一覧と地図を左右に並べる。地図に15件だけピンが立ち、
+   * 送るたびに増えるのでは、どこに何があるのか掴めない。
+   * その場合だけ多めに読む。
+   */
+  pageSize?: number;
 }): Promise<SearchPage> {
   const { facilities } = await getCatalog();
   const offset = options.offset ?? 0;
+  const pageSize = options.pageSize ?? PAGE_SIZE;
 
   const needle = options.query ? normalizeSearchText(options.query) : '';
 
@@ -126,7 +135,7 @@ export async function searchFacilities(options: {
   const sorted = [...hit].sort(
     (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja'),
   );
-  const rows = sorted.slice(offset, offset + PAGE_SIZE);
+  const rows = sorted.slice(offset, offset + pageSize);
 
   return {
     rows,
@@ -167,6 +176,45 @@ export async function fetchFacilityDetail(id: string): Promise<FacilityDetail | 
   }
 
   return { facility, entryPoints, cautionsByEntryPoint, photosByEntryPoint };
+}
+
+/** 地図に立てるピン */
+export interface Pin {
+  facilityId: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * 施設のピンを返す。指定が無ければ端末にある全件。
+ *
+ * **座標は進入口から取る。**
+ *   facilities.lat/lng はほとんどが空で、実際の座標は
+ *   entry_points.nav_lat/nav_lng にしか入っていない。
+ *   以前これを取り違え、座標での突き合わせが働かなかったことがある。
+ *
+ * 進入口が2つある施設は先頭だけを使う。一覧の地図では
+ * 「その施設がどこにあるか」が分かれば足り、どちらの進入路かは
+ * 詳細画面で示す。
+ */
+export async function fetchPins(facilities?: Facility[]): Promise<Pin[]> {
+  const c = await getCatalog();
+  const targets = facilities ?? c.facilities;
+
+  const first = new Map<string, { lat: number; lng: number }>();
+  for (const e of [...c.entryPoints].sort((a, b) => a.sort_order - b.sort_order)) {
+    if (e.nav_lat === null || e.nav_lng === null) continue;
+    if (first.has(e.facility_id)) continue;
+    first.set(e.facility_id, { lat: e.nav_lat, lng: e.nav_lng });
+  }
+
+  const pins: Pin[] = [];
+  for (const f of targets) {
+    const at = first.get(f.id) ?? (f.lat !== null && f.lng !== null ? { lat: f.lat, lng: f.lng } : null);
+    if (at) pins.push({ facilityId: f.id, name: f.name, ...at });
+  }
+  return pins;
 }
 
 /** 履歴の並べ替えに使う。id から施設を引く。 */

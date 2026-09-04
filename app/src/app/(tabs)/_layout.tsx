@@ -3,16 +3,24 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SideRail } from '@/components/side-rail';
+import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
 
 /**
- * 画面下の切り替え。
+ * 画面の切り替え。
  *
  * 以前はタブを置かず検索画面だけにしていた。ドライバーの用途は
  * 「次に向かう施設を1件調べる」に尽きる、という判断だったが、
  * ご提示の構成に合わせてタブを設ける。
  *
  * お気に入り・マイページは、初期版では置き場所のみ。
+ *
+ * **広い画面では左へ寄せる**
+ *   画面下の並びは、親指が届く範囲に操作を置くための形。
+ *   マウスで使う 1920px の画面では、下端まで手を運ぶ理由が無く、
+ *   横一杯に伸びた4つの見出しは、ただの余白にしか見えない。
+ *   1024px 以上では左の縦メニューにする。
  */
 
 /**
@@ -34,28 +42,39 @@ const TABS = [
 export default function TabsLayout() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
+  const { isWide } = useLayout();
 
   return (
     <Tabs
+      /*
+        広い画面の左メニューは自前で描く（components/side-rail.tsx）。
+        既定の左メニューは選択中の項目に明るい青の下地を敷き、
+        緑の配色に合わないうえ、その上の文字が読めなかった。
+      */
+      tabBar={isWide ? (props) => <SideRail {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: c.accent,
         tabBarInactiveTintColor: c.textFaint,
+        tabBarPosition: isWide ? 'left' : 'bottom',
         /*
           中身の高さは決め打ちにし、端末の下端の余白はその上に足す。
 
           高さを任せると文字が消え、逆に決め打ちだけにすると
           下端のインジケータと重なる。両方を分けて指定する。
         */
-        tabBarStyle: {
-          backgroundColor: c.surface,
-          borderTopColor: c.border,
-          borderTopWidth: 1,
-          height: BAR_HEIGHT + insets.bottom,
-          paddingTop: 6,
-          // 下に余白を厚めに取ることで、記号と文字がまとめて上へ寄る
-          paddingBottom: 14 + insets.bottom,
-        },
+        // 広い画面の見た目は SideRail が持つ。ここでは指定しない。
+        tabBarStyle: isWide
+          ? undefined
+          : {
+              backgroundColor: c.surface,
+              borderTopColor: c.border,
+              borderTopWidth: 1,
+              height: BAR_HEIGHT + insets.bottom,
+              paddingTop: 6,
+              // 下に余白を厚めに取ることで、記号と文字がまとめて上へ寄る
+              paddingBottom: 14 + insets.bottom,
+            },
       }}
     >
       {TABS.map((t) => (
@@ -74,10 +93,15 @@ export default function TabsLayout() {
               overflow: hidden が入り、日本語の上下が切り落とされていた。
               行の高さを指定しても箱の高さは変わらなかったため、
               内部の作りに任せず、こちらで描く。
+
+              左メニューでは記号の右に並ぶため、大きさと寄せ方を変える。
             */
             tabBarLabel: ({ color }) => (
-              <View style={styles.labelBox}>
-                <Text style={[styles.label, { color }]} numberOfLines={1}>
+              <View style={isWide ? styles.railLabelBox : styles.labelBox}>
+                <Text
+                  style={[isWide ? styles.railLabel : styles.label, { color }]}
+                  numberOfLines={1}
+                >
                   {t.label}
                 </Text>
               </View>
@@ -97,5 +121,12 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  // 左メニューでは横に並ぶため、左寄せにして文字も大きくする
+  railLabelBox: { height: 22, justifyContent: 'center' },
+  railLabel: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });

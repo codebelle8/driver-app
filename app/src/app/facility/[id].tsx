@@ -18,6 +18,7 @@ import { PhotoViewer } from '@/components/photo-viewer';
 import { FacilityMap } from '@/components/facility-map';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
 import { fetchFacilityDetail } from '@/lib/facilities';
+import { useLayout } from '@/lib/layout';
 import { recordVisit } from '@/lib/history';
 import { ensureSynced } from '@/lib/sync';
 import { copyCoordinates, openNavigation } from '@/lib/nav';
@@ -47,6 +48,14 @@ import { useTheme } from '@/theme-context';
 /** 地図の高さ。周囲の道が読める程度に取る。 */
 const MAP_HEIGHT = 260;
 
+/**
+ * 広い画面で、左（進入口の説明）に使う幅。
+ *
+ * 右は地図。残りを縦長で使う。横一杯に伸ばした帯状の地図では、
+ * ピンのまわりが見えない。地図の寸法は枠を実測して決める。
+ */
+const SPLIT_TEXT_WIDTH = 520;
+
 type Section = 'summary' | 'photos' | 'diagram' | 'cautions';
 
 const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -57,6 +66,7 @@ const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyph
 ];
 
 export default function FacilityScreen() {
+  const { isWide } = useLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const c = useTheme();
@@ -66,6 +76,9 @@ export default function FacilityScreen() {
   const [error, setError] = useState<string | null>(null);
   const [section, setSection] = useState<Section>('summary');
   const [openAt, setOpenAt] = useState<number | null>(null);
+  /** 広い画面で地図を置く枠の実寸 */
+  const [mapBox, setMapBox] = useState({ width: 0, height: 0 });
+  const { width: winWidth } = Dimensions.get('window');
 
   useEffect(() => {
     let alive = true;
@@ -157,8 +170,23 @@ export default function FacilityScreen() {
   }
 
   const { facility, entryPoints } = detail!;
-  // タイルを並べるのに実寸が要る。左右の余白ぶんを引く。
-  const mapWidth = Dimensions.get('window').width - SPACE.lg * 2;
+  /*
+    タイルを並べるのに実寸が要る。
+
+    狭い画面は横幅いっぱい。広い画面では右の列に縦長で置くため、
+    その列の幅を渡す。以前は画面幅をそのまま使っており、1920px の
+    画面で 1920×270 の細長い帯になり、ピンが上端に寄って
+    肝心の車寄せのまわりが見えなかった。
+  */
+  /*
+    広い画面では、地図を置く枠を実測して使う。
+
+    画面幅から左の列と左メニューを引いて求めていたが、左メニューの幅を
+    見込みで引いていたため、右側に数十pxの隙間が残った。
+    枠そのものを測れば、見込みは要らない。
+  */
+  const mapWidth = isWide ? mapBox.width : winWidth - SPACE.lg * 2;
+  const mapHeight = isWide ? mapBox.height : MAP_HEIGHT;
 
   const main = entryPoints[0];
   const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
@@ -195,7 +223,18 @@ export default function FacilityScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+      {/*
+        広い画面では左に説明、右に地図を置く。
+
+        地図は縦長のまま動かさない。説明を読み進めるあいだも
+        「どこに着けるのか」が視界に残っていてほしい。
+      */}
+      <View style={isWide ? styles.split : styles.splitOff}>
+      <ScrollView
+        style={isWide ? styles.splitText : undefined}
+        contentContainerStyle={styles.page}
+        showsVerticalScrollIndicator={false}
+      >
         {/*
           車寄せのまわりの地図。
 
@@ -206,19 +245,22 @@ export default function FacilityScreen() {
           地図を押してナビを開始する作りはやめた。指で動かす操作と
           区別が付かないため。ナビの開始は下の「経路」が担う。
         */}
-        <View style={styles.map}>
-          <FacilityMap
-            lat={main?.nav_lat ?? facility.lat}
-            lng={main?.nav_lng ?? facility.lng}
-            label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
-            width={mapWidth}
-            height={MAP_HEIGHT}
-          />
-        </View>
+        {!isWide && (
+          <View style={styles.map}>
+            <FacilityMap
+              lat={main?.nav_lat ?? facility.lat}
+              lng={main?.nav_lng ?? facility.lng}
+              label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
+              width={mapWidth}
+              height={mapHeight}
+            />
+          </View>
+        )}
 
         {/* 名前・住所 */}
         <View style={styles.headBlock}>
-          <View style={styles.grip} />
+          {/* 下から引き上げる作りを示す印。指で扱う画面だけに出す。 */}
+          {!isWide && <View style={styles.grip} />}
           <Text style={styles.name}>{facility.name}</Text>
           {main && (
             <View style={styles.kindRow}>
@@ -272,6 +314,10 @@ export default function FacilityScreen() {
         </View>
 
 
+        {isWide && (
+          <SectionTabs section={section} onChange={setSection} styles={styles} c={c} wide />
+        )}
+
         <View style={styles.body}>
           {section === 'summary' && (
             <SummaryBlock entryPoints={entryPoints} styles={styles} c={c} />
@@ -291,37 +337,92 @@ export default function FacilityScreen() {
         </View>
       </ScrollView>
 
+      {isWide && (
+        <View
+          style={styles.splitMap}
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setMapBox({ width: Math.round(width), height: Math.round(height) });
+          }}
+        >
+          <FacilityMap
+            lat={main?.nav_lat ?? facility.lat}
+            lng={main?.nav_lng ?? facility.lng}
+            label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
+            width={mapWidth}
+            height={mapHeight}
+          />
+        </View>
+      )}
+      </View>
+
       {/*
-        切り替えは画面の下へ固定する。
+        狭い画面では切り替えを下へ固定する。
 
         中身の上に置くと、写真や案内図を送ったあとに切り替えたくなった際、
         いちど上まで戻す必要がある。探す画面の下部タブと同じ位置にすることで、
         どの画面でも指の届く場所が変わらない。
+
+        広い画面では逆で、下端は指の届く場所ではなく、ただ遠い。
+        中身のすぐ上へ置く（左の列の中）。
       */}
-      <View style={styles.tabs}>
-        {SECTIONS.map((item) => {
-          const on = item.key === section;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => setSection(item.key)}
-              style={styles.tab}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: on }}
-            >
-              <Ionicons
-                name={item.icon}
-                size={21}
-                color={on ? c.accent : c.textFaint}
-              />
-              <Text style={[styles.tabText, on && styles.tabTextOn]}>{item.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      {!isWide && (
+        <SectionTabs section={section} onChange={setSection} styles={styles} c={c} />
+      )}
 
       <PhotoViewer photos={viewable} index={openAt} onClose={() => setOpenAt(null)} />
     </SafeAreaView>
+  );
+}
+
+/**
+ * 概要・写真・案内図・注意の切り替え。
+ *
+ * 狭い画面では下端に固定し、広い画面では中身のすぐ上に横一列で置く。
+ * どちらも同じ並び・同じ記号にして、画面が変わっても迷わないようにする。
+ */
+function SectionTabs({
+  section,
+  onChange,
+  styles,
+  c,
+  wide,
+}: {
+  section: Section;
+  onChange: (s: Section) => void;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  wide?: boolean;
+}) {
+  return (
+    <View style={wide ? styles.tabsWide : styles.tabs}>
+      {SECTIONS.map((item) => {
+        const on = item.key === section;
+        return (
+          <Pressable
+            key={item.key}
+            onPress={() => onChange(item.key)}
+            style={wide ? [styles.tabWide, on && styles.tabWideOn] : styles.tab}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+          >
+            <Ionicons
+              name={item.icon}
+              size={wide ? 16 : 21}
+              color={on ? c.accent : c.textFaint}
+            />
+            <Text
+              style={[
+                wide ? styles.tabWideText : styles.tabText,
+                on && styles.tabTextOn,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -477,6 +578,36 @@ function makeStyles(c: Palette) {
     errorActionText: { fontSize: 13, fontWeight: '700', color: c.accent },
     page: { paddingBottom: SPACE.lg },
 
+    /*
+      広い画面の2段組み。
+
+      左は説明。幅を決め打ちにする。伸ばすと1行が長くなりすぎて、
+      目が行末から次の行頭へ戻れなくなる。
+      右は地図。残りを使い、縦長のまま動かさない。
+
+      幅は flexBasis まで指定する。ScrollView は自前で flex: 1 を持ち、
+      それに含まれる flexBasis: 0% が width より優先されるため。
+    */
+    split: { flex: 1, flexDirection: 'row' },
+    splitOff: { flex: 1 },
+    splitText: {
+      width: SPLIT_TEXT_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: SPLIT_TEXT_WIDTH,
+    },
+    /*
+      余白を入れない。
+
+      枠を実測して地図の寸法に使うため、余白があるとその分だけ
+      はみ出す。探す画面の地図と同じく、端まで敷き詰める。
+    */
+    splitMap: {
+      flex: 1,
+      borderLeftWidth: 1,
+      borderLeftColor: c.border,
+    },
+
     // --- 上部 ---
     topBar: {
       flexDirection: 'row',
@@ -539,6 +670,27 @@ function makeStyles(c: Palette) {
       paddingTop: 6,
     },
     tab: { flex: 1, alignItems: 'center', gap: 3, paddingBottom: SPACE.sm },
+    // 広い画面では中身のすぐ上に、横一列で置く
+    tabsWide: {
+      flexDirection: 'row',
+      gap: SPACE.xs,
+      marginHorizontal: SPACE.lg,
+      marginTop: SPACE.md,
+      padding: 3,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface2,
+    },
+    tabWide: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      height: 34,
+      borderRadius: RADIUS.sm,
+    },
+    tabWideOn: { backgroundColor: c.surface },
+    tabWideText: { fontSize: 12, color: c.textFaint, fontWeight: '600' },
     tabText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
     tabTextOn: { color: c.accent },
 

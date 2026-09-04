@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Link, useFocusEffect } from 'expo-router';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,17 +14,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand';
+import { FacilitiesMap } from '@/components/facilities-map';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
   fetchCategories,
   fetchCoverage,
+  fetchPins,
   PAGE_SIZE,
   searchFacilities,
+  type Pin,
 } from '@/lib/facilities';
 import { fetchHistory, type HistoryEntry } from '@/lib/history';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
 import { describePlace } from '@/lib/place';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
+import { useLayout } from '@/lib/layout';
 import { describeWhen } from '@/lib/when';
 import type { Category, Facility } from '@/lib/types';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
@@ -47,6 +51,22 @@ import { useTheme } from '@/theme-context';
  * その下のカテゴリや検索欄が画面から押し出される。
  */
 const RECENT_COUNT = 3;
+
+/**
+ * 広い画面で一度に読む件数。
+ *
+ * 一覧の右に地図を並べるため、15件だけピンが立って送るたびに増えるのでは、
+ * どこに何があるのかが掴めない。1画面に収まる行数も多い。
+ */
+const WIDE_PAGE_SIZE = 60;
+
+/**
+ * 広い画面での、左側（一覧・下見）の幅。
+ *
+ * 伸ばすと施設名と住所の間が開いて目が横に泳ぐ。地図は残り全部を使う。
+ * 上部の現在地と検索欄もこの幅に揃える。
+ */
+const SPLIT_LIST_WIDTH = 420;
 
 /** カテゴリの区分ごとの記号。データ側に持たせるほどのものではない。 */
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -71,6 +91,8 @@ const CATEGORY_HINT: Record<string, string> = {
 export default function SearchScreen() {
   const c = useTheme();
   const styles = makeStyles(c);
+  const { isMedium, isWide } = useLayout();
+  const router = useRouter();
 
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -214,15 +236,26 @@ export default function SearchScreen() {
     setCoverage(area);
   }, [readLocal]);
 
+  /*
+    一度に読む件数。
+
+    狭い画面は15件ずつ。走行前の限られた時間で見るため、
+    まず数件だけ出して最初の表示を早くする。
+
+    広い画面は地図と並べるので、15件だけピンが立ち、送るたびに
+    増えるのでは位置関係が掴めない。1画面に収まる件数も多い。
+  */
+  const pageSize = isWide ? WIDE_PAGE_SIZE : PAGE_SIZE;
+
   const load = useCallback(async () => {
     setLoading(true);
-    const page = await searchFacilities({ query, categoryId, offset: 0 });
+    const page = await searchFacilities({ query, categoryId, offset: 0, pageSize });
     setFacilities(page.rows);
     setMatched(page.total);
     setHasMore(page.hasMore);
     setLoading(false);
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [query, categoryId]);
+  }, [query, categoryId, pageSize]);
 
   useEffect(() => {
     if (!isFiltered) return;
@@ -233,12 +266,41 @@ export default function SearchScreen() {
   async function loadMore() {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const page = await searchFacilities({ query, categoryId, offset: facilities.length });
+    const page = await searchFacilities({
+      query,
+      categoryId,
+      offset: facilities.length,
+      pageSize,
+    });
     setFacilities((prev) => [...prev, ...page.rows]);
     setMatched(page.total);
     setHasMore(page.hasMore);
     setLoadingMore(false);
   }
+
+  /*
+    地図に立てるピン。広い画面でのみ組み立てる。
+
+    狭い画面では地図を出さないため、作っても捨てるだけになる。
+  */
+  const [pins, setPins] = useState<Pin[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isWide) {
+      setPins([]);
+      return;
+    }
+    let alive = true;
+    // 絞り込んでいないときは端末にある全件。事務所で開いた直後に
+    // 「どのあたりを網羅しているか」が一目で分かる。
+    fetchPins(isFiltered ? facilities : undefined).then((p) => {
+      if (alive) setPins(p);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isWide, isFiltered, facilities, sync.facilityCount]);
 
   /** 見出しに出す、いま効いている絞り込み */
   const filterLabel = useMemo(() => {
@@ -294,10 +356,16 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* 上部。現在地と知らせ。 */}
-      <View style={styles.topBar}>
-        <Pressable hitSlop={HIT_SLOP} accessibilityLabel="メニュー" style={styles.topIcon}>
-          <Ionicons name="menu" size={22} color={c.text} />
-        </Pressable>
+      <View style={[styles.topBar, isWide && styles.topBarWide]}>
+        {/*
+          広い画面では出さない。左メニューが常に見えており、
+          畳んで開くための記号は要らない。
+        */}
+        {!isWide && (
+          <Pressable hitSlop={HIT_SLOP} accessibilityLabel="メニュー" style={styles.topIcon}>
+            <Ionicons name="menu" size={22} color={c.text} />
+          </Pressable>
+        )}
 
         {/*
           端末の位置が取れたらその地名を、取れなければ案内できる範囲を出す。
@@ -337,10 +405,15 @@ export default function SearchScreen() {
       </View>
 
       {/* 見出しと検索欄 */}
-      <View style={styles.head}>
-        {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
-        <BrandLogo height={34} />
-        <Text style={styles.lead}>行きたい場所を見つけよう</Text>
+      <View style={[styles.head, isWide && styles.headWide]}>
+        {/*
+          文字の見出しではなくロゴを置く。名乗りはロゴが担う。
+          広い画面ではロゴが左メニューの上端にあるため、ここには置かない。
+        */}
+        {!isWide && <BrandLogo height={34} />}
+        <Text style={[styles.lead, isWide && styles.leadWide]}>
+          行きたい場所を見つけよう
+        </Text>
 
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color={c.textFaint} />
@@ -363,27 +436,55 @@ export default function SearchScreen() {
         </View>
       </View>
 
+      {/*
+        広い画面では、左に一覧（または下見）、右に地図を並べる。
+
+        絞り込みの有無で左だけが入れ替わり、地図は常に右にある。
+        状態が変わるたびに配置ごと組み替わると、目の置き所が定まらない。
+      */}
+      <View style={isWide ? styles.split : styles.splitOff}>
       {isFiltered ? (
-        <ResultList
-          listRef={listRef}
-          facilities={facilities}
-          loading={loading}
-          loadingMore={loadingMore}
-          onEndReached={loadMore}
-          onScrollChange={setAtTop}
-          label={filterLabel}
-          matched={matched}
-          total={sync.facilityCount}
-          onClear={() => {
-            setQuery('');
-            setCategoryId(null);
-            setShowAll(false);
-          }}
-          styles={styles}
-          c={c}
-        />
+        /*
+          広い画面では一覧と地図を左右に並べる。
+
+          事務所で193件を突き合わせるとき、1件ずつ開いて位置を確かめる
+          のでは手数が多い。行にマウスを乗せると対応するピンが応え、
+          ピンを押すとその施設が開く。
+        */
+        <View style={isWide ? styles.splitList : styles.splitOff}>
+            <ResultList
+              listRef={listRef}
+              facilities={facilities}
+              loading={loading}
+              loadingMore={loadingMore}
+              onEndReached={loadMore}
+              onScrollChange={setAtTop}
+              label={filterLabel}
+              matched={matched}
+              total={sync.facilityCount}
+              onClear={() => {
+                setQuery('');
+                setCategoryId(null);
+                setShowAll(false);
+              }}
+              activeId={isWide ? activeId : null}
+              onHover={isWide ? setActiveId : undefined}
+              styles={styles}
+              c={c}
+            />
+        </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.browse} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={isWide ? styles.splitList : undefined}
+          contentContainerStyle={[styles.browse, isWide && styles.browseWide]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/*
+            広い画面では2段組みにする。カテゴリと履歴はどちらも短く、
+            縦に積むと画面の下半分が空いたままになる。
+          */}
+          <View>
+          <View>
           <SectionHead
             title="カテゴリから探す"
             more="すべて見る"
@@ -395,7 +496,13 @@ export default function SearchScreen() {
               <Pressable
                 key={cat.id}
                 onPress={() => setCategoryId(cat.id)}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                style={({ hovered, pressed }) => [
+                  styles.card,
+                  // 広い画面は3列。2列のままだと1枚が横に伸びすぎる。
+                  isMedium && styles.cardWide,
+                  hovered && styles.cardHover,
+                  pressed && styles.cardPressed,
+                ]}
                 accessibilityRole="button"
               >
                 <View style={styles.cardIcon}>
@@ -411,6 +518,9 @@ export default function SearchScreen() {
             ))}
           </View>
 
+          </View>
+
+          <View>
           {/*
             本当に見た施設を出す。以前は一覧の先頭3件を出しており、
             誰が何を見ても同じ並びだった。
@@ -446,6 +556,8 @@ export default function SearchScreen() {
             {recent.length === 0 && !loading && (
               <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
             )}
+          </View>
+          </View>
           </View>
 
           {/*
@@ -484,6 +596,17 @@ export default function SearchScreen() {
           )}
         </ScrollView>
       )}
+
+      {isWide && (
+        <View style={styles.splitMap}>
+          <FacilitiesMap
+            pins={pins}
+            activeId={activeId}
+            onSelect={(id) => router.push(`/facility/${id}`)}
+          />
+        </View>
+      )}
+      </View>
 
       <ScrollTopButton
         visible={isFiltered && !atTop}
@@ -551,6 +674,8 @@ function ResultList({
   matched,
   total,
   onClear,
+  activeId,
+  onHover,
   styles,
   c,
 }: {
@@ -567,6 +692,10 @@ function ResultList({
   /** 端末に入っている総数 */
   total: number;
   onClear: () => void;
+  /** 一覧で指している施設。地図のピンと合わせる。 */
+  activeId?: string | null;
+  /** マウスが行に乗ったとき。狭い画面では渡さない。 */
+  onHover?: (id: string | null) => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
@@ -618,23 +747,54 @@ function ResultList({
           </View>
         ) : null
       }
-      renderItem={({ item }) => <FacilityRow facility={item} styles={styles} c={c} />}
+      renderItem={({ item }) => (
+        <FacilityRow
+          facility={item}
+          active={item.id === activeId}
+          onHover={onHover}
+          styles={styles}
+          c={c}
+        />
+      )}
     />
   );
 }
 
 function FacilityRow({
   facility,
+  active,
+  onHover,
   styles,
   c,
 }: {
   facility: Facility;
+  /** 地図のピンが指しているか */
+  active?: boolean;
+  onHover?: (id: string | null) => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
   return (
     <Link href={`/facility/${facility.id}`} asChild>
-      <Pressable style={styles.row} accessibilityRole="link">
+      {/*
+        体裁は1つの object にまとめて渡す。
+
+        Link の asChild は中身を <a> に差し替えるため、Pressable 向けの
+        書き方がそのままでは通らない。
+          関数形式 … 落ちる。行の枠も余白も消えて縦積みになった。
+          配列    … 「Failed to set an indexed property [0] on
+                     CSSStyleDeclaration」で画面ごと落ちた。
+        flatten して1つにすれば、どちらの事故も起きない。
+
+        マウスを乗せた状態は activeId が持っている（onHover で親へ伝え、
+        地図のピンと同時に応える）。ここで別に持つ必要はない。
+      */}
+      <Pressable
+        accessibilityRole="link"
+        onHoverIn={() => onHover?.(facility.id)}
+        onHoverOut={() => onHover?.(null)}
+        style={StyleSheet.flatten([styles.row, active && styles.rowActive])}
+      >
         <View style={styles.rowIcon}>
           <Ionicons name="location" size={16} color={c.accent} />
         </View>
@@ -668,6 +828,7 @@ function makeStyles(c: Palette) {
       paddingBottom: SPACE.md,
     },
     topIcon: { width: 28, alignItems: 'center' },
+    topBarWide: { width: SPLIT_LIST_WIDTH, paddingTop: SPACE.md },
     badge: {
       position: 'absolute',
       top: -4,
@@ -688,6 +849,20 @@ function makeStyles(c: Palette) {
 
     // --- 見出しと検索欄 ---
     head: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.md },
+    /*
+      広い画面では中身を中央に寄せ、幅の上限を設ける。
+
+      1920px の画面で検索欄が1900px あっても打ちやすくはならない。
+      本文の1行が長すぎると、目が行末から次の行頭へ戻れなくなる。
+    */
+    /*
+      上部と検索欄は、左側（一覧）の幅に収める。
+
+      画面いっぱいに伸ばすと地図の上へかぶさり、どこまでが
+      検索の範囲なのかが読み取れなくなる。
+    */
+    headWide: { width: SPLIT_LIST_WIDTH, paddingTop: SPACE.sm },
+    leadWide: { fontSize: 15, marginTop: 0, marginBottom: SPACE.xs },
     lead: { fontSize: 13, color: c.textMuted, marginTop: 6 },
     searchBox: {
       flexDirection: 'row',
@@ -705,6 +880,7 @@ function makeStyles(c: Palette) {
 
     // --- 下見の画面 ---
     browse: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
+    browseWide: { paddingTop: SPACE.xs },
     sectionHead: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -729,6 +905,8 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
+    cardWide: { width: '31%' },
+    cardHover: { borderColor: c.borderStrong, backgroundColor: c.surface2 },
     cardPressed: { borderColor: c.accent, backgroundColor: c.surface2 },
     cardIcon: {
       width: 38,
@@ -812,6 +990,33 @@ function makeStyles(c: Palette) {
 
     // --- 絞り込みの結果 ---
     list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
+
+    /*
+      一覧と地図の左右分割。
+
+      一覧の幅は決め打ちにする。伸ばすと施設名と住所の間が開き、
+      目が横に泳ぐ。地図は残り全部を使う。広いほど位置関係が読める。
+    */
+    split: { flex: 1, flexDirection: 'row' },
+    splitOff: { flex: 1 },
+    /*
+      幅は flexBasis まで指定する。
+
+      ScrollView は自前で flex: 1 を持っており、それに含まれる
+      flexBasis: 0% が width より優先される。width だけを指定しても
+      左側が伸び続け、地図の上まで中身がはみ出していた。
+    */
+    splitList: {
+      width: SPLIT_LIST_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: SPLIT_LIST_WIDTH,
+    },
+    splitMap: {
+      flex: 1,
+      borderLeftWidth: 1,
+      borderLeftColor: c.border,
+    },
     resultHead: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -833,6 +1038,8 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
+    // 地図のピンと同じ色で応える。どの行がどのピンかが分かる。
+    rowActive: { borderColor: c.accent, backgroundColor: c.accentSoft },
     rowIcon: {
       width: 34,
       height: 34,

@@ -23,6 +23,7 @@ import {
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { PageWidth } from '@/components/page-width';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -87,6 +88,8 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
+      <PageWidth>
       <View style={styles.head}>
         <View style={styles.headText}>
           <Text style={styles.heading}>履歴</Text>
@@ -137,6 +140,7 @@ export default function HistoryScreen() {
           }
         />
       )}
+      </PageWidth>
     </SafeAreaView>
   );
 }
