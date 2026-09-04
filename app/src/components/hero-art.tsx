@@ -7,90 +7,37 @@ import { useTheme } from '@/theme-context';
 /**
  * 上部に敷く絵。広い画面の「探す」でのみ使う。
  *
- * **左は空けておく**
- *   呼びかけと検索欄がこの上に乗る。全面に敷くと、文字が写真の明るい
- *   部分に重なって読めなくなる。右側だけに置き、左へ向かって背景色へ溶かす。
+ * **横一杯に敷く**
+ *   いただいた4枚は、それぞれが一枚で完結する横長の絵として作られている。
+ *   呼びかけの文字も絵の中にあるため、画面側で見出しを描かず絵に任せる。
+ *   左メニューの右端から画面の右端まで、余白を置かずに敷く。
+ *
+ *   以前は右半分にだけ敷き、左に見出しと検索欄を置いていた。その作りだと
+ *   絵の中の呼びかけと画面側の見出しが二度出ていた。
+ *
+ * **上を基準に切る**
+ *   枠は横長で、絵の縦横比（およそ 2.1）より平たい。上下のどちらかが
+ *   切れるため、上を基準にする。空と人物が残り、切れるのは足元や
+ *   街並みの下端になる。
  *
  * **4枚を順に入れ替える**
  *   置かれている枚数だけで回る（components/hero-slides.tsx）。
  *   1枚も置かれていなければ、下敷きの淡い緑がそのまま残る。
  *   置き場所は app/public/art/ の README に書いてある。
  */
-/**
- * 絵が占める幅の割合。
- *
- * 残りの 48% に呼びかけと検索欄が乗る。
- * 上部の高さもこの割合から決まるため（探す画面）、両方で使う。
- */
-export const HERO_PHOTO_RATIO = 0.52;
-
 export function HeroArt() {
   const c = useTheme();
 
   return (
-    <View style={styles.box} pointerEvents="none">
-      {/* 下敷き。写真の有無にかかわらず敷く。 */}
-      <View style={styles.photo}>
-        <Ramp color={c.accentSoft} direction="right" from={0} to={1} />
-      </View>
-
-      <View style={styles.photo}>
-        <HeroSlides style={styles.slide} />
-      </View>
-
-      {/*
-        写真の縁を背景色へ溶かす。
-
-        そのまま置くと縁が直線で立ち、貼り付けたように見える。
-
-        **帯は写真の上に重ねる。**
-          写真の外側に置いても縁は消えない。溶かしたい線をまたぐ位置に
-          置き、線のところで最も濃く、写真の内側へ向かって薄くする。
-          外側に置いていたため、縦線がそのまま残っていた。
-
-        写真が無くても、下敷きの縁を溶かす役に立つ。常に出しておく。
-      */}
-      <View style={styles.fadeLeft}>
-        <Ramp color={c.bg} direction="left" from={0} to={1} />
-      </View>
-      <View style={styles.fadeBottom}>
-        <Ramp color={c.bg} direction="down" from={0} to={1} />
-      </View>
+    <View style={styles.fill} pointerEvents="none">
+      {/* 下敷き。写真が無いとき、または読み込むまでのあいだ。 */}
+      <Ramp color={c.accentSoft} direction="down" from={0} to={1} />
+      <HeroSlides style={styles.slide} contentPosition={{ top: 0 }} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  box: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  photo: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 0,
-    // 右のおよそ半分。左半分に呼びかけと検索欄が乗る。
-    width: `${HERO_PHOTO_RATIO * 100}%`,
-  },
+  fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   slide: { width: '100%', height: '100%' },
-  /*
-    左の縁をまたぐ帯。
-
-    写真は右から 52%。その左端（左から 48%）にちょうど重なるよう、
-    右から 34% の位置に 18% の幅で置く。左端で最も濃く、
-    写真の内側へ向かって薄くする。
-  */
-  fadeLeft: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: '34%',
-    width: '18%',
-  },
-  /* 下の縁も同じ考え方で溶かす。中身との境に線を作らない。 */
-  fadeBottom: {
-    position: 'absolute',
-    left: '48%',
-    right: 0,
-    bottom: 0,
-    height: 72,
-  },
 });

@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand';
 import { FacilitiesMap } from '@/components/facilities-map';
-import { HeroArt, HERO_PHOTO_RATIO } from '@/components/hero-art';
+import { HeroArt } from '@/components/hero-art';
 import { HEADER_HEIGHT, RAIL_WIDTH } from '@/components/side-rail';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
@@ -92,20 +92,28 @@ const PAGE_PAD = 48;
 const PAGE_MAX = 1440;
 
 /**
- * 上部（呼びかけ・検索欄・絵）の高さ。
+ * 上部の帯の高さ。
  *
- * 決め打ちにせず、絵の幅から求める。いただいた4枚はいずれも
- * 横縦およそ 2.1 で、枠がこの比のときだけ切らずに収まる。
+ * 絵は横一杯に敷くため、幅に対する比で決める。ご提示の画面図では
+ * 幅 1072px に対して高さ 290px、およそ 3.7 の比になっている。
  *
- * 高さを 280px に固定していたところ、列が広がる 1920px 以上では
- * 枠の比が 2.7 になり、上下が切れていた。
+ * 絵そのものは横縦 2.1 で、枠のほうが平たい。上下が切れるが、
+ * 上を基準にするため空と人物は残る。
  *
- * 狭い画面では下限で止める。比のままだと 1024px で 166px にしかならず、
- * 呼びかけと検索欄が入らない（そこでは左右が切れる）。
+ * **高さを決め打ちで頭打ちにしない**
+ *   420px で止めていたところ、2560px の画面では枠の比が 5.5 になり、
+ *   絵の上から 38% しか映らず、人物の顔が下で切れていた。
+ *   画面が広ければ帯も高くなってよい。
+ *
+ *   ただし縦の短い画面では抑える。1536×700 のような窓で 346px の帯を
+ *   出すと、その下に何も見えなくなる。画面の高さの 42% を上限とする。
  */
-const HERO_ASPECT = 2.1;
-const HERO_MIN = 280;
-const HERO_MAX = 400;
+const HERO_BAND_ASPECT = 3.7;
+const HERO_MIN = 260;
+const HERO_MAX_SCREEN = 0.42;
+
+/** 検索欄を絵の下端からどれだけ上へ置くか */
+const HERO_OVERLAY_BOTTOM = 18;
 
 /**
  * 見出しの書体。
@@ -164,18 +172,18 @@ const CATEGORY_HINT: Record<string, string> = {
 export default function SearchScreen() {
   const c = useTheme();
   const styles = makeStyles(c);
-  const { width: winWidth, isMedium, isWide, isThreeUp } = useLayout();
+  const { width: winWidth, height: winHeight, isMedium, isWide, isThreeUp } = useLayout();
 
   /*
-    上部の高さ。絵の幅から求める（HERO_ASPECT の説明を参照）。
+    上部の帯の高さ。幅に対する比で決める（HERO_BAND_ASPECT の説明を参照）。
 
-    絵は列の右 52% を占める。列は画面幅から左メニューを引いたもので、
-    PAGE_MAX で頭打ちになる。
+    帯は左メニューの右端から画面の右端まで。列の幅ではない。
   */
   const heroHeight = (() => {
-    const column = Math.min(winWidth - RAIL_WIDTH, PAGE_MAX);
-    const photo = column * HERO_PHOTO_RATIO;
-    return Math.max(HERO_MIN, Math.min(HERO_MAX, Math.round(photo / HERO_ASPECT)));
+    const band = winWidth - RAIL_WIDTH;
+    const byWidth = band / HERO_BAND_ASPECT;
+    const byScreen = winHeight * HERO_MAX_SCREEN;
+    return Math.max(HERO_MIN, Math.round(Math.min(byWidth, byScreen)));
   })();
   const router = useRouter();
 
@@ -507,11 +515,18 @@ export default function SearchScreen() {
       */}
       {isWide && !isFiltered && (
         <ScrollView showsVerticalScrollIndicator={false}>
+          {/*
+            上部の帯。絵を横一杯に敷き、検索欄をその上へ重ねる。
+
+            見出しは置かない。絵の中に「行きたい場所を見つけよう」が
+            入っており、画面側でも描くと同じ文言が二度出る。
+          */}
           <View style={[styles.hero, { height: heroHeight }]}>
             <HeroArt />
-            <View style={styles.heroInner}>
-              <Text style={styles.heroTitle}>行きたい場所を見つけよう</Text>
-              <View style={styles.heroSearch}>
+
+            {/* 検索欄は絵の下端へ寄せ、左端は本文の列に揃える。 */}
+            <View style={styles.heroOverlay}>
+              <View style={styles.heroOverlayInner}>
                 <SearchField
                   query={query}
                   onChange={setQuery}
@@ -1352,40 +1367,27 @@ function makeStyles(c: Palette) {
       中身に任せると、文字の折り返しで縦が伸び縮みして絵が切れる。
     */
     /*
-      絵も本文と同じ列に収める。
+      上部の帯。左メニューの右端から画面の右端まで、余白を置かずに敷く。
 
-      以前は画面いっぱいに敷いていた。1536px では列と画面の端がほぼ
-      一致するため気づかなかったが、2560px では絵が右端に貼りつき、
-      呼びかけと検索欄（列の中）とのあいだに500px の隙間ができていた。
+      以前は本文と同じ列に収めていたが、ご提示の画面図では絵が
+      横一杯に伸びている。列に揃えるのは、上に重ねる検索欄のほう。
     */
-    hero: {
-      justifyContent: 'center',
+    hero: { width: '100%' },
+
+    /* 絵の上に重ねるもの。下端へ寄せる。 */
+    heroOverlay: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      bottom: HERO_OVERLAY_BOTTOM,
+    },
+    /* 重ねる中身は本文と同じ列に収め、左端を揃える。 */
+    heroOverlayInner: {
       width: '100%',
       maxWidth: PAGE_MAX,
       alignSelf: 'center',
+      paddingHorizontal: PAGE_PAD,
     },
-    heroInner: { paddingHorizontal: PAGE_PAD },
-    /*
-      見出しは丸ゴシック（Zen Maru Gothic）。
-
-      角を丸めた書体は、日本では親しみを出す場面で古くから使われている。
-      本文と同じ書体で大きくしただけでは、ただの見出しにしかならない。
-      崩し過ぎず、業務で使う画面の落ち着きは保つ。
-
-      12文字だけを取り出して自前で配っている（2.8KB）。
-      読み込めなければ既定の書体で出る。文言は読めるままで、
-      印象だけが変わる。
-    */
-    heroTitle: {
-      fontFamily: HEADING_FONT,
-      fontSize: 32,
-      lineHeight: 48,
-      fontWeight: '700',
-      color: c.text,
-      // 丸ゴシックは字面が大きい。少しだけ広げて詰まりを避ける。
-      letterSpacing: 0.5,
-    },
-    heroSearch: { marginTop: SPACE.xl },
     searchBoxLarge: {
       flexDirection: 'row',
       alignItems: 'center',

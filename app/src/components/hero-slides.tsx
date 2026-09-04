@@ -1,4 +1,4 @@
-import { Image } from 'expo-image';
+import { Image, type ImageContentPosition } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Platform, StyleSheet, type ImageStyle } from 'react-native';
 
@@ -37,7 +37,14 @@ import {
 /** 番号付きの枚数。最後の1つは番号なしの受け皿。 */
 const NUMBERED = HERO_SLIDES.length - 1;
 
-export function HeroSlides({ style }: { style?: ImageStyle }) {
+export function HeroSlides({
+  style,
+  contentPosition = { top: 0, right: 0 },
+}: {
+  style?: ImageStyle;
+  /** どこを基準に切るか。既定は右上。 */
+  contentPosition?: ImageContentPosition;
+}) {
   /** 読み込めた並び。番号どおりの順を保つ。 */
   const [ok, setOk] = useState<boolean[]>(() => HERO_SLIDES.map(() => false));
   /** 各枚がいま試している在り処（.jpg → .png） */
@@ -163,7 +170,7 @@ export function HeroSlides({ style }: { style?: ImageStyle }) {
               source={{ uri: url }}
               style={style}
               contentFit="cover"
-              contentPosition={{ top: 0, right: 0 }}
+              contentPosition={contentPosition}
               // 溶かし合いはこちらで行う。二重に効かせない。
               transition={0}
               onLoad={() =>
