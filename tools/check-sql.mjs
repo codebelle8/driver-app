@@ -17,7 +17,6 @@ const targets = dirs.flatMap((d) =>
 );
 
 const init = (await import('pg-query-emscripten')).default;
-const pg = await init();
 
 let failed = 0;
 
@@ -30,8 +29,33 @@ let failed = 0;
 const stripPsqlMeta = (sql) =>
   sql.split('\n').map((line) => (/^\s*\\/.test(line) ? '' : line)).join('\n');
 
+/**
+ * psql の変数参照 (:SURVEYOR、:'NAME') を仮の文字列に置き換える。
+ *
+ * db/tests/ は `\set SURVEYOR '…'` で定めた値を `:SURVEYOR` として使う。
+ * 置き換えないと「: の近くで構文エラー」となり、実際には正しい SQL が
+ * 落ちたものとして数えられる。
+ *
+ * 型キャスト (`::text`) と代入 (`:=`) は別物なので巻き込まない。
+ * 文字数を保つため、変数名と同じ長さの文字列に置き換える。誤りの位置が
+ * ずれないようにするため。
+ */
+const fillPsqlVars = (sql) =>
+  sql.replace(/(^|[^:\w]):'?([A-Za-z_][A-Za-z0-9_]*)'?/g, (all, before, name) =>
+    `${before}'${'x'.repeat(Math.max(1, all.length - before.length - 2))}'`,
+  );
+
 for (const file of targets) {
-  const sql = stripPsqlMeta(readFileSync(file, 'utf8'));
+  const sql = fillPsqlVars(stripPsqlMeta(readFileSync(file, 'utf8')));
+
+  /*
+    ファイルごとにパーサを作り直す。
+
+    1つのパーサで13ファイルを続けて解析すると、WASM 側が
+    「Ma[...] is not a function」で落ちる（Node 24 で再現）。
+    作り直せば起きない。検証に数秒かかるが、確実に全件を見られる。
+  */
+  const pg = await init();
   const result = pg.parse(sql);
 
   if (result.error) {

@@ -28,18 +28,28 @@ const DIR = 'supabase/migrations';
  *
  * 既にテーブルがある本番へ全件を流すと、最初の create table で衝突して
  * 止まってしまう。追加分だけを適用したい場面のためのもの。
+ *
+ * 接頭辞はカンマで複数指定できる。未適用のものが日付をまたいで
+ * 飛び飛びに残る場合があり、1つの接頭辞では選べない。
+ *
+ *   node tools/build-bootstrap-sql.mjs --only 20260828,20260829,20260830
  */
 const onlyIndex = process.argv.indexOf('--only');
-const ONLY = onlyIndex === -1 ? null : process.argv[onlyIndex + 1];
+const ONLY =
+  onlyIndex === -1
+    ? null
+    : (process.argv[onlyIndex + 1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const OUT = ONLY ? 'supabase/_pending.sql' : 'supabase/_bootstrap.sql';
 
 const files = readdirSync(DIR)
   .filter((f) => f.endsWith('.sql'))
-  .filter((f) => (ONLY ? f.startsWith(ONLY) : true))
+  .filter((f) => (ONLY ? ONLY.some((p) => f.startsWith(p)) : true))
   .sort();
 if (files.length === 0) {
   throw new Error(
-    ONLY ? `${DIR} に ${ONLY} で始まる SQL がありません` : `${DIR} に SQL がありません`,
+    ONLY
+      ? `${DIR} に ${ONLY.join(' / ')} で始まる SQL がありません`
+      : `${DIR} に SQL がありません`,
   );
 }
 
