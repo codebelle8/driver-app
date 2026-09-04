@@ -21,7 +21,7 @@
     内容で動く作りになっている。
 */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `kurumayose-shell-${VERSION}`;
 const TILES = `kurumayose-tiles-${VERSION}`;
 const RUNTIME = `kurumayose-runtime-${VERSION}`;
@@ -32,6 +32,14 @@ const PRECACHE = ['/', '/manifest.webmanifest'];
 /** 地図のタイル。控えの上限を決め、際限なく貯めない。 */
 const TILE_HOSTS = ['cyberjapandata.gsi.go.jp'];
 const TILE_LIMIT = 400;
+
+/**
+ * 画面の本体を待つ上限（ミリ秒）。
+ *
+ * これを過ぎたら控えへ切り替える。地下駐車場や高架下で
+ * 開かれることを考えると、長く待たせるほうが害になる。
+ */
+const NAVIGATE_TIMEOUT = 2500;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -109,18 +117,45 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 画面の移動。控えた本体を返し、裏で新しいものを取りに行く。
+  /*
+    画面の移動。通信できるときは新しいほうを返す。
+
+    **なぜ控えを先に返さないか**
+      以前は控えた本体を先に返し、裏で新しくしていた。そのため
+      配備しても、次にもう一度開くまで古い画面が出ていた。
+      実際、上部の写真を4枚の入れ替えにした後も、古い1枚のままに
+      見える状態になっていた。
+
+      本体（index.html）は数KBで、待っても一瞬にしかならない。
+      中の JS や画像は名前に版が入っており、新しい本体さえ届けば
+      正しいものを読みに行く。
+
+    **待ちすぎない**
+      電波の悪い場所では、応答が来ないまま何秒も止まりうる。
+      NAVIGATE_TIMEOUT で見切りをつけ、控えへ切り替える。
+      控えが無ければ通信の結果をそのまま待つ。
+  */
   if (request.mode === 'navigate') {
     event.respondWith(
       caches.open(SHELL).then(async (cache) => {
         const hit = await cache.match('/');
+
         const fresh = fetch(request)
           .then((res) => {
             if (res.ok) void cache.put('/', res.clone());
             return res;
           })
           .catch(() => null);
-        return hit ?? (await fresh) ?? new Response('', { status: 504 });
+
+        // 控えがあるときだけ、見切りをつけて切り替える
+        const raced = hit
+          ? await Promise.race([
+              fresh,
+              new Promise((r) => setTimeout(() => r(null), NAVIGATE_TIMEOUT)),
+            ])
+          : await fresh;
+
+        return raced ?? hit ?? new Response('', { status: 504 });
       }),
     );
     return;
