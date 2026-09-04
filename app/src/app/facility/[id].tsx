@@ -24,7 +24,7 @@ import { useLayout } from '@/lib/layout';
 import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
 import { ensureSynced } from '@/lib/sync';
-import { openNavigation, shareFacility } from '@/lib/nav';
+import { copyCoordinates, openNavigation, shareFacility } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
 import {
   ENTRY_POINT_KIND_LABEL,
@@ -436,7 +436,14 @@ export default function FacilityScreen() {
           style={styles.splitMap}
           onLayout={(e) => {
             const { width, height } = e.nativeEvent.layout;
-            setMapBox({ width: Math.round(width), height: Math.round(height) });
+            /*
+              切り上げない。
+
+              実寸が 806.5px のとき四捨五入すると 807px になり、枠より
+              1px 大きい地図が入る。画面の右端に1pxだけ横スクロールが
+              生まれ、横棒が出たり消えたりしていた。
+            */
+            setMapBox({ width: Math.floor(width), height: Math.floor(height) });
           }}
         >
           <FacilityMap
@@ -559,6 +566,36 @@ function SummaryBlock({
                     <Text style={styles.chipText}>{a}</Text>
                   </View>
                 ))}
+              </View>
+            )}
+
+            {/*
+              座標。写せるようにしておく。
+
+              車載のナビ機器など、URLで受け取れない機器を使う方が一定数
+              いる。その場合は数値を手入力することになる。
+
+              進入口ごとに出すのは、2か所ある施設で「どちらの座標か」が
+              分からなくなるため。
+            */}
+            {ep.nav_lat !== null && ep.nav_lng !== null && (
+              <View style={styles.coordRow}>
+                <Text style={styles.coordText} selectable>
+                  {ep.nav_lat.toFixed(6)}, {ep.nav_lng.toFixed(6)}
+                </Text>
+                <IconButton
+                  icon="copy-outline"
+                  size={16}
+                  compact
+                  label={`${ep.name} の座標を複製`}
+                  onPress={async () => {
+                    const text = await copyCoordinates({
+                      lat: ep.nav_lat!,
+                      lng: ep.nav_lng!,
+                    });
+                    notify('座標を複製しました', text);
+                  }}
+                />
               </View>
             )}
           </View>
@@ -700,6 +737,14 @@ function makeStyles(c: Palette) {
       flex: 1,
       borderLeftWidth: 1,
       borderLeftColor: c.border,
+      /*
+        はみ出しをここで止める。
+
+        地図は実測した寸法で置くが、小数点以下の丸めで枠より 1px
+        大きくなることがある。画面の右端に 1px の横スクロールが生まれ、
+        横棒が出たり消えたりしていた。
+      */
+      overflow: 'hidden',
     },
 
     // --- 上部 ---
@@ -826,6 +871,19 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     chipText: { fontSize: 11, color: c.textMuted },
+
+    /* 座標の行。手入力する方のために、数字を選べる形で出す。 */
+    coordRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.xs,
+      marginTop: SPACE.sm,
+    },
+    coordText: {
+      fontSize: 11,
+      color: c.textFaint,
+      fontVariant: ['tabular-nums'],
+    },
 
     photoWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
     photoItem: {
