@@ -3,7 +3,9 @@ import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -88,6 +90,16 @@ const PAGE_MAX = 1240;
 
 /** 上部（呼びかけ・検索欄・絵）の高さ */
 const HERO_HEIGHT = 280;
+
+/**
+ * 上部の検索欄の幅。置ける幅に対する割合。
+ *
+ * 置いたまま … 右の写真に届かない幅。写真は右から 52% を占めるため、
+ *              そこへ食い込まない範囲に収める。
+ * 押したとき … 写真の縁へ少し重なる幅。長い施設名も収まる。
+ */
+const SEARCH_REST = 0.4;
+const SEARCH_OPEN = 0.62;
 
 /** カテゴリの区分ごとの記号。データ側に持たせるほどのものではない。 */
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -412,25 +424,7 @@ export default function SearchScreen() {
           </View>
         </View>
 
-        <Link href="/notices" asChild>
-          <Pressable
-            hitSlop={HIT_SLOP}
-            accessibilityLabel={unseen > 0 ? `お知らせ ${unseen} 件` : 'お知らせ'}
-            style={styles.topIcon}
-          >
-            <Ionicons name="notifications-outline" size={isWide ? 23 : 21} color={c.text} />
-            {/*
-              実際の件数を出す。9+ で丸めていたが、1件読んでも表示が
-              変わらず、読んだことが伝わらなかった。
-              三桁になると札に収まらないため、そこだけ 99+ とする。
-            */}
-            {unseen > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unseen > 99 ? '99+' : unseen}</Text>
-              </View>
-            )}
-          </Pressable>
-        </Link>
+        <BellButton unseen={unseen} wide={isWide} styles={styles} c={c} />
       </View>
 
       {/* 狭い画面。ロゴ・呼びかけ・検索欄をまとめて上に置く。 */}
@@ -693,6 +687,19 @@ function SectionHead({
  * 広い画面の上部では大きく（large）、絞り込み中の細い帯では小さく出す。
  * 中身は同じで、寸法だけを変える。別々に書くと、片方だけ直して
  * もう片方が古いままになる。
+ *
+ * **押すと横に広がる**（large のときだけ）
+ *   置いたままの幅を狭くしてある。上部の右側には写真が敷いてあり、
+ *   最初から広いと、打ち始める前から写真へ食い込んで見える。
+ *   打つあいだだけ広げれば、長い施設名も収まる。
+ *
+ *   幅は枠を実測して割り出す。画面の幅から引き算で求めると、
+ *   左メニューや余白の見込みが要り、画面ごとに合わなくなる。
+ *
+ * **黒い枠を出さない**
+ *   ブラウザは入力欄を押すと既定で黒い枠を描く。角丸の欄の上に
+ *   直角の枠が重なり、壊れているように見えていた。枠は消し、
+ *   代わりに欄の縁を緑にする。文字の入る位置は点滅する線で分かる。
  */
 function SearchField({
   query,
@@ -707,15 +714,44 @@ function SearchField({
   c: Palette;
   large?: boolean;
 }) {
-  return (
-    <View style={large ? styles.searchBoxLarge : styles.searchBox}>
-      <Ionicons name="search" size={large ? 22 : 18} color={c.textFaint} />
+  const [focused, setFocused] = useState(false);
+  const [room, setRoom] = useState(0);
+
+  /*
+    幅の移り変わり。
+
+    値そのものを状態で持つと、変わるたびに画面を組み直すことになる。
+    Animated は組み直さずに寸法だけを動かす。
+  */
+  const grow = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!large) return;
+    Animated.timing(grow, {
+      toValue: focused ? 1 : 0,
+      duration: 180,
+      // 幅は端末側で先に計算できないため、こちらで動かす
+      useNativeDriver: false,
+    }).start();
+  }, [focused, grow, large]);
+
+  const field = (
+    <View
+      style={[
+        large ? styles.searchBoxLarge : styles.searchBox,
+        focused && styles.searchBoxOn,
+      ]}
+    >
+      <Ionicons name="search" size={large ? 22 : 18} color={focused ? c.accent : c.textFaint} />
       <TextInput
         value={query}
         onChangeText={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder="施設名・よみがな・住所"
         placeholderTextColor={c.textFaint}
-        style={large ? styles.inputLarge : styles.input}
+        selectionColor={c.accent}
+        style={[large ? styles.inputLarge : styles.input, styles.inputNoOutline]}
         returnKeyType="search"
         autoCorrect={false}
       />
@@ -727,6 +763,108 @@ function SearchField({
         <Ionicons name="options-outline" size={large ? 22 : 18} color={c.textFaint} />
       )}
     </View>
+  );
+
+  if (!large) return field;
+
+  return (
+    /*
+      外側で置ける幅を測り、その中で内側の幅を動かす。
+
+      置いたまま … 写真に届かない幅（左半分の中に収める）
+      押したとき … 写真の縁へ少し重なる幅
+    */
+    <View onLayout={(e) => setRoom(Math.round(e.nativeEvent.layout.width))}>
+      <Animated.View
+        style={{
+          width:
+            room === 0
+              ? undefined
+              : grow.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [
+                    Math.round(room * SEARCH_REST),
+                    Math.round(room * SEARCH_OPEN),
+                  ],
+                }),
+        }}
+      >
+        {field}
+      </Animated.View>
+    </View>
+  );
+}
+
+/**
+ * お知らせの鐘。
+ *
+ * **押せることが分かるようにする**
+ *   記号を置いただけで、マウスを乗せても押しても見た目が変わらなかった。
+ *   マウスで使う画面では、触れる画面と違って「押せる」手がかりが
+ *   見た目にしか無い。乗せたら下地を敷き、押したら濃くする。
+ *
+ * **未読があるときは塗りつぶす**
+ *   数の札だけだと、札が小さく見落とされる。鐘そのものの形を変える。
+ *
+ * **見た目は内側の View に持たせる**
+ *   Link の asChild は中身を <a> に差し替えるため、Pressable 向けの
+ *   関数形式や配列の style は届かない（配列は画面ごと落ちる）。
+ *   状態は Pressable で受け、描くのは内側に任せる。
+ */
+function BellButton({
+  unseen,
+  wide,
+  styles,
+  c,
+}: {
+  unseen: number;
+  wide?: boolean;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const on = unseen > 0;
+
+  return (
+    <Link href="/notices" asChild>
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={on ? `お知らせ ${unseen} 件` : 'お知らせ'}
+        onHoverIn={() => setHovered(true)}
+        onHoverOut={() => {
+          setHovered(false);
+          setPressed(false);
+        }}
+        onPressIn={() => setPressed(true)}
+        onPressOut={() => setPressed(false)}
+        style={styles.bellHit}
+      >
+        <View
+          style={StyleSheet.flatten([
+            styles.bell,
+            hovered && styles.bellHover,
+            pressed && styles.bellPressed,
+          ])}
+        >
+          <Ionicons
+            name={on ? 'notifications' : 'notifications-outline'}
+            size={wide ? 23 : 21}
+            color={on || hovered || pressed ? c.accent : c.text}
+          />
+          {/*
+            実際の件数を出す。9+ で丸めていたが、1件読んでも表示が
+            変わらず、読んだことが伝わらなかった。
+            三桁になると札に収まらないため、そこだけ 99+ とする。
+          */}
+          {on && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unseen > 99 ? '99+' : unseen}</Text>
+            </View>
+          )}
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 
@@ -1037,6 +1175,23 @@ function makeStyles(c: Palette) {
     topIcon: { width: 28, alignItems: 'center' },
 
     /*
+      鐘。当たり判定は広く、下地は記号のまわりだけ。
+
+      当たり判定まで丸く塗ると、上部の帯の中で大きすぎる丸になる。
+      押せる範囲は広く保ちつつ、色が付くのは記号のまわりに留める。
+    */
+    bellHit: { padding: 4 },
+    bell: {
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    bellHover: { backgroundColor: c.surface2 },
+    bellPressed: { backgroundColor: c.accentSoft },
+
+    /*
       広い画面の上部の帯。
 
       左メニューのロゴ帯と同じ高さにして、画面を横一直線に区切る。
@@ -1122,7 +1277,7 @@ function makeStyles(c: Palette) {
       fontWeight: '700',
       color: c.text,
     },
-    heroSearch: { marginTop: SPACE.xl, maxWidth: 640 },
+    heroSearch: { marginTop: SPACE.xl },
     searchBoxLarge: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1134,7 +1289,23 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    inputLarge: { flex: 1, fontSize: 16, color: c.text, paddingVertical: 0 },
+    // 文字は大きく。欄の高さは変えない。
+    inputLarge: { flex: 1, fontSize: 19, color: c.text, paddingVertical: 0 },
+
+    /*
+      ブラウザが入力欄へ描く黒い枠を消す。
+
+      角丸の欄の上に直角の枠が重なり、壊れているように見えていた。
+      押していることは、欄の縁が緑になることと、文字の入る位置に
+      点滅する線が出ることで分かる。
+    */
+    inputNoOutline: Platform.select({
+      web: { outlineStyle: 'none' },
+      default: {},
+    }) as object,
+
+    /* 押しているあいだの縁。黒い枠の代わりに、こちらで示す。 */
+    searchBoxOn: { borderColor: c.accent },
 
     /* 絞り込み中の細い帯。上部の帯と一覧のあいだに挟む。 */
     searchBand: {

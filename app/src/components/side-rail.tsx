@@ -50,7 +50,7 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
   return (
     <View style={s.rail}>
       <View style={s.brandBand}>
-        <BrandLogo height={36} />
+        <BrandLogo height={44} />
       </View>
 
       <View style={s.nav}>
