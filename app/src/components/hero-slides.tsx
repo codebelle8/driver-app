@@ -20,9 +20,13 @@ import { useTheme } from '@/theme-context';
  *   いただいた4枚は、それぞれが一枚で完結する横長の絵で、文字や案内の図が
  *   その中にある。端を切ると意味が変わる。縦横の比を保ったまま枠に収める。
  *
- *   枠は画面の幅で決まり、絵より平たいことも縦長のこともある。余った側には
- *   同じ絵を大きく引き伸ばしてぼかしたものを敷く。地の色をそのまま出すと、
- *   絵が宙に浮いて貼りついたように見える。
+ *   枠は画面の幅で決まり、絵より平たいことも縦長のこともある。絵はその中へ
+ *   実寸の比で置き、余った側は地の色にする。
+ *
+ * **縁は内側へ向かって地の色でにじませる**
+ *   絵の縁が直線で立つと、貼りついたように見える。内側に影を落として
+ *   （box-shadow の inset）縁を地の色へ溶かす。
+ *   以前は同じ絵をぼかして敷いていたが、絵の色まで周りへ広がっていた。
  *
  * **読めたものだけを回す**
  *   4枚ぶんの場所を用意しているが、置かれていない番号は読み込みに失敗する。
@@ -54,17 +58,42 @@ import { useTheme } from '@/theme-context';
 /** 番号付きの枚数。最後の1つは番号なしの受け皿。 */
 const NUMBERED = HERO_SLIDES.length - 1;
 
+/** 絵の縦横の比。いただいた4枚はいずれも 1819x865 前後。 */
+const PHOTO_ASPECT = 2.1;
+
 /**
- * 余白へ敷く、ぼかした同じ絵の強さ。
+ * 縁のにじみ。
  *
- * 強くかけるほど地に馴染むが、色まで溶けて灰色に寄る。
- * 縁がどこか分からなくなる程度で止める。
+ * ぼかし幅と広がり幅。大きくすると縁が深く溶けるが、絵の中身まで
+ * 白んでいく。人物の顔にかからない程度で止める。
  */
-const EDGE_BLUR = 24;
+const EDGE_BLUR = 44;
+const EDGE_SPREAD = 18;
 
 export function HeroSlides() {
   const c = useTheme();
   const s = makeStyles(c);
+
+  /*
+    帯の実寸。絵を置く大きさを、ここから求める。
+
+    画面幅から引き算しても出せるが、左メニューや余白の見込みが要り、
+    画面ごとに合わなくなる。枠そのものを測る。
+  */
+  const [band, setBand] = useState({ width: 0, height: 0 });
+
+  /*
+    絵を置く大きさ。帯の中に、実寸の比のまま最大で収まる大きさ。
+
+    帯が絵より平たければ高さが、縦長であれば幅が先に一杯になる。
+  */
+  const photo = (() => {
+    if (band.width === 0 || band.height === 0) return { width: 0, height: 0 };
+    const byHeight = band.height * PHOTO_ASPECT;
+    return byHeight <= band.width
+      ? { width: Math.round(byHeight), height: band.height }
+      : { width: band.width, height: Math.round(band.width / PHOTO_ASPECT) };
+  })();
 
   /** 読み込めた並び。番号どおりの順を保つ。 */
   const [ok, setOk] = useState<boolean[]>(() => HERO_SLIDES.map(() => false));
@@ -187,7 +216,15 @@ export function HeroSlides() {
   if (!CAN_LOAD_ART) return null;
 
   return (
-    <>
+    <View
+      style={s.band}
+      onLayout={(e) =>
+        setBand({
+          width: Math.round(e.nativeEvent.layout.width),
+          height: Math.round(e.nativeEvent.layout.height),
+        })
+      }
+    >
       {HERO_SLIDES.slice(0, upto).map((urls, i) => {
         const url = urls[tryAt[i]];
         if (!url) return null;
@@ -197,46 +234,45 @@ export function HeroSlides() {
             style={[StyleSheet.absoluteFill, { opacity: fades[i] }]}
             pointerEvents="none"
           >
-            {/*
-              余白へ敷く、ぼかした同じ絵。
+            {/* 絵の外側は地の色。下敷きの緑を隠す。 */}
+            <View style={s.ground} />
 
-              枠と絵の比は画面幅で変わり、必ずどちらかに余りが出る。
-              地の色を出すと絵が貼りついて見えるため、同じ絵を広げて
-              ぼかしたものを敷き、縁を溶かす。
-            */}
-            <Image
-              source={{ uri: url }}
-              style={s.backdrop}
-              contentFit="cover"
-              blurRadius={EDGE_BLUR}
-              transition={0}
-              accessibilityLabel=""
-            />
+            {/* 絵。実寸の比のまま、帯の中央へ置く。 */}
+            <View style={s.center}>
+            <View style={[s.frame, { width: photo.width, height: photo.height }]}>
+              <Image
+                source={{ uri: url }}
+                style={s.fill}
+                contentFit="cover"
+                // 溶かし合いはこちらで行う。二重に効かせない。
+                transition={0}
+                onLoad={() =>
+                  setOk((prev) => {
+                    if (prev[i]) return prev;
+                    const next = [...prev];
+                    next[i] = true;
+                    return next;
+                  })
+                }
+                onError={() =>
+                  setTryAt((prev) => {
+                    const next = [...prev];
+                    next[i] = prev[i] + 1;
+                    return next;
+                  })
+                }
+                accessibilityLabel=""
+              />
 
-            {/* 本体。切らずに、まるごと収める。 */}
-            <Image
-              source={{ uri: url }}
-              style={s.photo}
-              contentFit="contain"
-              // 溶かし合いはこちらで行う。二重に効かせない。
-              transition={0}
-              onLoad={() =>
-                setOk((prev) => {
-                  if (prev[i]) return prev;
-                  const next = [...prev];
-                  next[i] = true;
-                  return next;
-                })
-              }
-              onError={() =>
-                setTryAt((prev) => {
-                  const next = [...prev];
-                  next[i] = prev[i] + 1;
-                  return next;
-                })
-              }
-              accessibilityLabel=""
-            />
+              {/*
+                縁を内側から地の色でにじませる。
+
+                絵そのものに影は落とせないため、同じ大きさの層を重ねて
+                その内側に影を置く。絵の上に薄い霞がかかった状態になる。
+              */}
+              <View style={s.edge} />
+            </View>
+            </View>
           </Animated.View>
         );
       })}
@@ -253,7 +289,7 @@ export function HeroSlides() {
           <Arrow side="right" onPress={() => step(1)} styles={s} c={c} />
         </>
       )}
-    </>
+    </View>
   );
 }
 
@@ -315,20 +351,48 @@ function isVisible(): boolean {
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-    /*
-      ぼかした絵は、枠より少し大きく取る。
-
-      ぼかすと縁が薄くなり、枠と同じ大きさでは端に地の色が透ける。
-      外へはみ出させておけば、どの縁も色で埋まる。
-    */
-    backdrop: {
+    band: { flex: 1 },
+    ground: {
       position: 'absolute',
-      top: -24,
-      left: -24,
-      right: -24,
-      bottom: -24,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: c.bg,
     },
-    photo: { width: '100%', height: '100%' },
+    /*
+      中央寄せの器。
+
+      縦の中央寄せに marginVertical: 'auto' を使ったところ効かず、
+      枠の高さが 0 になっていた。器の側で寄せる。
+    */
+    center: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    /* 絵を置く枠 */
+    frame: { overflow: 'hidden' },
+    fill: { width: '100%', height: '100%' },
+    /*
+      縁のにじみ。
+
+      内側へ向かって地の色を差す（box-shadow の inset）。
+      絵そのものに影は落とせないため、同じ大きさの層を重ねて置く。
+      押せなくならないよう、当たり判定は通す。
+    */
+    edge: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      boxShadow: `inset 0 0 ${EDGE_BLUR}px ${EDGE_SPREAD}px ${c.bg}`,
+    },
 
     arrowLeft: {
       position: 'absolute',
