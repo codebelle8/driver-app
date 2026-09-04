@@ -9,20 +9,32 @@
  * **どこから作るか**
  *   新しい表は作らず、既に端末へ取り込んでいるものから組み立てる。
  *     いま効いている注意事項 … cautions（時間帯・曜日の条件つき）
- *     最近変わった施設       … facilities.updated_at
+ *     新しく増えた施設       … catalog.ts が取り込みのたびに控える差分
  *
  *   操作履歴 (audit_logs) のほうが「何が変わったか」まで分かるが、
  *   あれは管理者向けの記録で、アプリからは読めないようにしてある。
  *   読めるようにすると、誰がいつ何をしたかが外へ出る。
+ *
+ * **「更新されました」をやめた理由**（2026-09-04）
+ *   以前は facilities.updated_at を見て「案内の内容が更新されました」を
+ *   出していた。ところがデータを一括で入れ直すと全件の更新日時が同じに
+ *   なり、**一度も見たことのない施設について30件が並ぶ**状態になった。
+ *   実際に193件の取り込みでそうなった。
+ *
+ *   updated_at は「中身が変わった」ことを示さない。表記の統一や住所の
+ *   補完でも動く。乗務員の方が知りたいのは進入方法が変わったことだが、
+ *   それを updated_at から区別する手立てが無い。
+ *
+ *   代わりに「新しく増えた施設」を出す。これは端末が前回持っていた
+ *   一覧と比べて確実に判別でき、誤って出ることがない。
+ *   進入方法の変更は、管理画面から注意事項として書けば伝わる。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { getAddedFacilities } from './catalog';
 import { isActiveNow } from './cautions';
-import { fetchCautionsWithFacility, fetchRecentlyUpdated } from './facilities';
+import { fetchCautionsWithFacility, fetchFacilitiesByIds } from './facilities';
 import type { CautionSeverity } from './types';
-
-/** 「最近」とみなす範囲。これより古い変更は出さない。 */
-const RECENT_DAYS = 14;
 
 /** 読んだお知らせの控え */
 const READ_KEY = 'kn_notices_read';
@@ -35,7 +47,7 @@ const READ_KEY = 'kn_notices_read';
  */
 const READ_LIMIT = 300;
 
-export type NoticeKind = 'caution' | 'updated';
+export type NoticeKind = 'caution' | 'added';
 
 export interface Notice {
   id: string;
@@ -71,20 +83,25 @@ export async function fetchNotices(): Promise<Notice[]> {
       severity: caution.severity,
     }));
 
-  const since = new Date(Date.now() - RECENT_DAYS * 86400_000).toISOString();
-  const recent = await fetchRecentlyUpdated(since, 30);
+  const appeared = await getAddedFacilities();
+  const byId = await fetchFacilitiesByIds(appeared.map((a) => a.id));
 
-  const updated: Notice[] = recent.map((f) => ({
-    // 同じ施設が再び更新されたら別の1件として数える。時刻まで含める。
-    id: 'u:' + f.id + ':' + f.updated_at,
-    kind: 'updated' as const,
-    facilityId: f.id,
-    facilityName: f.name,
-    body: '案内の内容が更新されました。向かう前にご確認ください。',
-    at: f.updated_at,
-  }));
+  const added: Notice[] = appeared
+    // 増えたあとに消された施設は控えに残る。名前が引けないものは出さない。
+    .filter((a) => byId.has(a.id))
+    .map((a) => ({
+      // 気づいた時刻まで含める。同じ施設が消えて再び増えたら別の1件。
+      id: 'a:' + a.id + ':' + a.at,
+      kind: 'added' as const,
+      facilityId: a.id,
+      facilityName: byId.get(a.id)!.name,
+      body: '新しく追加されました。',
+      at: a.at,
+    }))
+    // 新しいものを先に
+    .reverse();
 
-  return [...cautions, ...updated];
+  return [...cautions, ...added];
 }
 
 /** これまでに読んだお知らせの控え */

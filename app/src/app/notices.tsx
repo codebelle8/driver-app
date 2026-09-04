@@ -18,7 +18,7 @@ import { useTheme } from '@/theme-context';
 /**
  * お知らせの一覧。
  *
- * 並びは「いま効いている注意 → 最近変わった施設」。
+ * 並びは「いま効いている注意 → 新しく増えた施設」。
  * 現地でいま効いている条件のほうが、更新の知らせより切迫している。
  *
  * 既読は1件ずつ。押したものだけを読んだことにする。
@@ -65,7 +65,7 @@ export default function NoticesScreen() {
   const unread = (notices ?? []).filter((n) => !read.has(n.id)).length;
 
   const cautions = (notices ?? []).filter((n) => n.kind === 'caution');
-  const updated = (notices ?? []).filter((n) => n.kind === 'updated');
+  const added = (notices ?? []).filter((n) => n.kind === 'added');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -94,7 +94,7 @@ export default function NoticesScreen() {
           <Ionicons name="notifications-off-outline" size={28} color={c.textFaint} />
           <Text style={styles.emptyTitle}>お知らせはありません</Text>
           <Text style={styles.emptyBody}>
-            進入方法の変更や、いま効いている注意事項がここに出ます。
+            新しく増えた施設や、いま効いている注意事項がここに出ます。
           </Text>
         </View>
       ) : (
@@ -116,10 +116,10 @@ export default function NoticesScreen() {
             </>
           )}
 
-          {updated.length > 0 && (
+          {added.length > 0 && (
             <>
-              <Text style={styles.section}>最近変わった施設</Text>
-              {updated.map((n) => (
+              <Text style={styles.section}>新しく増えた施設</Text>
+              {added.map((n) => (
                 <NoticeRow
                   key={n.id}
                   notice={n}
@@ -133,7 +133,7 @@ export default function NoticesScreen() {
           )}
 
           <Text style={styles.foot}>
-            過去14日ぶんを出しています。詳しい内容は各施設の画面でご確認ください。
+            前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。
           </Text>
         </ScrollView>
       )}

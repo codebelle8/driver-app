@@ -26,6 +26,25 @@ import type { Caution, Category, EntryPoint, Facility, Photo } from './types';
 /** 控えの鍵 */
 const CATALOG_KEY = 'kn_catalog';
 const SYNCED_AT_KEY = 'kn_catalog_synced_at';
+const ADDED_KEY = 'kn_catalog_added';
+
+/**
+ * 新着として控えておく上限。
+ *
+ * これを超えたら古いものから落とす。一度に大量に増えたときは、
+ * どのみち一覧として読めないため、直近だけ残せば足りる。
+ */
+const ADDED_LIMIT = 50;
+
+/** 新着として扱う期間。これより古い追加は落とす。 */
+const ADDED_DAYS = 14;
+
+/** 後から増えた施設。お知らせに使う。 */
+export interface AddedFacility {
+  id: string;
+  /** 端末が気づいた時刻 */
+  at: string;
+}
 
 export interface CatalogPayload {
   categories: Category[];
@@ -149,6 +168,31 @@ export function getCatalog(): Promise<Catalog> {
  */
 export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
   const syncedAt = new Date().toISOString();
+  const before = await getCatalog();
+
+  /*
+    「後から増えた施設」を、この時点でしか分からないため控える。
+
+    サーバーの created_at では判別できない。データを一括で入れ直すと
+    全件の作成日時が同じ日になり、193件すべてが新着になってしまう。
+    実際、初回の取り込みで作成日時は2日に固まっている。
+
+    **端末が前回持っていた一覧と比べる。** 前回に無く今回にあるものが、
+    その端末にとっての新着。初回（前回が空）は全件を既知として扱う。
+    初めて開いた方に「193件が新着です」と出しても意味がないため。
+  */
+  const known = new Set(before.facilities.map((f) => f.id));
+  const appeared: AddedFacility[] =
+    known.size === 0
+      ? []
+      : payload.facilities
+          .filter((f) => !known.has(f.id))
+          .map((f) => ({ id: f.id, at: syncedAt }));
+
+  const since = new Date(Date.now() - ADDED_DAYS * 86400_000).toISOString();
+  const added = [...(await getAddedFacilities()), ...appeared]
+    .filter((a) => a.at >= since)
+    .slice(-ADDED_LIMIT);
 
   memory = {
     categories: payload.categories,
@@ -162,7 +206,25 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
   await AsyncStorage.multiSet([
     [CATALOG_KEY, JSON.stringify(payload)],
     [SYNCED_AT_KEY, syncedAt],
+    [ADDED_KEY, JSON.stringify(added)],
   ]);
+}
+
+/** 後から増えた施設。新しいものが後ろに来る。 */
+export async function getAddedFacilities(): Promise<AddedFacility[]> {
+  try {
+    const raw = await AsyncStorage.getItem(ADDED_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list.filter(
+      (a): a is AddedFacility =>
+        typeof a?.id === 'string' && typeof a?.at === 'string',
+    );
+  } catch {
+    // 壊れていたら捨てる。お知らせが出なくなるだけで、害はない。
+    return [];
+  }
 }
 
 /** 端末の内容がいつのものか */

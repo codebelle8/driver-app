@@ -193,14 +193,17 @@ export async function fetchCautionsWithFacility(): Promise<
   return out;
 }
 
-/** お知らせに使う。最近変わった施設を新しい順に返す。 */
-export async function fetchRecentlyUpdated(since: string, limit: number): Promise<Facility[]> {
-  const { facilities } = await getCatalog();
-  return facilities
-    .filter((f) => f.updated_at && f.updated_at >= since)
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-    .slice(0, limit);
-}
+/*
+  「最近変わった施設」を返す関数は外した（2026-09-04）。
+
+  facilities.updated_at は「案内の中身が変わった」ことを示さない。
+  表記の統一でも住所の補完でも動くうえ、データを一括で入れ直すと
+  全件が同時に変わる。実際、193件の取り込みで全件が「更新されました」
+  として並び、一度も見ていない施設の通知が30件出る状態になった。
+
+  お知らせは「新しく増えた施設」に替えた（app/src/lib/notices.ts）。
+  端末が前回持っていた一覧との差分なので、誤って出ることがない。
+*/
 
 /** 型の再輸出。呼ぶ側が catalog を意識しなくて済むように。 */
 export type { EntryPoint };
