@@ -23,10 +23,13 @@ import { useTheme } from '@/theme-context';
  *   枠は画面の幅で決まり、絵より平たいことも縦長のこともある。絵はその中へ
  *   実寸の比で置き、余った側は地の色にする。
  *
- * **縁は内側へ向かって地の色でにじませる**
- *   絵の縁が直線で立つと、貼りついたように見える。内側に影を落として
- *   （box-shadow の inset）縁を地の色へ溶かす。
- *   以前は同じ絵をぼかして敷いていたが、絵の色まで周りへ広がっていた。
+ * **余った側にはぼかした同じ絵を敷く**
+ *   地の色をそのまま出すと、絵が宙に浮いて貼りついたように見える。
+ *   同じ絵を広げてぼかしたものを敷き、帯を絵の色で満たす。
+ *
+ * **絵の縁は内側へにじませる**
+ *   ぼかした面との境が直線で立たないよう、絵の内側に影を落とす
+ *   （box-shadow の inset）。縁が白んで、外のぼかしへ続いて見える。
  *
  * **読めたものだけを回す**
  *   4枚ぶんの場所を用意しているが、置かれていない番号は読み込みに失敗する。
@@ -69,6 +72,14 @@ const PHOTO_ASPECT = 2.1;
  */
 const EDGE_BLUR = 44;
 const EDGE_SPREAD = 18;
+
+/**
+ * 余った側へ敷く絵のぼかし。
+ *
+ * 強くかけるほど地に馴染むが、色まで溶けて灰色に寄る。
+ * 何が写っているか読み取れなくなる程度で止める。
+ */
+const EDGE_BLUR_RADIUS = 28;
 
 export function HeroSlides() {
   const c = useTheme();
@@ -234,8 +245,21 @@ export function HeroSlides() {
             style={[StyleSheet.absoluteFill, { opacity: fades[i] }]}
             pointerEvents="none"
           >
-            {/* 絵の外側は地の色。下敷きの緑を隠す。 */}
-            <View style={s.ground} />
+            {/*
+              余った側へ敷く、ぼかした同じ絵。
+
+              枠と絵の比は画面幅で変わり、必ずどちらかに余りが出る。
+              地の色を出すと絵が貼りついて見えるため、同じ絵を広げて
+              ぼかしたものを敷く。
+            */}
+            <Image
+              source={{ uri: url }}
+              style={s.backdrop}
+              contentFit="cover"
+              blurRadius={EDGE_BLUR_RADIUS}
+              transition={0}
+              accessibilityLabel=""
+            />
 
             {/* 絵。実寸の比のまま、帯の中央へ置く。 */}
             <View style={s.center}>
@@ -352,13 +376,18 @@ function isVisible(): boolean {
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
     band: { flex: 1 },
-    ground: {
+    /*
+      ぼかした絵は、帯より少し大きく取る。
+
+      ぼかすと縁が薄くなり、帯と同じ大きさでは端に下地が透ける。
+      外へはみ出させておけば、どの縁も色で埋まる。
+    */
+    backdrop: {
       position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: c.bg,
+      top: -28,
+      left: -28,
+      right: -28,
+      bottom: -28,
     },
     /*
       中央寄せの器。
