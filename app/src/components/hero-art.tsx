@@ -1,9 +1,8 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { ArtImage } from '@/components/art-image';
 import { Ramp } from '@/components/ramp';
-import { CAN_LOAD_ART, HERO_ART_URL } from '@/lib/art';
+import { HERO_ART_URLS } from '@/lib/art';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -15,12 +14,11 @@ import { useTheme } from '@/theme-context';
  *
  * **写真が無くても成り立つ**
  *   下敷きに淡い緑の階調を常に敷き、その上へ写真を重ねる。
- *   写真（app/public/art/hero.jpg）が置かれていなければ読み込みに失敗し、
+ *   写真（app/public/art/hero.jpg）が無ければ読み込みに失敗し、
  *   下敷きがそのまま残る。置き場所は同じ場所の README に書いてある。
  */
 export function HeroArt() {
   const c = useTheme();
-  const [failed, setFailed] = useState(false);
 
   return (
     <View style={styles.box} pointerEvents="none">
@@ -29,35 +27,37 @@ export function HeroArt() {
         <Ramp color={c.accentSoft} direction="right" from={0} to={1} />
       </View>
 
-      {CAN_LOAD_ART && !failed && (
-        <>
-          <Image
-            source={{ uri: HERO_ART_URL }}
-            style={styles.photo}
-            contentFit="cover"
-            contentPosition="right"
-            transition={200}
-            onError={() => setFailed(true)}
-            accessibilityLabel=""
-          />
-          {/*
-            写真の縁を背景色へ溶かす。
+      {/*
+        右上を基準に切り取る。
 
-            そのまま置くと縁が直線で立ち、貼り付けたように見える。
+        高さ280に対して写真は縦長寄りのため、上下のどちらかが切れる。
+        中央に合わせると人物の頭が切れた。上を基準にすれば、
+        切れるのは足元と路面になる。
+      */}
+      <ArtImage
+        urls={HERO_ART_URLS}
+        style={styles.photo}
+        contentPosition={{ top: 0, right: 0 }}
+      />
 
-            **帯は写真の上に重ねる。**
-              写真の外側に置いても縁は消えない。溶かしたい線をまたぐ
-              位置に置き、線のところで最も濃く、写真の内側へ向かって
-              薄くする。外側に置いていたため、縦線がそのまま残っていた。
-          */}
-          <View style={styles.fadeLeft}>
-            <Ramp color={c.bg} direction="left" from={0} to={1} />
-          </View>
-          <View style={styles.fadeBottom}>
-            <Ramp color={c.bg} direction="down" from={0} to={1} />
-          </View>
-        </>
-      )}
+      {/*
+        写真の縁を背景色へ溶かす。
+
+        そのまま置くと縁が直線で立ち、貼り付けたように見える。
+
+        **帯は写真の上に重ねる。**
+          写真の外側に置いても縁は消えない。溶かしたい線をまたぐ位置に
+          置き、線のところで最も濃く、写真の内側へ向かって薄くする。
+          外側に置いていたため、縦線がそのまま残っていた。
+
+        写真が無くても、下敷きの縁を溶かす役に立つ。常に出しておく。
+      */}
+      <View style={styles.fadeLeft}>
+        <Ramp color={c.bg} direction="left" from={0} to={1} />
+      </View>
+      <View style={styles.fadeBottom}>
+        <Ramp color={c.bg} direction="down" from={0} to={1} />
+      </View>
     </View>
   );
 }
