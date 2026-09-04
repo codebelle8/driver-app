@@ -1,88 +1,76 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { HeroSlides } from '@/components/hero-slides';
 import { Ramp } from '@/components/ramp';
+import type { Palette } from '@/theme';
+import { RADIUS, SPACE } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
- * 上部に敷く絵。広い画面の「探す」でのみ使う。
+ * 上部の帯。広い画面の「探す」でのみ使う。
  *
- * **左は空けておく**
- *   呼びかけと検索欄がこの上に乗る。全面に敷くと、文字が写真の明るい
- *   部分に重なって読めなくなる。右側だけに置き、左へ向かって背景色へ溶かす。
+ * **写真を切らずに、まるごと見せる**
+ *   いただいた4枚は、それぞれが一枚で完結する横長の絵として作られている。
+ *   文字や案内の図がその中に入っており、端を切ると意味が変わる。
+ *   縦横の比を保ったまま、全体が収まる大きさで置く。
  *
- * **4枚を順に入れ替える**
- *   置かれている枚数だけで回る（components/hero-slides.tsx）。
- *   1枚も置かれていなければ、下敷きの淡い緑がそのまま残る。
+ *   以前は右半分にだけ敷き、左に見出しと検索欄を重ねていた。
+ *   その作りだと、絵の中の「行きたい場所を見つけよう」と画面側の見出しが
+ *   二度出て、絵の中の検索窓と本物の検索欄が並んでしまった。
+ *
+ * **本文と同じ幅に置く**
+ *   検索欄やカテゴリの札と左右の端を揃える。中央へ寄せて置いたところ、
+ *   帯だけが内側にずれ、下の並びと段差ができていた。
+ *
+ *   広すぎる画面では本文そのものに上限があるため（page の maxWidth）、
+ *   帯の高さも自ずと収まる。1920px の画面で 545px ほど。
+ *
+ * **写真が無くても成り立つ**
+ *   1枚も置かれていなければ、淡い緑の面が残る。
  *   置き場所は app/public/art/ の README に書いてある。
  */
+
+/**
+ * 絵の縦横の比。
+ *
+ * いただいた4枚はいずれも 1819×865 前後（およそ 2.1）。
+ * ここを実際の比に合わせておくと、上下左右に余りが出ない。
+ */
+const ASPECT = 2.1;
+
 export function HeroArt() {
   const c = useTheme();
+  const s = makeStyles(c);
+
+  /** 置ける幅。画面幅から引き算せず、枠を実測する。 */
+  const [room, setRoom] = useState(0);
+
+  const height = room / ASPECT;
 
   return (
-    <View style={styles.box} pointerEvents="none">
-      {/* 下敷き。写真の有無にかかわらず敷く。 */}
-      <View style={styles.photo}>
-        <Ramp color={c.accentSoft} direction="right" from={0} to={1} />
-      </View>
-
-      <View style={styles.photo}>
-        <HeroSlides style={styles.slide} />
-      </View>
-
-      {/*
-        写真の縁を背景色へ溶かす。
-
-        そのまま置くと縁が直線で立ち、貼り付けたように見える。
-
-        **帯は写真の上に重ねる。**
-          写真の外側に置いても縁は消えない。溶かしたい線をまたぐ位置に
-          置き、線のところで最も濃く、写真の内側へ向かって薄くする。
-          外側に置いていたため、縦線がそのまま残っていた。
-
-        写真が無くても、下敷きの縁を溶かす役に立つ。常に出しておく。
-      */}
-      <View style={styles.fadeLeft}>
-        <Ramp color={c.bg} direction="left" from={0} to={1} />
-      </View>
-      <View style={styles.fadeBottom}>
-        <Ramp color={c.bg} direction="down" from={0} to={1} />
-      </View>
+    <View
+      style={s.wrap}
+      onLayout={(e) => setRoom(Math.round(e.nativeEvent.layout.width))}
+    >
+      {room > 0 && (
+        <View style={[s.banner, { height }]}>
+          {/* 下敷き。写真が無いとき、または読み込むまでのあいだ。 */}
+          <Ramp color={c.accentSoft} direction="down" from={0} to={1} />
+          <HeroSlides style={s.slide} contentFit="contain" />
+        </View>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  box: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  photo: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: 0,
-    // 右のおよそ半分。左半分に呼びかけと検索欄が乗る。
-    width: '52%',
-  },
-  slide: { width: '100%', height: '100%' },
-  /*
-    左の縁をまたぐ帯。
-
-    写真は右から 52%。その左端（左から 48%）にちょうど重なるよう、
-    右から 34% の位置に 18% の幅で置く。左端で最も濃く、
-    写真の内側へ向かって薄くする。
-  */
-  fadeLeft: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    right: '34%',
-    width: '18%',
-  },
-  /* 下の縁も同じ考え方で溶かす。中身との境に線を作らない。 */
-  fadeBottom: {
-    position: 'absolute',
-    left: '48%',
-    right: 0,
-    bottom: 0,
-    height: 72,
-  },
-});
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    wrap: { paddingTop: SPACE.xl },
+    banner: {
+      borderRadius: RADIUS.lg,
+      overflow: 'hidden',
+      backgroundColor: c.surface2,
+    },
+    slide: { width: '100%', height: '100%' },
+  });

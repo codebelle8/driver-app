@@ -88,20 +88,6 @@ const PAGE_PAD = 48;
  */
 const PAGE_MAX = 1240;
 
-/** 上部（呼びかけ・検索欄・絵）の高さ */
-const HERO_HEIGHT = 280;
-
-/**
- * 見出しの書体。
- *
- * 実体は app/public/index.html の @font-face で登録している。
- * 端末側にはこの名前の書体が無く、そのときは既定の書体で出る。
- */
-const HEADING_FONT = Platform.select({
-  web: "'Kurumayose Heading', sans-serif",
-  default: undefined,
-});
-
 /**
  * 上部の検索欄の幅。置ける幅に対する割合。
  *
@@ -470,23 +456,27 @@ export default function SearchScreen() {
       */}
       {isWide && !isFiltered && (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.hero}>
-            <HeroArt />
-            <View style={styles.heroInner}>
-              <Text style={styles.heroTitle}>行きたい場所を見つけよう</Text>
-              <View style={styles.heroSearch}>
-                <SearchField
-                  query={query}
-                  onChange={setQuery}
-                  styles={styles}
-                  c={c}
-                  large
-                />
-              </View>
-            </View>
-          </View>
+          {/*
+            上部の帯。いただいた絵を切らずにまるごと出す。
 
+            見出しをここに置かないのは、絵の中に「行きたい場所を
+            見つけよう」が入っているものがあり、同じ文言が二度出て
+            しまうため。検索欄も、絵の中の検索窓と並ばないよう
+            帯の下へ移した。
+          */}
           <View style={styles.page}>
+            <HeroArt />
+
+            <View style={styles.searchRow}>
+              <SearchField
+                query={query}
+                onChange={setQuery}
+                styles={styles}
+                c={c}
+                large
+              />
+            </View>
+
             <SectionHead
               title="カテゴリから探す"
               more="すべて見る"
@@ -1288,40 +1278,8 @@ function makeStyles(c: Palette) {
     },
     input: { flex: 1, fontSize: 14, color: c.text, paddingVertical: 0 },
 
-    /*
-      広い画面の上部。呼びかけと検索欄を大きく置き、右に絵を敷く。
-
-      高さを決め打ちにしているのは、絵の見え方を安定させるため。
-      中身に任せると、文字の折り返しで縦が伸び縮みして絵が切れる。
-    */
-    hero: { height: HERO_HEIGHT, justifyContent: 'center' },
-    heroInner: {
-      width: '100%',
-      maxWidth: PAGE_MAX,
-      alignSelf: 'center',
-      paddingHorizontal: PAGE_PAD,
-    },
-    /*
-      見出しは丸ゴシック（Zen Maru Gothic）。
-
-      角を丸めた書体は、日本では親しみを出す場面で古くから使われている。
-      本文と同じ書体で大きくしただけでは、ただの見出しにしかならない。
-      崩し過ぎず、業務で使う画面の落ち着きは保つ。
-
-      12文字だけを取り出して自前で配っている（2.8KB）。
-      読み込めなければ既定の書体で出る。文言は読めるままで、
-      印象だけが変わる。
-    */
-    heroTitle: {
-      fontFamily: HEADING_FONT,
-      fontSize: 32,
-      lineHeight: 48,
-      fontWeight: '700',
-      color: c.text,
-      // 丸ゴシックは字面が大きい。少しだけ広げて詰まりを避ける。
-      letterSpacing: 0.5,
-    },
-    heroSearch: { marginTop: SPACE.xl },
+    /* 帯と本文のあいだ。検索欄の周りに取る余白。 */
+    searchRow: { marginTop: SPACE.xl, marginBottom: SPACE.sm },
     searchBoxLarge: {
       flexDirection: 'row',
       alignItems: 'center',
