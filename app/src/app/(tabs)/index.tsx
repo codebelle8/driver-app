@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand';
 import { FacilitiesMap } from '@/components/facilities-map';
+import { HeroArt } from '@/components/hero-art';
+import { HEADER_HEIGHT } from '@/components/side-rail';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
   fetchCategories,
@@ -67,6 +69,25 @@ const WIDE_PAGE_SIZE = 60;
  * 上部の現在地と検索欄もこの幅に揃える。
  */
 const SPLIT_LIST_WIDTH = 420;
+
+/**
+ * 広い画面の左右の余白。
+ *
+ * ご提示の画面図の見え方（左メニューの右端から48px）に合わせている。
+ */
+const PAGE_PAD = 48;
+
+/**
+ * 本文の最大幅。
+ *
+ * 1536px の画面では余白を引いた全幅（1184px）がそのまま入り、
+ * 画面図と同じ見え方になる。それより広い画面では、1行が長くなりすぎて
+ * 目が行末から次の行頭へ戻れなくなるため、ここで止める。
+ */
+const PAGE_MAX = 1240;
+
+/** 上部（呼びかけ・検索欄・絵）の高さ */
+const HERO_HEIGHT = 280;
 
 /** カテゴリの区分ごとの記号。データ側に持たせるほどのものではない。 */
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -355,7 +376,12 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* 上部。現在地と知らせ。 */}
+      {/*
+        上部の帯。現在地と知らせ。
+
+        広い画面では、左メニューのロゴ帯と同じ高さの帯にして横一直線に
+        区切る。ご提示の画面図の作りに合わせている。
+      */}
       <View style={[styles.topBar, isWide && styles.topBarWide]}>
         {/*
           広い画面では出さない。左メニューが常に見えており、
@@ -372,10 +398,15 @@ export default function SearchScreen() {
           位置が取れないことを咎める表示はしない。断るのも選択のうち。
         */}
         <View style={styles.place}>
-          <Ionicons name="location" size={13} color={c.accent} />
+          <Ionicons name="location" size={isWide ? 18 : 13} color={c.accent} />
           <View style={styles.placeText}>
-            <Text style={styles.placeLabel}>{place ? '現在地' : '案内できる範囲'}</Text>
-            <Text style={styles.placeValue} numberOfLines={1}>
+            <Text style={isWide ? styles.placeLabelWide : styles.placeLabel}>
+              {place ? '現在地' : '案内できる範囲'}
+            </Text>
+            <Text
+              style={isWide ? styles.placeValueWide : styles.placeValue}
+              numberOfLines={1}
+            >
               {place ?? area}
             </Text>
           </View>
@@ -384,12 +415,10 @@ export default function SearchScreen() {
         <Link href="/notices" asChild>
           <Pressable
             hitSlop={HIT_SLOP}
-            accessibilityLabel={
-              unseen > 0 ? `お知らせ ${unseen} 件` : 'お知らせ'
-            }
+            accessibilityLabel={unseen > 0 ? `お知らせ ${unseen} 件` : 'お知らせ'}
             style={styles.topIcon}
           >
-            <Ionicons name="notifications-outline" size={21} color={c.text} />
+            <Ionicons name="notifications-outline" size={isWide ? 23 : 21} color={c.text} />
             {/*
               実際の件数を出す。9+ で丸めていたが、1件読んでも表示が
               変わらず、読んだことが伝わらなかった。
@@ -404,209 +433,202 @@ export default function SearchScreen() {
         </Link>
       </View>
 
-      {/* 見出しと検索欄 */}
-      <View style={[styles.head, isWide && styles.headWide]}>
-        {/*
-          文字の見出しではなくロゴを置く。名乗りはロゴが担う。
-          広い画面ではロゴが左メニューの上端にあるため、ここには置かない。
-        */}
-        {!isWide && <BrandLogo height={34} />}
-        <Text style={[styles.lead, isWide && styles.leadWide]}>
-          行きたい場所を見つけよう
-        </Text>
-
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={c.textFaint} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="施設名・よみがな・住所"
-            placeholderTextColor={c.textFaint}
-            style={styles.input}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-          {query.length > 0 ? (
-            <Pressable onPress={() => setQuery('')} hitSlop={HIT_SLOP} accessibilityLabel="消す">
-              <Ionicons name="close-circle" size={18} color={c.textFaint} />
-            </Pressable>
-          ) : (
-            <Ionicons name="options-outline" size={18} color={c.textFaint} />
-          )}
+      {/* 狭い画面。ロゴ・呼びかけ・検索欄をまとめて上に置く。 */}
+      {!isWide && (
+        <View style={styles.head}>
+          {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
+          <BrandLogo height={34} />
+          <Text style={styles.lead}>行きたい場所を見つけよう</Text>
+          <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
         </View>
-      </View>
+      )}
 
       {/*
-        広い画面では、左に一覧（または下見）、右に地図を並べる。
+        広い画面で、絞り込んでいないとき。
 
-        絞り込みの有無で左だけが入れ替わり、地図は常に右にある。
-        状態が変わるたびに配置ごと組み替わると、目の置き所が定まらない。
+        ご提示の画面図に合わせ、上に呼びかけと検索欄を大きく置き、
+        右へ写真を敷く。地図はここには出さない。事務所で開いた直後に
+        見たいのは「何を探せるか」であって、193件の散らばりではない。
       */}
-      <View style={isWide ? styles.split : styles.splitOff}>
-      {isFiltered ? (
-        /*
-          広い画面では一覧と地図を左右に並べる。
+      {isWide && !isFiltered && (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.hero}>
+            <HeroArt />
+            <View style={styles.heroInner}>
+              <Text style={styles.heroTitle}>行きたい場所を見つけよう</Text>
+              <View style={styles.heroSearch}>
+                <SearchField
+                  query={query}
+                  onChange={setQuery}
+                  styles={styles}
+                  c={c}
+                  large
+                />
+              </View>
+            </View>
+          </View>
 
-          事務所で193件を突き合わせるとき、1件ずつ開いて位置を確かめる
-          のでは手数が多い。行にマウスを乗せると対応するピンが応え、
-          ピンを押すとその施設が開く。
-        */
-        <View style={isWide ? styles.splitList : styles.splitOff}>
-            <ResultList
-              listRef={listRef}
-              facilities={facilities}
-              loading={loading}
-              loadingMore={loadingMore}
-              onEndReached={loadMore}
-              onScrollChange={setAtTop}
-              label={filterLabel}
-              matched={matched}
-              total={sync.facilityCount}
-              onClear={() => {
-                setQuery('');
-                setCategoryId(null);
-                setShowAll(false);
-              }}
-              activeId={isWide ? activeId : null}
-              onHover={isWide ? setActiveId : undefined}
+          <View style={styles.page}>
+            <SectionHead
+              title="カテゴリから探す"
+              more="すべて見る"
+              onPress={() => setShowAll(true)}
               styles={styles}
-              c={c}
+              wide
             />
-        </View>
-      ) : (
-        <ScrollView
-          style={isWide ? styles.splitList : undefined}
-          contentContainerStyle={[styles.browse, isWide && styles.browseWide]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/*
-            広い画面では2段組みにする。カテゴリと履歴はどちらも短く、
-            縦に積むと画面の下半分が空いたままになる。
-          */}
-          <View>
-          <View>
-          <SectionHead
-            title="カテゴリから探す"
-            more="すべて見る"
-            onPress={() => setShowAll(true)}
-            styles={styles}
-          />
-          <View style={styles.grid}>
-            {chips.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => setCategoryId(cat.id)}
-                style={({ hovered, pressed }) => [
-                  styles.card,
-                  // 広い画面は3列。2列のままだと1枚が横に伸びすぎる。
-                  isMedium && styles.cardWide,
-                  hovered && styles.cardHover,
-                  pressed && styles.cardPressed,
-                ]}
-                accessibilityRole="button"
-              >
-                <View style={styles.cardIcon}>
-                  <Ionicons name={CATEGORY_ICON[cat.code]} size={20} color={c.accent} />
-                </View>
-                <View style={styles.cardText}>
-                  <Text style={styles.cardTitle}>{cat.name}</Text>
-                  <Text style={styles.cardHint} numberOfLines={1}>
-                    {CATEGORY_HINT[cat.code] ?? '施設を探す'}
-                  </Text>
-                </View>
-              </Pressable>
-            ))}
-          </View>
-
-          </View>
-
-          <View>
-          {/*
-            本当に見た施設を出す。以前は一覧の先頭3件を出しており、
-            誰が何を見ても同じ並びだった。
-          */}
-          <SectionHead
-            title="最近見たスポット"
-            more={historyCount > RECENT_COUNT ? `すべて見る (${historyCount})` : 'すべて見る'}
-            href="/history"
-            styles={styles}
-          />
-          <View style={styles.recentBox}>
-            {recent.map((e) => (
-              <Link key={e.facility.id} href={`/facility/${e.facility.id}`} asChild>
-                <Pressable style={styles.recentRow} accessibilityRole="link">
-                  <View style={styles.recentIcon}>
-                    <Ionicons name="time-outline" size={16} color={c.textMuted} />
-                  </View>
-                  <View style={styles.recentBody}>
-                    <Text style={styles.recentName} numberOfLines={1}>
-                      {e.facility.name}
-                    </Text>
-                    <Text style={styles.recentAddress} numberOfLines={1}>
-                      {e.facility.prefecture}
-                      {e.facility.city ?? ''}
-                      {e.facility.address_line}
-                    </Text>
-                  </View>
-                  <Text style={styles.recentWhen}>{describeWhen(e.at)}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
-                </Pressable>
-              </Link>
-            ))}
-            {recent.length === 0 && !loading && (
-              <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
-            )}
-          </View>
-          </View>
-          </View>
-
-          {/*
-            取り込みの状態を必ず出す。
-
-            以前は失敗しても「まだ取り込めていません」としか出ず、
-            理由も、やり直す手立ても示していなかった。
-            利用者から見れば、ただの行き止まりにあたる。
-          */}
-          {syncing ? (
-            <View style={styles.syncRow}>
-              <ActivityIndicator size="small" color={c.accent} />
-              <Text style={styles.foot}>施設の情報を取り込んでいます…</Text>
+            <View style={styles.grid}>
+              {chips.map((cat) => (
+                <CategoryCard
+                  key={cat.id}
+                  category={cat}
+                  onPress={() => setCategoryId(cat.id)}
+                  styles={styles}
+                  c={c}
+                  wide
+                />
+              ))}
             </View>
-          ) : !sync.ok ? (
-            <View style={styles.syncFail}>
-              <Ionicons name="cloud-offline-outline" size={20} color={c.danger} />
-              <Text style={styles.syncFailText}>
-                {sync.message ?? '情報を取得できませんでした。'}
-              </Text>
-              <Pressable
-                onPress={retry}
-                style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
-                accessibilityRole="button"
-              >
-                <Ionicons name="refresh" size={15} color={c.accent} />
-                <Text style={styles.retryText}>取り込み直す</Text>
-              </Pressable>
+
+            {/*
+              本当に見た施設を出す。以前は一覧の先頭3件を出しており、
+              誰が何を見ても同じ並びだった。
+            */}
+            <SectionHead
+              title="最近見たスポット"
+              more={historyCount > RECENT_COUNT ? `すべて見る (${historyCount})` : 'すべて見る'}
+              href="/history"
+              styles={styles}
+              wide
+            />
+            <View style={styles.recentList}>
+              {recent.map((e) => (
+                <RecentRow key={e.facility.id} entry={e} styles={styles} c={c} wide />
+              ))}
+              {recent.length === 0 && !loading && (
+                <View style={styles.recentEmptyBox}>
+                  <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
+                </View>
+              )}
             </View>
-          ) : (
-            <Text style={styles.foot}>
-              {sync.syncedAt
-                ? `端末に ${sync.facilityCount} 件（${describeSyncedAt(sync.syncedAt)}に取得）`
-                : 'まだ取り込めていません'}
-            </Text>
-          )}
+
+            <SyncState syncing={syncing} sync={sync} onRetry={retry} styles={styles} c={c} />
+          </View>
         </ScrollView>
       )}
 
-      {isWide && (
-        <View style={styles.splitMap}>
-          <FacilitiesMap
-            pins={pins}
-            activeId={activeId}
-            onSelect={(id) => router.push(`/facility/${id}`)}
-          />
-        </View>
+      {/*
+        広い画面で絞り込んでいるとき。検索欄を細い帯にして、
+        下に一覧と地図を左右で並べる。
+      */}
+      {isWide && isFiltered && (
+        <>
+          <View style={styles.searchBand}>
+            <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
+          </View>
+
+          <View style={styles.split}>
+            <View style={styles.splitList}>
+              <ResultList
+                listRef={listRef}
+                facilities={facilities}
+                loading={loading}
+                loadingMore={loadingMore}
+                onEndReached={loadMore}
+                onScrollChange={setAtTop}
+                label={filterLabel}
+                matched={matched}
+                total={sync.facilityCount}
+                onClear={() => {
+                  setQuery('');
+                  setCategoryId(null);
+                  setShowAll(false);
+                }}
+                activeId={activeId}
+                onHover={setActiveId}
+                styles={styles}
+                c={c}
+              />
+            </View>
+
+            {/*
+              一覧の右に地図。行にマウスを乗せると対応するピンが応え、
+              ピンを押すとその施設が開く。事務所で突き合わせるときに、
+              1件ずつ開いて位置を確かめる手数を省く。
+            */}
+            <View style={styles.splitMap}>
+              <FacilitiesMap
+                pins={pins}
+                activeId={activeId}
+                onSelect={(id) => router.push(`/facility/${id}`)}
+              />
+            </View>
+          </View>
+        </>
       )}
-      </View>
+
+      {/* 狭い画面の中身 */}
+      {!isWide &&
+        (isFiltered ? (
+          <ResultList
+            listRef={listRef}
+            facilities={facilities}
+            loading={loading}
+            loadingMore={loadingMore}
+            onEndReached={loadMore}
+            onScrollChange={setAtTop}
+            label={filterLabel}
+            matched={matched}
+            total={sync.facilityCount}
+            onClear={() => {
+              setQuery('');
+              setCategoryId(null);
+              setShowAll(false);
+            }}
+            styles={styles}
+            c={c}
+          />
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.browse}
+            showsVerticalScrollIndicator={false}
+          >
+            <SectionHead
+              title="カテゴリから探す"
+              more="すべて見る"
+              onPress={() => setShowAll(true)}
+              styles={styles}
+            />
+            <View style={styles.grid}>
+              {chips.map((cat) => (
+                <CategoryCard
+                  key={cat.id}
+                  category={cat}
+                  onPress={() => setCategoryId(cat.id)}
+                  styles={styles}
+                  c={c}
+                  wide={isMedium}
+                />
+              ))}
+            </View>
+
+            <SectionHead
+              title="最近見たスポット"
+              more={historyCount > RECENT_COUNT ? `すべて見る (${historyCount})` : 'すべて見る'}
+              href="/history"
+              styles={styles}
+            />
+            <View style={styles.recentBox}>
+              {recent.map((e) => (
+                <RecentRow key={e.facility.id} entry={e} styles={styles} c={c} />
+              ))}
+              {recent.length === 0 && !loading && (
+                <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
+              )}
+            </View>
+
+            <SyncState syncing={syncing} sync={sync} onRetry={retry} styles={styles} c={c} />
+          </ScrollView>
+        ))}
 
       <ScrollTopButton
         visible={isFiltered && !atTop}
@@ -628,6 +650,7 @@ function SectionHead({
   href,
   onPress,
   styles,
+  wide,
 }: {
   title: string;
   /** 右側の文字。件数を添えることがある。 */
@@ -637,16 +660,18 @@ function SectionHead({
   /** この画面の中で切り替える場合 */
   onPress?: () => void;
   styles: ReturnType<typeof makeStyles>;
+  /** 広い画面。見出しと余白を大きくする。 */
+  wide?: boolean;
 }) {
   const label = (
-    <Text style={styles.sectionMore} numberOfLines={1}>
+    <Text style={wide ? styles.sectionMoreWide : styles.sectionMore} numberOfLines={1}>
       {more}
     </Text>
   );
 
   return (
-    <View style={styles.sectionHead}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={wide ? styles.sectionHeadWide : styles.sectionHead}>
+      <Text style={wide ? styles.sectionTitleWide : styles.sectionTitle}>{title}</Text>
       {href ? (
         <Link href={href} asChild>
           <Pressable hitSlop={HIT_SLOP} accessibilityRole="link">
@@ -659,6 +684,188 @@ function SectionHead({
         </Pressable>
       )}
     </View>
+  );
+}
+
+/**
+ * 検索欄。
+ *
+ * 広い画面の上部では大きく（large）、絞り込み中の細い帯では小さく出す。
+ * 中身は同じで、寸法だけを変える。別々に書くと、片方だけ直して
+ * もう片方が古いままになる。
+ */
+function SearchField({
+  query,
+  onChange,
+  styles,
+  c,
+  large,
+}: {
+  query: string;
+  onChange: (v: string) => void;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  large?: boolean;
+}) {
+  return (
+    <View style={large ? styles.searchBoxLarge : styles.searchBox}>
+      <Ionicons name="search" size={large ? 22 : 18} color={c.textFaint} />
+      <TextInput
+        value={query}
+        onChangeText={onChange}
+        placeholder="施設名・よみがな・住所"
+        placeholderTextColor={c.textFaint}
+        style={large ? styles.inputLarge : styles.input}
+        returnKeyType="search"
+        autoCorrect={false}
+      />
+      {query.length > 0 ? (
+        <Pressable onPress={() => onChange('')} hitSlop={HIT_SLOP} accessibilityLabel="消す">
+          <Ionicons name="close-circle" size={large ? 22 : 18} color={c.textFaint} />
+        </Pressable>
+      ) : (
+        <Ionicons name="options-outline" size={large ? 22 : 18} color={c.textFaint} />
+      )}
+    </View>
+  );
+}
+
+/** カテゴリの札 */
+function CategoryCard({
+  category,
+  onPress,
+  styles,
+  c,
+  wide,
+}: {
+  category: Category;
+  onPress: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  /** 3列に並べる幅か */
+  wide?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ hovered, pressed }) => [
+        styles.card,
+        wide && styles.cardWide,
+        hovered && styles.cardHover,
+        pressed && styles.cardPressed,
+      ]}
+    >
+      <View style={wide ? styles.cardIconWide : styles.cardIcon}>
+        <Ionicons name={CATEGORY_ICON[category.code]} size={wide ? 26 : 20} color={c.accent} />
+      </View>
+      <View style={styles.cardText}>
+        <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>{category.name}</Text>
+        <Text style={wide ? styles.cardHintWide : styles.cardHint} numberOfLines={1}>
+          {CATEGORY_HINT[category.code] ?? '施設を探す'}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+/** 最近見た施設の1行 */
+function RecentRow({
+  entry,
+  styles,
+  c,
+  wide,
+}: {
+  entry: HistoryEntry;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  wide?: boolean;
+}) {
+  const f = entry.facility;
+  return (
+    <Link href={`/facility/${f.id}`} asChild>
+      {/*
+        Link asChild の下では、見た目を配列や関数で渡すとブラウザ側で
+        扱えない。組み合わせごとに1つの object にまとめて渡す。
+      */}
+      <Pressable style={wide ? styles.recentRowWide : styles.recentRow} accessibilityRole="link">
+        <View style={wide ? styles.recentIconWide : styles.recentIcon}>
+          <Ionicons name="time-outline" size={wide ? 18 : 16} color={c.textMuted} />
+        </View>
+        <View style={styles.recentBody}>
+          <Text style={wide ? styles.recentNameWide : styles.recentName} numberOfLines={1}>
+            {f.name}
+          </Text>
+          <Text
+            style={wide ? styles.recentAddressWide : styles.recentAddress}
+            numberOfLines={1}
+          >
+            {f.prefecture}
+            {f.city ?? ''}
+            {f.address_line}
+          </Text>
+        </View>
+        {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at)}</Text>}
+        <Ionicons name="chevron-forward" size={wide ? 20 : 16} color={c.textFaint} />
+      </Pressable>
+    </Link>
+  );
+}
+
+/**
+ * 取り込みの状態。
+ *
+ * 必ず出す。以前は失敗しても「まだ取り込めていません」としか出ず、
+ * 理由も、やり直す手立ても示していなかった。
+ * 利用者から見れば、ただの行き止まりにあたる。
+ */
+function SyncState({
+  syncing,
+  sync,
+  onRetry,
+  styles,
+  c,
+}: {
+  syncing: boolean;
+  sync: SyncResult;
+  onRetry: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+}) {
+  if (syncing) {
+    return (
+      <View style={styles.syncRow}>
+        <ActivityIndicator size="small" color={c.accent} />
+        <Text style={styles.foot}>施設の情報を取り込んでいます…</Text>
+      </View>
+    );
+  }
+
+  if (!sync.ok) {
+    return (
+      <View style={styles.syncFail}>
+        <Ionicons name="cloud-offline-outline" size={20} color={c.danger} />
+        <Text style={styles.syncFailText}>
+          {sync.message ?? '情報を取得できませんでした。'}
+        </Text>
+        <Pressable
+          onPress={onRetry}
+          style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="refresh" size={15} color={c.accent} />
+          <Text style={styles.retryText}>取り込み直す</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <Text style={styles.foot}>
+      {sync.syncedAt
+        ? `端末に ${sync.facilityCount} 件（${describeSyncedAt(sync.syncedAt)}に取得）`
+        : 'まだ取り込めていません'}
+    </Text>
   );
 }
 
@@ -828,7 +1035,25 @@ function makeStyles(c: Palette) {
       paddingBottom: SPACE.md,
     },
     topIcon: { width: 28, alignItems: 'center' },
-    topBarWide: { width: SPLIT_LIST_WIDTH, paddingTop: SPACE.md },
+
+    /*
+      広い画面の上部の帯。
+
+      左メニューのロゴ帯と同じ高さにして、画面を横一直線に区切る。
+      ご提示の画面図の作りに合わせている。
+    */
+    topBarWide: {
+      height: HEADER_HEIGHT,
+      paddingTop: 0,
+      paddingBottom: 0,
+      paddingHorizontal: PAGE_PAD,
+      gap: SPACE.md,
+      backgroundColor: c.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+    placeLabelWide: { fontSize: 12, color: c.textFaint },
+    placeValueWide: { fontSize: 16, color: c.text, fontWeight: '700' },
     badge: {
       position: 'absolute',
       top: -4,
@@ -878,6 +1103,57 @@ function makeStyles(c: Palette) {
     },
     input: { flex: 1, fontSize: 14, color: c.text, paddingVertical: 0 },
 
+    /*
+      広い画面の上部。呼びかけと検索欄を大きく置き、右に絵を敷く。
+
+      高さを決め打ちにしているのは、絵の見え方を安定させるため。
+      中身に任せると、文字の折り返しで縦が伸び縮みして絵が切れる。
+    */
+    hero: { height: HERO_HEIGHT, justifyContent: 'center' },
+    heroInner: {
+      width: '100%',
+      maxWidth: PAGE_MAX,
+      alignSelf: 'center',
+      paddingHorizontal: PAGE_PAD,
+    },
+    heroTitle: {
+      fontSize: 30,
+      lineHeight: 44,
+      fontWeight: '700',
+      color: c.text,
+    },
+    heroSearch: { marginTop: SPACE.xl, maxWidth: 640 },
+    searchBoxLarge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.md,
+      paddingHorizontal: SPACE.xl,
+      height: 62,
+      borderRadius: 14,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    inputLarge: { flex: 1, fontSize: 16, color: c.text, paddingVertical: 0 },
+
+    /* 絞り込み中の細い帯。上部の帯と一覧のあいだに挟む。 */
+    searchBand: {
+      paddingHorizontal: PAGE_PAD,
+      paddingVertical: SPACE.md,
+      backgroundColor: c.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+
+    /* 広い画面の本文。左右に余白を取り、広すぎる画面では中央へ寄せる。 */
+    page: {
+      width: '100%',
+      maxWidth: PAGE_MAX,
+      alignSelf: 'center',
+      paddingHorizontal: PAGE_PAD,
+      paddingBottom: SPACE.xl * 2,
+    },
+
     // --- 下見の画面 ---
     browse: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
     browseWide: { paddingTop: SPACE.xs },
@@ -890,8 +1166,17 @@ function makeStyles(c: Palette) {
     },
     sectionTitle: { fontSize: 14, fontWeight: '700', color: c.text },
     sectionMore: { fontSize: 12, color: c.accent, fontWeight: '600' },
+    sectionHeadWide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: SPACE.xl,
+      marginBottom: SPACE.md,
+    },
+    sectionTitleWide: { fontSize: 19, fontWeight: '700', color: c.text },
+    sectionMoreWide: { fontSize: 13, color: c.accent, fontWeight: '600' },
 
-    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
     card: {
       // 2列。間の隙間ぶんを引く。
       width: '48%',
@@ -905,7 +1190,29 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    cardWide: { width: '31%' },
+    /*
+      3列。隙間ぶんを引いた幅にする。
+
+      flexGrow を残しているのは、端数が出たときに行いっぱいまで
+      伸ばして右端を揃えるため。
+    */
+    cardWide: {
+      width: '31%',
+      gap: SPACE.lg,
+      paddingHorizontal: SPACE.xl,
+      paddingVertical: SPACE.xl - 2,
+      borderRadius: RADIUS.lg,
+    },
+    cardIconWide: {
+      width: 56,
+      height: 56,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    cardTitleWide: { fontSize: 16, fontWeight: '700', color: c.text },
+    cardHintWide: { fontSize: 13, color: c.textMuted, marginTop: 3 },
     cardHover: { borderColor: c.borderStrong, backgroundColor: c.surface2 },
     cardPressed: { borderColor: c.accent, backgroundColor: c.surface2 },
     cardIcon: {
@@ -919,6 +1226,44 @@ function makeStyles(c: Palette) {
     cardText: { flex: 1 },
     cardTitle: { fontSize: 13, fontWeight: '700', color: c.text },
     cardHint: { fontSize: 10, color: c.textMuted, marginTop: 1 },
+
+    /*
+      広い画面では、1行ずつ独立した札にする。
+
+      狭い画面は枠を1つにまとめて中で区切っているが、横に長い行を
+      罫線だけで区切ると、どこまでが1件か掴みにくい。
+    */
+    recentList: { gap: SPACE.sm },
+    recentRowWide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.md,
+      paddingHorizontal: SPACE.lg,
+      height: 68,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    recentIconWide: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: c.surface2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    recentNameWide: { fontSize: 15, fontWeight: '700', color: c.text },
+    recentAddressWide: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    recentEmptyBox: {
+      height: 68,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
 
     recentBox: {
       borderRadius: RADIUS.md,

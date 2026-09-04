@@ -5,6 +5,7 @@ import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrandLogo } from '@/components/brand';
+import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
 import { RADIUS, SPACE } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -12,28 +13,35 @@ import { useTheme } from '@/theme-context';
 /**
  * 広い画面での左メニュー。
  *
+ * **並び**（ご提示の画面図に合わせる）
+ *   上からロゴ、区切り線、4つの行先。選んでいる行先は淡い緑を敷き、
+ *   左端に濃い緑の線を立てる。下半分は絵と一言を置く。
+ *
+ * **なぜ下に絵を置くか**
+ *   行先は4つしかなく、1024px の画面でも下に500px 以上の空白が残る。
+ *   何も無い面は「作りかけ」に見える。ご提示の画面図でも、ここに
+ *   街並みと車の写真が入っている。
+ *
  * **自前で描いている理由**
- *   既定の左メニューは、選択中の項目に明るい青の下地を敷く。
- *   このアプリの色は緑で、青の上に濃い文字が乗って読めなくなっていた。
- *   色だけを差し替える指定はあるが、下地の形（角丸の大きさ・余白）や
- *   マウスを乗せたときの反応までは合わせられない。こちらで描く。
+ *   既定の左メニューは選択中の項目に明るい青を敷く。このアプリの色は
+ *   緑で、青の上に濃い文字が乗って読めなかった。下地の形も、マウスを
+ *   乗せたときの反応も指定では届かない。
  *
  * **幅はここで決める**
- *   自前で描くと tabBarStyle の指定は届かない。指定していたのに
- *   左メニューが画面の半分を占めていた。幅はこの部品が持つ。
- *
- * **ロゴをここへ置く**
- *   画面下の並びだった頃、ロゴは本文の先頭にあった。左メニューにすると
- *   本文が右へ寄るため、ロゴだけが本文の中に取り残されて据わりが悪い。
- *   メニューの上端へ移す。
+ *   自前で描くと tabBarStyle は届かない。指定していたのに左メニューが
+ *   画面の半分を占めていた。
  */
+
 /**
  * 左メニューの幅。
  *
- * 「お気に入り」「マイページ」が折り返さずに収まる幅にしている。
- * 記号だけにすると、どれが何かを覚えていないと押せない。
+ * 「お気に入り」「マイページ」が折り返さずに収まり、
+ * ご提示の画面図の見え方（全体の 1/6 ほど）に合う幅。
  */
-export const RAIL_WIDTH = 208;
+export const RAIL_WIDTH = 256;
+
+/** ロゴを置く帯の高さ。右側の上部の帯と揃える。 */
+export const HEADER_HEIGHT = 72;
 
 export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) {
   const c = useTheme();
@@ -41,60 +49,73 @@ export function SideRail({ state, descriptors, navigation }: BottomTabBarProps) 
 
   return (
     <View style={s.rail}>
-      <View style={s.brand}>
-        <BrandLogo height={30} />
+      <View style={s.brandBand}>
+        <BrandLogo height={36} />
       </View>
 
-      {state.routes.map((route, i) => {
-        const { options } = descriptors[route.key];
-        const focused = state.index === i;
-        const label = options.title ?? route.name;
+      <View style={s.nav}>
+        {state.routes.map((route, i) => {
+          const { options } = descriptors[route.key];
+          const focused = state.index === i;
+          const label = options.title ?? route.name;
 
-        return (
-          <Pressable
-            key={route.key}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: focused }}
-            accessibilityLabel={label}
-            onPress={() => {
-              const event = navigation.emit({
-                type: 'tabPress',
-                target: route.key,
-                canPreventDefault: true,
-              });
-              if (!focused && !event.defaultPrevented) {
-                navigation.navigate(route.name, route.params);
-              }
-            }}
-            style={({ hovered, pressed }) => [
-              s.item,
-              // マウスで使う画面なので、乗せたときに反応させる。
-              // 触れる画面と違い、押す前に「押せる」と分かる手がかりが無い。
-              (hovered || pressed) && !focused && s.itemHover,
-              focused && s.itemOn,
-            ]}
-          >
-            {({ hovered }) => (
-              <>
-                <Ionicons
-                  name={iconOf(route.name, focused)}
-                  size={20}
-                  color={focused ? c.accent : hovered ? c.text : c.textMuted}
-                />
-                <Text
-                  style={[
-                    s.label,
-                    { color: focused ? c.accent : hovered ? c.text : c.textMuted },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </>
-            )}
-          </Pressable>
-        );
-      })}
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={label}
+              onPress={() => {
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (!focused && !event.defaultPrevented) {
+                  navigation.navigate(route.name, route.params);
+                }
+              }}
+              style={({ hovered, pressed }) => [
+                s.item,
+                // マウスで使う画面なので、乗せたときに反応させる。
+                // 触れる画面と違い、押す前に「押せる」と分かる手がかりが無い。
+                (hovered || pressed) && !focused && s.itemHover,
+                focused && s.itemOn,
+              ]}
+            >
+              {({ hovered }) => (
+                <>
+                  {/* 選んでいる行先の左端に立てる線 */}
+                  <View style={focused ? s.bar : s.barOff} />
+                  <Ionicons
+                    name={iconOf(route.name, focused)}
+                    size={20}
+                    color={focused ? c.accent : hovered ? c.text : c.textMuted}
+                  />
+                  <Text
+                    style={[
+                      s.label,
+                      { color: focused ? c.accent : hovered ? c.text : c.textMuted },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {label}
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* 下半分の絵と一言 */}
+      <View style={s.art}>
+        <RailArt />
+        <View style={s.tagline}>
+          <Text style={s.taglineText}>スムーズな到着を、</Text>
+          <Text style={s.taglineText}>もっと快適に。</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -124,24 +145,47 @@ const makeStyles = (c: Palette) =>
       backgroundColor: c.surface,
       borderRightWidth: 1,
       borderRightColor: c.border,
-      paddingHorizontal: SPACE.md,
-      paddingTop: SPACE.lg,
-      gap: SPACE.xs,
     },
-    brand: {
-      paddingHorizontal: SPACE.sm,
-      paddingBottom: SPACE.xl,
+    brandBand: {
+      height: HEADER_HEIGHT,
+      justifyContent: 'center',
+      paddingHorizontal: SPACE.xl,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
     },
+    nav: { paddingTop: SPACE.lg, paddingRight: SPACE.md, gap: 2 },
     item: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACE.md,
-      height: 44,
-      paddingHorizontal: SPACE.md,
-      borderRadius: RADIUS.md,
+      height: 52,
+      paddingRight: SPACE.md,
+      borderTopRightRadius: RADIUS.md,
+      borderBottomRightRadius: RADIUS.md,
       ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
     },
     itemHover: { backgroundColor: c.surface2 },
     itemOn: { backgroundColor: c.accentSoft },
-    label: { fontSize: 14, fontWeight: '600' },
+    /*
+      左端の線は、選んでいないときも同じ幅だけ場所を取る。
+
+      色だけを変えると、選ぶたびに文字が3px 横へ動いてしまう。
+    */
+    bar: {
+      width: 3,
+      alignSelf: 'stretch',
+      backgroundColor: c.accent,
+      marginRight: SPACE.lg - 3,
+    },
+    barOff: { width: 3, marginRight: SPACE.lg - 3 },
+    label: { fontSize: 15, fontWeight: '600' },
+
+    art: { flex: 1, justifyContent: 'flex-end' },
+    tagline: { padding: SPACE.xl },
+    taglineText: {
+      fontSize: 14,
+      lineHeight: 22,
+      fontWeight: '600',
+      color: c.textMuted,
+    },
   });
