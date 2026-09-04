@@ -20,6 +20,8 @@ import {
   removeVisit,
   type HistoryEntry,
 } from '@/lib/history';
+import { confirmDelete } from '@/lib/confirm';
+import { useSelection, type Selection } from '@/lib/selection';
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
@@ -42,6 +44,8 @@ export default function HistoryScreen() {
   const styles = makeStyles(c);
 
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
+  const ids = (entries ?? []).map((e) => e.facility.id);
+  const pick = useSelection(ids);
 
   /*
     画面へ戻るたびに読み直す。
@@ -73,17 +77,53 @@ export default function HistoryScreen() {
     }, []),
   );
 
-  async function onRemove(id: string) {
-    // 先に画面から消す。控えの書き換えを待たせない。
-    setEntries((prev) => (prev ?? []).filter((e) => e.facility.id !== id));
-    await removeVisit(id);
+  /** 画面から先に消す。控えの書き換えを待たせない。 */
+  function dropFromView(gone: Set<string>) {
+    setEntries((prev) => (prev ?? []).filter((e) => !gone.has(e.facility.id)));
+  }
+
+  /*
+    1件消す。
+
+    消す操作は元に戻せない。指が滑って触れただけで消えるのは、
+    走行前の慌ただしい場面ではとくに起こりやすいため、一度受け止める。
+  */
+  function onRemove(id: string, name: string) {
+    confirmDelete({
+      title: '履歴から削除',
+      message: `「${name}」を履歴から削除します。元には戻せません。`,
+      onYes: async () => {
+        dropFromView(new Set([id]));
+        await removeVisit(id);
+      },
+    });
+  }
+
+  /** 選んだぶんをまとめて消す */
+  function onRemovePicked() {
+    const gone = [...pick.picked];
+    if (gone.length === 0) return;
+    confirmDelete({
+      title: '選んだ履歴を削除',
+      message: `${gone.length} 件を履歴から削除します。元には戻せません。`,
+      onYes: async () => {
+        dropFromView(new Set(gone));
+        pick.exit();
+        for (const id of gone) await removeVisit(id);
+      },
+    });
   }
 
   function onClear() {
     if (!entries || entries.length === 0) return;
-    confirmClear(entries.length, async () => {
-      setEntries([]);
-      await clearHistory();
+    confirmDelete({
+      title: '履歴をすべて削除',
+      message: `${entries.length} 件の履歴をすべて削除します。元には戻せません。`,
+      onYes: async () => {
+        setEntries([]);
+        pick.exit();
+        await clearHistory();
+      },
     });
   }
 
@@ -98,15 +138,55 @@ export default function HistoryScreen() {
             <Text style={styles.count}>{entries.length} 件</Text>
           )}
         </View>
+        {/*
+          選ぶ状態のときは、選択に関わる操作だけを出す。
+          普段の操作と混ぜると、どれが今できることか読み取れない。
+        */}
         {entries !== null && entries.length > 0 && (
-          <Pressable
-            onPress={onClear}
-            hitSlop={HIT_SLOP}
-            accessibilityRole="button"
-            accessibilityLabel="履歴をすべて削除"
-          >
-            <Text style={styles.clearAll}>すべて削除</Text>
-          </Pressable>
+          <View style={styles.headActions}>
+            {pick.on ? (
+              <>
+                <Pressable onPress={pick.toggleAll} hitSlop={HIT_SLOP} accessibilityRole="button">
+                  <Text style={styles.headAction}>
+                    {pick.allPicked ? 'すべて外す' : 'すべて選ぶ'}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={onRemovePicked}
+                  disabled={pick.picked.size === 0}
+                  hitSlop={HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel={`選んだ ${pick.picked.size} 件を削除`}
+                >
+                  <Text style={pick.picked.size === 0 ? styles.headActionOff : styles.clearAll}>
+                    削除 ({pick.picked.size})
+                  </Text>
+                </Pressable>
+                <Pressable onPress={pick.exit} hitSlop={HIT_SLOP} accessibilityRole="button">
+                  <Text style={styles.headAction}>やめる</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={pick.toggleMode}
+                  hitSlop={HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel="複数を選んで削除する"
+                >
+                  <Text style={styles.headAction}>選択</Text>
+                </Pressable>
+                <Pressable
+                  onPress={onClear}
+                  hitSlop={HIT_SLOP}
+                  accessibilityRole="button"
+                  accessibilityLabel="履歴をすべて削除"
+                >
+                  <Text style={styles.clearAll}>すべて削除</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
         )}
       </View>
 
@@ -132,7 +212,13 @@ export default function HistoryScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <HistoryRow entry={item} onRemove={onRemove} styles={styles} c={c} />
+            <HistoryRow
+              entry={item}
+              onRemove={onRemove}
+              select={pick}
+              styles={styles}
+              c={c}
+            />
           )}
           ListFooterComponent={
             <Text style={styles.foot}>
@@ -146,38 +232,56 @@ export default function HistoryScreen() {
   );
 }
 
-/**
- * 「すべて削除」の確かめ。
- *
- * 取り消せない操作なので、一度受け止める。
- * web には Alert が無いため、そちらは confirm を使う。
- */
-function confirmClear(count: number, run: () => void) {
-  const message = `${count} 件の履歴をすべて削除します。元には戻せません。`;
-
-  if (Platform.OS === 'web') {
-    if (window.confirm(message)) run();
-    return;
-  }
-
-  Alert.alert('履歴をすべて削除', message, [
-    { text: 'やめる', style: 'cancel' },
-    { text: '削除する', style: 'destructive', onPress: run },
-  ]);
-}
-
 function HistoryRow({
   entry,
   onRemove,
+  select,
   styles,
   c,
 }: {
   entry: HistoryEntry;
-  onRemove: (id: string) => void;
+  onRemove: (id: string, name: string) => void;
+  select: Selection;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
   const f = entry.facility;
+  const picked = select.picked.has(f.id);
+
+  /*
+    選ぶ状態のときは、行を押しても施設は開かない。
+
+    開いてしまうと、選んだつもりが画面ごと移り、戻ると選択が
+    消えている、という取り違えが起きる。
+  */
+  if (select.on) {
+    return (
+      <Pressable
+        onPress={() => select.toggle(f.id)}
+        style={picked ? styles.rowPicked : styles.row}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: picked }}
+        accessibilityLabel={`${f.name}${picked ? '（選択中）' : ''}`}
+      >
+        <View style={styles.rowMain}>
+          <View style={picked ? styles.checkOn : styles.check}>
+            {picked && <Ionicons name="checkmark" size={16} color={c.accentText} />}
+          </View>
+          <View style={styles.rowBody}>
+            <Text style={styles.rowName} numberOfLines={1}>
+              {f.name}
+            </Text>
+            <Text style={styles.rowAddress} numberOfLines={1}>
+              {f.prefecture}
+              {f.city ?? ''}
+              {f.address_line}
+            </Text>
+            <Text style={styles.rowWhen}>{describeWhen(entry.at)}</Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   return (
     <View style={styles.row}>
@@ -209,7 +313,7 @@ function HistoryRow({
           icon="close"
           size={18}
           label={`${f.name} を履歴から削除`}
-          onPress={() => onRemove(f.id)}
+          onPress={() => onRemove(f.id, f.name)}
         />
       </View>
     </View>
@@ -232,6 +336,37 @@ function makeStyles(c: Palette) {
     heading: { fontSize: 22, fontWeight: '800', color: c.accent },
     count: { fontSize: 12, color: c.textMuted },
     clearAll: { fontSize: 12, color: c.danger, fontWeight: '600' },
+    headActions: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+    headAction: { fontSize: 12, color: c.accent, fontWeight: '600' },
+    headActionOff: { fontSize: 12, color: c.textFaint, fontWeight: '600' },
+
+    /* 選ばれている行。縁と地の両方で示す。色だけだと見分けにくい方に伝わらない。 */
+    rowPicked: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: SPACE.sm,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.accentSoft,
+      borderWidth: 1,
+      borderColor: c.accent,
+    },
+    check: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      borderWidth: 2,
+      borderColor: c.borderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkOn: {
+      width: 34,
+      height: 34,
+      borderRadius: 17,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
     list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
     row: {

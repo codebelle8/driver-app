@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { usePathname, useRouter } from 'expo-router';
+import { Link, usePathname } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrandLogo } from '@/components/brand';
@@ -63,7 +63,6 @@ const NAV = [
 export function SideRail() {
   const c = useTheme();
   const s = makeStyles(c);
-  const router = useRouter();
   const here = usePathname();
 
   return (
@@ -84,53 +83,53 @@ export function SideRail() {
           const focused = here === t.path;
 
           return (
-            <Pressable
-              key={t.path}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              /*
-                読み上げ向けに、選ばれていることを文言でも添える。
+            /*
+              移動は Link に任せる。
 
-                accessibilityState の selected は、ブラウザ側の属性
-                （aria-selected）に落ちない。見た目では緑の下地で
-                分かるが、耳で聞く方には何も伝わらない。
-              */
-              accessibilityLabel={focused ? `${t.label}（表示中）` : t.label}
-              onPress={() => {
-                if (!focused) router.navigate(t.path);
-              }}
-              style={({ hovered, pressed }) => [
-                s.item,
-                // マウスで使う画面なので、乗せたときに反応させる。
-                // 触れる画面と違い、押す前に「押せる」と分かる手がかりが無い。
-                (hovered || pressed) && !focused && s.itemHover,
-                focused && s.itemOn,
-              ]}
-            >
-              {({ hovered }) => (
-                <>
-                  {/* 選んでいる行先の左端に立てる線 */}
-                  <View style={focused ? s.bar : s.barOff} />
-                  <Ionicons
-                    name={(focused ? t.on : t.off) as keyof typeof Ionicons.glyphMap}
-                    size={20}
-                    color={focused ? c.accent : hovered ? c.text : c.textMuted}
-                  />
-                  <Text
-                    style={[
-                      s.label,
-                      { color: focused ? c.accent : hovered ? c.text : c.textMuted },
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {t.label}
-                  </Text>
-                </>
-              )}
-            </Pressable>
+              router.navigate を直に呼んでいたところ、URL は変わるのに
+              画面が切り替わらなかった。左メニューは画面の並びの外側に
+              あるため、どの並びを動かすかを自分では決められない。
+              Link であれば経路の解決ごと任せられる。
+            */
+            <Link key={t.path} href={t.path} asChild>
+              <Pressable
+                accessibilityRole="tab"
+                accessibilityState={{ selected: focused }}
+                /*
+                  読み上げ向けに、選ばれていることを文言でも添える。
+
+                  accessibilityState の selected は、ブラウザ側の属性
+                  （aria-selected）に落ちない。見た目では緑の下地で
+                  分かるが、耳で聞く方には何も伝わらない。
+                */
+                accessibilityLabel={focused ? `${t.label}（表示中）` : t.label}
+                /*
+                  見た目は1つの object にまとめて渡す。
+
+                  Link の asChild は中身を <a> に差し替えるため、配列や
+                  関数で渡すと落ちる（他の画面で実際に起きた）。
+                */
+                style={StyleSheet.flatten([s.item, focused && s.itemOn])}
+              >
+                {/* 選んでいる行先の左端に立てる線 */}
+                <View style={focused ? s.bar : s.barOff} />
+                <Ionicons
+                  name={(focused ? t.on : t.off) as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={focused ? c.accent : c.textMuted}
+                />
+                <Text
+                  style={[s.label, { color: focused ? c.accent : c.textMuted }]}
+                  numberOfLines={1}
+                >
+                  {t.label}
+                </Text>
+              </Pressable>
+            </Link>
           );
         })}
       </View>
+
 
       {/* 下半分の絵と一言 */}
       <View style={s.art}>
@@ -170,7 +169,6 @@ const makeStyles = (c: Palette) =>
       borderBottomRightRadius: RADIUS.md,
       ...(Platform.OS === 'web' ? { cursor: 'pointer' } : null),
     },
-    itemHover: { backgroundColor: c.surface2 },
     itemOn: { backgroundColor: c.accentSoft },
     /*
       左端の線は、選んでいないときも同じ幅だけ場所を取る。
