@@ -16,6 +16,14 @@ import { useTheme } from '@/theme-context';
  *   1枚も置かれていなければ、下敷きの淡い緑がそのまま残る。
  *   置き場所は app/public/art/ の README に書いてある。
  */
+/**
+ * 絵が占める幅の割合。
+ *
+ * 残りの 48% に呼びかけと検索欄が乗る。
+ * 上部の高さもこの割合から決まるため（探す画面）、両方で使う。
+ */
+export const HERO_PHOTO_RATIO = 0.52;
+
 export function HeroArt() {
   const c = useTheme();
 
@@ -60,7 +68,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     // 右のおよそ半分。左半分に呼びかけと検索欄が乗る。
-    width: '52%',
+    width: `${HERO_PHOTO_RATIO * 100}%`,
   },
   slide: { width: '100%', height: '100%' },
   /*

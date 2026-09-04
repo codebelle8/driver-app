@@ -17,8 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/brand';
 import { FacilitiesMap } from '@/components/facilities-map';
-import { HeroArt } from '@/components/hero-art';
-import { HEADER_HEIGHT } from '@/components/side-rail';
+import { HeroArt, HERO_PHOTO_RATIO } from '@/components/hero-art';
+import { HEADER_HEIGHT, RAIL_WIDTH } from '@/components/side-rail';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
   fetchCategories,
@@ -85,11 +85,27 @@ const PAGE_PAD = 48;
  * 1536px の画面では余白を引いた全幅（1184px）がそのまま入り、
  * 画面図と同じ見え方になる。それより広い画面では、1行が長くなりすぎて
  * 目が行末から次の行頭へ戻れなくなるため、ここで止める。
+ *
+ * 2560px の画面で試したところ 1240px では余白が勝ちすぎ、中身が画面の
+ * 半分に満たなかった。1440px まで許して釣り合いを取る。
  */
-const PAGE_MAX = 1240;
+const PAGE_MAX = 1440;
 
-/** 上部（呼びかけ・検索欄・絵）の高さ */
-const HERO_HEIGHT = 280;
+/**
+ * 上部（呼びかけ・検索欄・絵）の高さ。
+ *
+ * 決め打ちにせず、絵の幅から求める。いただいた4枚はいずれも
+ * 横縦およそ 2.1 で、枠がこの比のときだけ切らずに収まる。
+ *
+ * 高さを 280px に固定していたところ、列が広がる 1920px 以上では
+ * 枠の比が 2.7 になり、上下が切れていた。
+ *
+ * 狭い画面では下限で止める。比のままだと 1024px で 166px にしかならず、
+ * 呼びかけと検索欄が入らない（そこでは左右が切れる）。
+ */
+const HERO_ASPECT = 2.1;
+const HERO_MIN = 280;
+const HERO_MAX = 400;
 
 /**
  * 見出しの書体。
@@ -148,7 +164,19 @@ const CATEGORY_HINT: Record<string, string> = {
 export default function SearchScreen() {
   const c = useTheme();
   const styles = makeStyles(c);
-  const { isMedium, isWide, isThreeUp } = useLayout();
+  const { width: winWidth, isMedium, isWide, isThreeUp } = useLayout();
+
+  /*
+    上部の高さ。絵の幅から求める（HERO_ASPECT の説明を参照）。
+
+    絵は列の右 52% を占める。列は画面幅から左メニューを引いたもので、
+    PAGE_MAX で頭打ちになる。
+  */
+  const heroHeight = (() => {
+    const column = Math.min(winWidth - RAIL_WIDTH, PAGE_MAX);
+    const photo = column * HERO_PHOTO_RATIO;
+    return Math.max(HERO_MIN, Math.min(HERO_MAX, Math.round(photo / HERO_ASPECT)));
+  })();
   const router = useRouter();
 
   const [query, setQuery] = useState('');
@@ -420,6 +448,14 @@ export default function SearchScreen() {
       */}
       <View style={[styles.topBar, isWide && styles.topBarWide]}>
         {/*
+          中身は本文と同じ列に収める。
+
+          帯そのものは横一杯に伸ばし、区切りの線を画面の端まで引く。
+          中身まで一緒に広げると、2560px の画面で現在地が左端、鐘が
+          右端へ離れ、下の本文とどこにも揃わなくなる。
+        */}
+        <View style={isWide ? styles.topBarInner : styles.topBarRow}>
+        {/*
           広い画面では出さない。左メニューが常に見えており、
           畳んで開くための記号は要らない。
         */}
@@ -449,6 +485,7 @@ export default function SearchScreen() {
         </View>
 
         <BellButton unseen={unseen} wide={isWide} styles={styles} c={c} />
+        </View>
       </View>
 
       {/* 狭い画面。ロゴ・呼びかけ・検索欄をまとめて上に置く。 */}
@@ -470,7 +507,7 @@ export default function SearchScreen() {
       */}
       {isWide && !isFiltered && (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.hero}>
+          <View style={[styles.hero, { height: heroHeight }]}>
             <HeroArt />
             <View style={styles.heroInner}>
               <Text style={styles.heroTitle}>行きたい場所を見つけよう</Text>
@@ -1195,12 +1232,33 @@ function makeStyles(c: Palette) {
 
     // --- 上部 ---
     topBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACE.sm,
       paddingHorizontal: SPACE.lg,
       paddingTop: SPACE.sm,
       paddingBottom: SPACE.md,
+    },
+    /* 帯の中身。狭い画面ではこれが帯そのものの並びにあたる。 */
+    topBarRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.sm,
+    },
+    /* 広い画面。中身を本文と同じ列に収める。 */
+    /*
+      余白は列の内側で取る。
+
+      外側で取ると、列を中央へ寄せる計算がその内側で行われ、
+      中身の左端が本文より余白1つぶん外へ出る。2560px の画面で
+      現在地だけが 48px 左へずれていた。
+    */
+    topBarInner: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.md,
+      width: '100%',
+      maxWidth: PAGE_MAX,
+      alignSelf: 'center',
+      paddingHorizontal: PAGE_PAD,
     },
     topIcon: { width: 28, alignItems: 'center' },
 
@@ -1231,8 +1289,7 @@ function makeStyles(c: Palette) {
       height: HEADER_HEIGHT,
       paddingTop: 0,
       paddingBottom: 0,
-      paddingHorizontal: PAGE_PAD,
-      gap: SPACE.md,
+      paddingHorizontal: 0,
       backgroundColor: c.surface,
       borderBottomWidth: 1,
       borderBottomColor: c.border,
@@ -1294,13 +1351,20 @@ function makeStyles(c: Palette) {
       高さを決め打ちにしているのは、絵の見え方を安定させるため。
       中身に任せると、文字の折り返しで縦が伸び縮みして絵が切れる。
     */
-    hero: { height: HERO_HEIGHT, justifyContent: 'center' },
-    heroInner: {
+    /*
+      絵も本文と同じ列に収める。
+
+      以前は画面いっぱいに敷いていた。1536px では列と画面の端がほぼ
+      一致するため気づかなかったが、2560px では絵が右端に貼りつき、
+      呼びかけと検索欄（列の中）とのあいだに500px の隙間ができていた。
+    */
+    hero: {
+      justifyContent: 'center',
       width: '100%',
       maxWidth: PAGE_MAX,
       alignSelf: 'center',
-      paddingHorizontal: PAGE_PAD,
     },
+    heroInner: { paddingHorizontal: PAGE_PAD },
     /*
       見出しは丸ゴシック（Zen Maru Gothic）。
 
