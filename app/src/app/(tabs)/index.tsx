@@ -111,8 +111,29 @@ const HERO_BAND_ASPECT = 2.4;
 const HERO_MIN = 300;
 const HERO_MAX_SCREEN = 0.5;
 
-/** 検索欄を絵の下端からどれだけ上へ置くか */
-const HERO_OVERLAY_BOTTOM = 18;
+/**
+ * 上部の検索欄の高さ。
+ *
+ * 62px から詰めた。絵の上に重ねるものが背高だと、絵の下ほぼ全体を
+ * 覆ってしまう。文字（19px）と上下の余白で 40px に収まる。
+ */
+const SEARCH_HEIGHT = 40;
+
+/**
+ * 検索欄を絵の下端からどれだけ上へ置くか。
+ *
+ * 欄が低くなったぶん、絵の縁との間合いを広げる。下端に貼りつくと
+ * 絵の切れ目に乗って見え、どちらの持ち物か分からなくなる。
+ */
+const HERO_OVERLAY_BOTTOM = 28;
+
+/**
+ * 節と節のあいだ。
+ *
+ * 24px では帯と「カテゴリから探す」が近く、帯の続きに見えていた。
+ * 45px 空けると、飾りと中身の切れ目がはっきりする。
+ */
+const SECTION_GAP = 45;
 
 /**
  * 見出しの書体。
@@ -593,7 +614,11 @@ export default function SearchScreen() {
       {isWide && isFiltered && (
         <>
           <View style={styles.searchBand}>
-            <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
+            {/*
+              大きさは上部のものと揃える。打ち始めた瞬間に文字が
+              19px から 14px へ落ちると、同じ欄が入れ替わったように見える。
+            */}
+            <SearchField query={query} onChange={setQuery} styles={styles} c={c} band />
           </View>
 
           <View style={styles.split}>
@@ -783,13 +808,19 @@ function SearchField({
   styles,
   c,
   large,
+  band,
 }: {
   query: string;
   onChange: (v: string) => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
+  /** 上部に重ねるもの。押すと横に広がる。 */
   large?: boolean;
+  /** 絞り込み中の細い帯。大きさは large と同じで、幅は動かさない。 */
+  band?: boolean;
 }) {
+  // 見た目は同じ。広がる動きだけが large にある。
+  const big = large || band;
   const [focused, setFocused] = useState(false);
   const [room, setRoom] = useState(0);
 
@@ -814,11 +845,11 @@ function SearchField({
   const field = (
     <View
       style={[
-        large ? styles.searchBoxLarge : styles.searchBox,
+        big ? styles.searchBoxLarge : styles.searchBox,
         focused && styles.searchBoxOn,
       ]}
     >
-      <Ionicons name="search" size={large ? 22 : 18} color={focused ? c.accent : c.textFaint} />
+      <Ionicons name="search" size={big ? 19 : 18} color={focused ? c.accent : c.textFaint} />
       <TextInput
         value={query}
         onChangeText={onChange}
@@ -827,16 +858,16 @@ function SearchField({
         placeholder="施設名・よみがな・住所"
         placeholderTextColor={c.textFaint}
         selectionColor={c.accent}
-        style={[large ? styles.inputLarge : styles.input, styles.inputNoOutline]}
+        style={[big ? styles.inputLarge : styles.input, styles.inputNoOutline]}
         returnKeyType="search"
         autoCorrect={false}
       />
       {query.length > 0 ? (
         <Pressable onPress={() => onChange('')} hitSlop={HIT_SLOP} accessibilityLabel="消す">
-          <Ionicons name="close-circle" size={large ? 22 : 18} color={c.textFaint} />
+          <Ionicons name="close-circle" size={big ? 19 : 18} color={c.textFaint} />
         </Pressable>
       ) : (
-        <Ionicons name="options-outline" size={large ? 22 : 18} color={c.textFaint} />
+        <Ionicons name="options-outline" size={big ? 19 : 18} color={c.textFaint} />
       )}
     </View>
   );
@@ -1391,8 +1422,8 @@ function makeStyles(c: Palette) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: SPACE.md,
-      paddingHorizontal: SPACE.xl,
-      height: 62,
+      paddingHorizontal: SPACE.lg,
+      height: SEARCH_HEIGHT,
       borderRadius: 14,
       backgroundColor: c.surface,
       borderWidth: 1,
@@ -1450,7 +1481,7 @@ function makeStyles(c: Palette) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: SPACE.xl,
+      marginTop: SECTION_GAP,
       marginBottom: SPACE.md,
     },
     sectionTitleWide: { fontSize: 19, fontWeight: '700', color: c.text },
