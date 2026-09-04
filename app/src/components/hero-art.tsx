@@ -1,8 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
-import { ArtImage } from '@/components/art-image';
+import { HeroSlides } from '@/components/hero-slides';
 import { Ramp } from '@/components/ramp';
-import { HERO_ART_URLS } from '@/lib/art';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -12,10 +11,10 @@ import { useTheme } from '@/theme-context';
  *   呼びかけと検索欄がこの上に乗る。全面に敷くと、文字が写真の明るい
  *   部分に重なって読めなくなる。右側だけに置き、左へ向かって背景色へ溶かす。
  *
- * **写真が無くても成り立つ**
- *   下敷きに淡い緑の階調を常に敷き、その上へ写真を重ねる。
- *   写真（app/public/art/hero.jpg）が無ければ読み込みに失敗し、
- *   下敷きがそのまま残る。置き場所は同じ場所の README に書いてある。
+ * **4枚を順に入れ替える**
+ *   置かれている枚数だけで回る（components/hero-slides.tsx）。
+ *   1枚も置かれていなければ、下敷きの淡い緑がそのまま残る。
+ *   置き場所は app/public/art/ の README に書いてある。
  */
 export function HeroArt() {
   const c = useTheme();
@@ -27,18 +26,9 @@ export function HeroArt() {
         <Ramp color={c.accentSoft} direction="right" from={0} to={1} />
       </View>
 
-      {/*
-        右上を基準に切り取る。
-
-        高さ280に対して写真は縦長寄りのため、上下のどちらかが切れる。
-        中央に合わせると人物の頭が切れた。上を基準にすれば、
-        切れるのは足元と路面になる。
-      */}
-      <ArtImage
-        urls={HERO_ART_URLS}
-        style={styles.photo}
-        contentPosition={{ top: 0, right: 0 }}
-      />
+      <View style={styles.photo}>
+        <HeroSlides style={styles.slide} />
+      </View>
 
       {/*
         写真の縁を背景色へ溶かす。
@@ -72,6 +62,7 @@ const styles = StyleSheet.create({
     // 右のおよそ半分。左半分に呼びかけと検索欄が乗る。
     width: '52%',
   },
+  slide: { width: '100%', height: '100%' },
   /*
     左の縁をまたぐ帯。
 
