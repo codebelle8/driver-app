@@ -13,6 +13,7 @@ import {
 } from '@/lib/notices';
 import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { useTheme } from '@/theme-context';
 
@@ -75,9 +76,7 @@ export default function NoticesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={HIT_SLOP} accessibilityLabel="戻る">
-          <Ionicons name="arrow-back" size={22} color={c.text} />
-        </Pressable>
+        <IconButton icon="arrow-back" size={22} label="戻る" onPress={() => router.back()} />
         <Text style={styles.topTitle}>
           お知らせ{unread > 0 ? ` (${unread})` : ''}
         </Text>

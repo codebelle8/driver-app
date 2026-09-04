@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/brand';
 import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
+import { IconButton } from '@/components/icon-button';
 import { HEADER_HEIGHT, RAIL_WIDTH } from '@/components/side-rail';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
@@ -863,9 +864,13 @@ function SearchField({
         autoCorrect={false}
       />
       {query.length > 0 ? (
-        <Pressable onPress={() => onChange('')} hitSlop={HIT_SLOP} accessibilityLabel="消す">
-          <Ionicons name="close-circle" size={big ? 19 : 18} color={c.textFaint} />
-        </Pressable>
+        <IconButton
+          icon="close-circle"
+          size={big ? 19 : 18}
+          label="打ったものを消す"
+          onPress={() => onChange('')}
+          compact
+        />
       ) : (
         <Ionicons name="options-outline" size={big ? 19 : 18} color={c.textFaint} />
       )}

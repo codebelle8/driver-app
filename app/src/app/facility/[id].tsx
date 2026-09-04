@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,7 +24,7 @@ import { useLayout } from '@/lib/layout';
 import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
 import { ensureSynced } from '@/lib/sync';
-import { copyCoordinates, openNavigation } from '@/lib/nav';
+import { openNavigation, shareFacility } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
 import {
   ENTRY_POINT_KIND_LABEL,
@@ -66,6 +67,22 @@ const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyph
   { key: 'diagram', label: '案内図', icon: 'map-outline' },
   { key: 'cautions', label: '注意', icon: 'alert-circle-outline' },
 ];
+
+/**
+ * 短い知らせ。
+ *
+ * web には Alert が無く、押しても何も起きないように見えていた。
+ * 環境ごとの違いをここで吸収する。
+ */
+function notify(title: string, body: string) {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}
+
+${body}`);
+    return;
+  }
+  Alert.alert(title, body);
+}
 
 export default function FacilityScreen() {
   const { isWide } = useLayout();
@@ -237,10 +254,22 @@ export default function FacilityScreen() {
     if (!used) Alert.alert('地図アプリを開けませんでした');
   }
 
-  async function onCopy() {
-    if (!main || !hasNav) return;
-    const text = await copyCoordinates({ lat: main.nav_lat!, lng: main.nav_lng! });
-    Alert.alert('座標を複製しました', text);
+  /*
+    この施設の案内を人へ渡す。
+
+    以前は座標を写していた。受け取った側が地図アプリへ貼ると建物の
+    中心へ案内されるだけで、進入方法の説明が届かない。このアプリで
+    最も伝えたいものが落ちる。画面の在り処ごと渡す。
+  */
+  async function onShare() {
+    const url =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? window.location.href
+        : `https://kurumayose-navi.vercel.app/facility/${id}`;
+
+    const r = await shareFacility({ name: facility.name, url });
+    if (r.how === 'copied') notify('リンクを複製しました', r.text);
+    else if (r.how === 'failed') notify('共有できませんでした', 'もう一度お試しください。');
   }
 
   return (
@@ -257,13 +286,13 @@ export default function FacilityScreen() {
       <View style={styles.topBar}>
         <IconButton icon="arrow-back" size={22} label="戻る" onPress={() => router.back()} />
         <Text style={styles.topTitle}>車寄せ案内</Text>
+        {/*
+          上部に共有の記号は置かない。
+
+          下の「共有」の札と同じ働きで、二重になっていた。記号だけでは
+          何が起きるか伝わらず、押した人が驚くほうへ倒れる。
+        */}
         <View style={styles.topRight}>
-          <IconButton
-            icon="share-outline"
-            label="座標を複製"
-            onPress={onCopy}
-            disabled={!hasNav}
-          />
           <IconButton
             icon="heart-outline"
             iconOn="heart"
@@ -363,8 +392,7 @@ export default function FacilityScreen() {
               <Text style={styles.actionText}>{pinned ? '保存済み' : '保存'}</Text>
             </Pressable>
             <Pressable
-              onPress={onCopy}
-              disabled={!hasNav}
+              onPress={onShare}
               style={({ hovered, pressed }) => [
                 styles.action,
                 hovered && styles.actionHover,

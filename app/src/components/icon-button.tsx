@@ -35,6 +35,8 @@ export function IconButton({
   label,
   size = 20,
   disabled = false,
+  compact = false,
+  onDark = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   iconOn?: keyof typeof Ionicons.glyphMap;
@@ -45,18 +47,28 @@ export function IconButton({
   label: string;
   size?: number;
   disabled?: boolean;
+  /** 欄の中など、丸を小さく収めたいところ */
+  compact?: boolean;
+  /** 写真など暗い地の上。白い地に濃い記号で置く。 */
+  onDark?: boolean;
 }) {
   const c = useTheme();
   const s = makeStyles(c);
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
+  /*
+    記号の色。
+
+    暗い地の上では、白い丸に濃い記号で置く。色だけを変える作りにすると、
+    明るい写真の上では消え、暗い写真の上では読めなくなる。
+  */
   const color = disabled
     ? c.textFaint
-    : on || pressed
-      ? c.accent
-      : hovered
-        ? c.text
+    : onDark
+      ? '#171c20'
+      : on || pressed
+        ? c.accent
         : c.text;
 
   return (
@@ -79,8 +91,10 @@ export function IconButton({
       <View
         style={StyleSheet.flatten([
           s.box,
-          hovered && !disabled && s.hover,
-          pressed && !disabled && s.press,
+          compact && s.boxCompact,
+          onDark && s.boxDark,
+          hovered && !disabled && (onDark ? s.hoverDark : s.hover),
+          pressed && !disabled && (onDark ? s.hoverDark : s.press),
           on && s.on,
         ])}
       >
@@ -103,6 +117,9 @@ const makeStyles = (c: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
+    boxCompact: { width: 28, height: 28, borderRadius: 14 },
+    boxDark: { backgroundColor: '#ffffff', opacity: 0.82 },
+    hoverDark: { backgroundColor: '#ffffff', opacity: 1 },
     hover: { backgroundColor: c.surface2 },
     press: { backgroundColor: c.accentSoft },
     on: { backgroundColor: c.accentSoft },

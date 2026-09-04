@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import {
   clearFavorites,
@@ -201,15 +202,14 @@ function FavoriteRow({
         1件ずつ外せるようにする。指で払う操作にすると、
         走行前の慌ただしい場面で気づかれない。
       */}
-      <Pressable
-        onPress={() => onRemove(f.id)}
-        hitSlop={HIT_SLOP}
-        style={styles.remove}
-        accessibilityRole="button"
-        accessibilityLabel={`${f.name} をお気に入りから外す`}
-      >
-        <Ionicons name="close" size={18} color={c.textFaint} />
-      </Pressable>
+      <View style={styles.remove}>
+        <IconButton
+          icon="close"
+          size={18}
+          label={`${f.name} をお気に入りから外す`}
+          onPress={() => onRemove(f.id)}
+        />
+      </View>
     </View>
   );
 }

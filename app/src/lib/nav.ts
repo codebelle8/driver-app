@@ -103,6 +103,57 @@ export async function copyCoordinates({ lat, lng }: NavTarget): Promise<string> 
   return text;
 }
 
+/**
+ * 施設の画面を人へ渡す。
+ *
+ * **座標ではなく画面の在り処を渡す**
+ *   以前は座標を写していた。受け取った側が地図アプリへ貼ると、
+ *   建物の中心へ案内されるだけで、進入方法の説明は届かない。
+ *   このアプリで最も伝えたいものが落ちてしまう。
+ *
+ *   施設の画面の在り処を渡せば、相手も同じ案内を見られる。
+ *
+ * **渡し方は環境に任せる**
+ *   ブラウザに共有の口があればそれを使う（LINE やメールへ直接渡せる）。
+ *   無ければ写しに置く。どちらもできなければ、その旨を返す。
+ *
+ * 返り値は利用者へ出す短い言葉。
+ */
+export async function shareFacility(options: {
+  /** 施設の名前。相手に何の話か伝わるようにする。 */
+  name: string;
+  /** 施設の画面の在り処 */
+  url: string;
+}): Promise<{ ok: boolean; how: 'shared' | 'copied' | 'failed'; text: string }> {
+  const text = `${options.name}の車寄せ案内`;
+
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+    const nav = navigator as Navigator & {
+      share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+    };
+    if (typeof nav.share === 'function') {
+      try {
+        await nav.share({ title: text, text, url: options.url });
+        return { ok: true, how: 'shared', text };
+      } catch {
+        /*
+          断られた場合もここへ来る。写しに置いて続ける。
+
+          「共有をやめた」のか「共有できない」のかは区別できないが、
+          写しに置いておけば、どちらでも手立ては残る。
+        */
+      }
+    }
+  }
+
+  try {
+    await Clipboard.setStringAsync(options.url);
+    return { ok: true, how: 'copied', text: options.url };
+  } catch {
+    return { ok: false, how: 'failed', text: '' };
+  }
+}
+
 export const NAV_APP_LABEL: Record<NavApp | 'web', string> = {
   google: 'Google マップ',
   yahoo: 'Yahoo! カーナビ',

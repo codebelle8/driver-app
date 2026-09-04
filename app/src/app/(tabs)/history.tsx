@@ -23,6 +23,7 @@ import {
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { useTheme } from '@/theme-context';
 
@@ -203,15 +204,14 @@ function HistoryRow({
         1件ずつ消せるようにする。指で払う操作にすると、
         走行前の慌ただしい場面で気づかれない。
       */}
-      <Pressable
-        onPress={() => onRemove(f.id)}
-        hitSlop={HIT_SLOP}
-        style={styles.remove}
-        accessibilityRole="button"
-        accessibilityLabel={`${f.name} を履歴から削除`}
-      >
-        <Ionicons name="close" size={18} color={c.textFaint} />
-      </Pressable>
+      <View style={styles.remove}>
+        <IconButton
+          icon="close"
+          size={18}
+          label={`${f.name} を履歴から削除`}
+          onPress={() => onRemove(f.id)}
+        />
+      </View>
     </View>
   );
 }

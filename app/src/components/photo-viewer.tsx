@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { IconButton } from '@/components/icon-button';
 import { photoUrl } from '@/lib/supabase';
 import { PHOTO_KIND_LABEL, type Photo } from '@/lib/types';
 import { RADIUS, SPACE, type Palette } from '@/theme';
@@ -148,15 +149,11 @@ export function PhotoViewer({
             <View style={styles.kindTag}>
               <Text style={styles.kindTagText}>{PHOTO_KIND_LABEL[photo.kind]}</Text>
             </View>
-            <Pressable
-              onPress={close}
-              hitSlop={HIT_SLOP}
-              accessibilityRole="button"
-              accessibilityLabel="閉じる"
-              style={styles.close}
-            >
-              <Ionicons name="close" size={26} color="#ffffff" />
-            </Pressable>
+            {/*
+              閉じる。写真の上に置くため、白い地に濃い記号にしてある。
+              色だけを変える作りにすると、明るい写真では消える。
+            */}
+            <IconButton icon="close" size={22} label="閉じる" onPress={close} onDark />
           </View>
 
           <View style={styles.bottomBar} pointerEvents="none">
