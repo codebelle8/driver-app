@@ -17,7 +17,8 @@
  *
  *     〜767      スマホ。1段組み。下タブ。
  *     768〜1023  タブレット。2段組みだが、案内は縦積みのまま。
- *     1024〜     PC。左の縦メニュー。一覧と地図を左右に並べる。
+ *     1024〜1199 PC。左の縦メニュー。一覧と地図を左右に並べる。
+ *     1200〜     カテゴリの札を3列にする。
  */
 import { useWindowDimensions } from 'react-native';
 
@@ -26,6 +27,15 @@ export const MEDIUM = 768;
 
 /** 左メニューと左右分割に切り替える幅 */
 export const WIDE = 1024;
+
+/**
+ * カテゴリの札を3列にできる幅。
+ *
+ * 1024px では左メニューと余白を引くと本文が672pxしかなく、3列だと
+ * 1枚が208px。「オフィスビル」が折り返し、説明も切れていた。
+ * この幅を下回るあいだは2列にする。
+ */
+export const THREE_UP = 1200;
 
 /**
  * 中身の最大幅。
@@ -43,6 +53,8 @@ export interface Layout {
   isMedium: boolean;
   /** 1024px 以上。左メニューと左右分割を出す */
   isWide: boolean;
+  /** 1200px 以上。カテゴリの札を3列にできる */
+  isThreeUp: boolean;
 }
 
 export function useLayout(): Layout {
@@ -52,5 +64,6 @@ export function useLayout(): Layout {
     height,
     isMedium: width >= MEDIUM,
     isWide: width >= WIDE,
+    isThreeUp: width >= THREE_UP,
   };
 }

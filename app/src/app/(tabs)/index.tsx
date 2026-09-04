@@ -92,6 +92,17 @@ const PAGE_MAX = 1240;
 const HERO_HEIGHT = 280;
 
 /**
+ * 見出しの書体。
+ *
+ * 実体は app/public/index.html の @font-face で登録している。
+ * 端末側にはこの名前の書体が無く、そのときは既定の書体で出る。
+ */
+const HEADING_FONT = Platform.select({
+  web: "'Kurumayose Heading', sans-serif",
+  default: undefined,
+});
+
+/**
  * 上部の検索欄の幅。置ける幅に対する割合。
  *
  * 置いたまま … 右の写真に届かない幅。写真は右から 52% を占めるため、
@@ -100,6 +111,19 @@ const HERO_HEIGHT = 280;
  */
 const SEARCH_REST = 0.4;
 const SEARCH_OPEN = 0.62;
+
+/**
+ * 検索欄の下限（px）。
+ *
+ * 割合だけで決めていたところ、1024px の画面で枠が269pxになり、
+ * 「施設名・よみがな・住所」の末尾が絞り込みの記号の下に潜っていた。
+ * 何を打てばよいか読めない欄は、狭くする意味がない。
+ *
+ * 置いたままの下限は、この案内文が収まる幅。写真の縁に少し重なるが、
+ * その範囲は背景色へ溶かしてあるため、食い込んで見えない。
+ */
+const SEARCH_REST_MIN = 372;
+const SEARCH_OPEN_MIN = 480;
 
 /** カテゴリの区分ごとの記号。データ側に持たせるほどのものではない。 */
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -124,7 +148,7 @@ const CATEGORY_HINT: Record<string, string> = {
 export default function SearchScreen() {
   const c = useTheme();
   const styles = makeStyles(c);
-  const { isMedium, isWide } = useLayout();
+  const { isMedium, isWide, isThreeUp } = useLayout();
   const router = useRouter();
 
   const [query, setQuery] = useState('');
@@ -479,6 +503,7 @@ export default function SearchScreen() {
                   styles={styles}
                   c={c}
                   wide
+                  half={!isThreeUp}
                 />
               ))}
             </View>
@@ -783,8 +808,9 @@ function SearchField({
               : grow.interpolate({
                   inputRange: [0, 1],
                   outputRange: [
-                    Math.round(room * SEARCH_REST),
-                    Math.round(room * SEARCH_OPEN),
+                    // 案内文が収まる幅を下回らない。置ける幅は超えない。
+                    Math.min(room, Math.max(SEARCH_REST_MIN, room * SEARCH_REST)),
+                    Math.min(room, Math.max(SEARCH_OPEN_MIN, room * SEARCH_OPEN)),
                   ],
                 }),
         }}
@@ -875,13 +901,16 @@ function CategoryCard({
   styles,
   c,
   wide,
+  half,
 }: {
   category: Category;
   onPress: () => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
-  /** 3列に並べる幅か */
+  /** 大きい札にするか */
   wide?: boolean;
+  /** 3列に収まらない幅。2列にする。 */
+  half?: boolean;
 }) {
   return (
     <Pressable
@@ -890,6 +919,7 @@ function CategoryCard({
       style={({ hovered, pressed }) => [
         styles.card,
         wide && styles.cardWide,
+        wide && half && styles.cardHalf,
         hovered && styles.cardHover,
         pressed && styles.cardPressed,
       ]}
@@ -1271,11 +1301,25 @@ function makeStyles(c: Palette) {
       alignSelf: 'center',
       paddingHorizontal: PAGE_PAD,
     },
+    /*
+      見出しは丸ゴシック（Zen Maru Gothic）。
+
+      角を丸めた書体は、日本では親しみを出す場面で古くから使われている。
+      本文と同じ書体で大きくしただけでは、ただの見出しにしかならない。
+      崩し過ぎず、業務で使う画面の落ち着きは保つ。
+
+      12文字だけを取り出して自前で配っている（2.8KB）。
+      読み込めなければ既定の書体で出る。文言は読めるままで、
+      印象だけが変わる。
+    */
     heroTitle: {
-      fontSize: 30,
-      lineHeight: 44,
+      fontFamily: HEADING_FONT,
+      fontSize: 32,
+      lineHeight: 48,
       fontWeight: '700',
       color: c.text,
+      // 丸ゴシックは字面が大きい。少しだけ広げて詰まりを避ける。
+      letterSpacing: 0.5,
     },
     heroSearch: { marginTop: SPACE.xl },
     searchBoxLarge: {
@@ -1382,6 +1426,13 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    /*
+      3列に収まらない幅では2列にする。
+
+      1024px では3列だと1枚が208pxになり、記号と余白を引いた残りは
+      88px。「オフィスビル」が折り返し、説明も切れていた。
+    */
+    cardHalf: { width: '48%' },
     cardTitleWide: { fontSize: 16, fontWeight: '700', color: c.text },
     cardHintWide: { fontSize: 13, color: c.textMuted, marginTop: 3 },
     cardHover: { borderColor: c.borderStrong, backgroundColor: c.surface2 },

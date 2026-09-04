@@ -45,6 +45,27 @@
         夜間の車内で白い画面が出ると、目が眩む。
       */
       html, body, #root { background-color: #0B192F; }
+
+      /*
+        見出しに使う丸ゴシック（Zen Maru Gothic）。
+
+        「行きたい場所を見つけよう」の12文字だけを取り出して持っている
+        （tools/build-font.mjs が作る 2.8KB）。日本語の書体は全文字を
+        持つと数MBあり、見出し1行のために配る量ではない。
+
+        自前で配るのは、圏外でも同じ見た目にするため。外部から読む作りだと、
+        電波の届かない場所で既定の書体に戻ってしまう。
+
+        swap にしているのは、読み込みを待って文字が消える時間を作らないため。
+        先に既定の書体で出し、届いたら差し替える。
+      */
+      @font-face {
+        font-family: 'Kurumayose Heading';
+        src: url('/fonts/zen-maru-gothic-heading.woff2') format('woff2');
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
     </style>
   </head>
 
