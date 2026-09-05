@@ -111,21 +111,8 @@ export interface FacilityDetail {
   photosByEntryPoint: Record<string, Photo[]>;
 }
 
-export const ENTRY_POINT_KIND_LABEL: Record<EntryPointKind, string> = {
-  dropoff: '車寄せ',
-  entrance: 'エントランス',
-  parking_entrance: '駐車場入口',
-  bus_stop: 'バス乗降場',
-  service: '関係者用',
-};
-
-/** 管理画面 (admin/src/lib/i18n/dictionaries.ts の photoKind) と同じ言い方に揃える */
-export const PHOTO_KIND_LABEL: Record<PhotoKind, string> = {
-  approach: '進入路',
-  dropoff: '車寄せ',
-  entrance: 'エントランス',
-  night: '夜間',
-  diagram: '進入案内図',
-  exterior: '外観',
-  other: 'その他',
-};
+/*
+  入口と写真の種類の呼び方は、辞書（lib/i18n/dictionaries.ts の
+  entryKind / photoKind）へ移した。ここへ書いておくと言語を
+  切り替えても日本語のまま残る。
+*/

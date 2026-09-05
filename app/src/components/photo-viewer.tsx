@@ -10,9 +10,10 @@ import Animated, {
 
 import { IconButton } from '@/components/icon-button';
 import { photoUrl } from '@/lib/supabase';
-import { PHOTO_KIND_LABEL, type Photo } from '@/lib/types';
+import type { Photo } from '@/lib/types';
 import { RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 写真・進入案内図を画面いっぱいに開いて拡大する。
@@ -47,6 +48,7 @@ export function PhotoViewer({
   index: number | null;
   onClose: () => void;
 }) {
+  const t = useT();
   const c = useTheme();
   const styles = makeStyles(c);
   const { width, height } = useWindowDimensions();
@@ -140,25 +142,25 @@ export function PhotoViewer({
                 contentFit="contain"
                 cachePolicy="disk"
                 transition={0}
-                accessibilityLabel={photo.caption ?? PHOTO_KIND_LABEL[photo.kind]}
+                accessibilityLabel={photo.caption ?? t.photoKind[photo.kind]}
               />
             </Animated.View>
           </GestureDetector>
 
           <View style={styles.topBar} pointerEvents="box-none">
             <View style={styles.kindTag}>
-              <Text style={styles.kindTagText}>{PHOTO_KIND_LABEL[photo.kind]}</Text>
+              <Text style={styles.kindTagText}>{t.photoKind[photo.kind]}</Text>
             </View>
             {/*
               閉じる。写真の上に置くため、白い地に濃い記号にしてある。
               色だけを変える作りにすると、明るい写真では消える。
             */}
-            <IconButton icon="close" size={22} label="閉じる" onPress={close} onDark />
+            <IconButton icon="close" size={22} label={t.common.close} onPress={close} onDark />
           </View>
 
           <View style={styles.bottomBar} pointerEvents="none">
             {photo.caption && <Text style={styles.caption}>{photo.caption}</Text>}
-            <Text style={styles.hint}>二本指で拡大／二回叩いても拡大できます</Text>
+            <Text style={styles.hint}>{t.photo.zoomHint}</Text>
           </View>
         </View>
       </GestureHandlerRootView>

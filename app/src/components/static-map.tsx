@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 施設のまわりの地図。
@@ -68,6 +69,7 @@ export function StaticMap({
   width: number;
   height: number;
 }) {
+  const t = useT();
   const c = useTheme();
   const styles = makeStyles(c);
 
@@ -126,7 +128,7 @@ export function StaticMap({
     return (
       <View style={[styles.wrap, { width, height }]}>
         <Ionicons name="map-outline" size={26} color={c.textFaint} />
-        <Text style={styles.none}>座標が登録されていません</Text>
+        <Text style={styles.none}>{t.map.noCoords}</Text>
       </View>
     );
   }

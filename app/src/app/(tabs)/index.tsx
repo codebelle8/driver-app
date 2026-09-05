@@ -33,6 +33,8 @@ import { fetchHistory, type HistoryEntry } from '@/lib/history';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
 import { describePlace } from '@/lib/place';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { useLayout } from '@/lib/layout';
 import { describeWhen } from '@/lib/when';
 import type { Category, Facility } from '@/lib/types';
@@ -180,18 +182,9 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   station: 'train',
 };
 
-/** カテゴリの説明。一覧では名前だけでは何を指すか伝わりにくい。 */
-const CATEGORY_HINT: Record<string, string> = {
-  hotel: '宿泊施設を探す',
-  residence: 'レジデンスを探す',
-  commercial: '商業施設を探す',
-  office: 'オフィスビルを探す',
-  hospital: '病院・クリニック',
-  station: '駅・空港を探す',
-};
-
 export default function SearchScreen() {
   const c = useTheme();
+  const t = useT();
   const styles = makeStyles(c);
   const { width: winWidth, height: winHeight, isMedium, isWide, isThreeUp } = useLayout();
 
@@ -419,11 +412,12 @@ export default function SearchScreen() {
   /** 見出しに出す、いま効いている絞り込み */
   const filterLabel = useMemo(() => {
     const cat = categories.find((x) => x.id === categoryId);
-    if (query.trim() && cat) return `${cat.name}・「${query.trim()}」`;
+    if (query.trim() && cat)
+      return fill(t.search.filtered, { category: cat.name, query: query.trim() });
     if (cat) return cat.name;
     if (query.trim()) return `「${query.trim()}」`;
-    return 'すべての施設';
-  }, [categories, categoryId, query]);
+    return t.search.allFacilities;
+  }, [categories, categoryId, query, t]);
 
   const chips = useMemo(
     () => categories.filter((cat) => CATEGORY_ICON[cat.code]),
@@ -437,17 +431,19 @@ export default function SearchScreen() {
    * 決め打ちの地名を出すと、対応していない場所でも案内できるように見える。
    */
   const area = useMemo(() => {
-    if (sync.facilityCount === 0) return '取り込み待ち';
+    if (sync.facilityCount === 0) return t.search.waiting;
     const { prefectures, cities } = coverage;
     if (prefectures.length === 1) {
       const name = prefectures[0];
-      return cities > 1 ? `${name}（${sync.facilityCount}件）` : name;
+      return cities > 1
+        ? fill(t.search.areaOne, { name, n: sync.facilityCount })
+        : name;
     }
     if (prefectures.length > 1) {
-      return `${prefectures[0]} ほか（${sync.facilityCount}件）`;
+      return fill(t.search.areaMore, { name: prefectures[0], n: sync.facilityCount });
     }
-    return `${sync.facilityCount} 件を登録`;
-  }, [coverage, sync.facilityCount]);
+    return fill(t.search.registered, { n: sync.facilityCount });
+  }, [coverage, sync.facilityCount, t]);
 
   /*
     端末の現在地。
@@ -489,7 +485,7 @@ export default function SearchScreen() {
           畳んで開くための記号は要らない。
         */}
         {!isWide && (
-          <Pressable hitSlop={HIT_SLOP} accessibilityLabel="メニュー" style={styles.topIcon}>
+          <Pressable hitSlop={HIT_SLOP} accessibilityLabel={t.common.menu} style={styles.topIcon}>
             <Ionicons name="menu" size={22} color={c.text} />
           </Pressable>
         )}
@@ -502,7 +498,7 @@ export default function SearchScreen() {
           <Ionicons name="location" size={isWide ? 18 : 13} color={c.accent} />
           <View style={styles.placeText}>
             <Text style={isWide ? styles.placeLabelWide : styles.placeLabel}>
-              {place ? '現在地' : '案内できる範囲'}
+              {place ? t.search.here : t.search.area}
             </Text>
             <Text
               style={isWide ? styles.placeValueWide : styles.placeValue}
@@ -522,7 +518,7 @@ export default function SearchScreen() {
         <View style={styles.head}>
           {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
           <BrandLogo height={34} />
-          <Text style={styles.lead}>行きたい場所を見つけよう</Text>
+          <Text style={styles.lead}>{t.search.lead}</Text>
           <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
         </View>
       )}
@@ -561,8 +557,8 @@ export default function SearchScreen() {
 
           <View style={styles.page}>
             <SectionHead
-              title="カテゴリから探す"
-              more="すべて見る"
+              title={t.search.categoryTitle}
+              more={t.common.seeAll}
               onPress={() => setShowAll(true)}
               styles={styles}
               wide
@@ -586,8 +582,12 @@ export default function SearchScreen() {
               誰が何を見ても同じ並びだった。
             */}
             <SectionHead
-              title="最近見たスポット"
-              more={historyCount > RECENT_COUNT ? `すべて見る (${historyCount})` : 'すべて見る'}
+              title={t.search.recentTitle}
+                                more={
+                    historyCount > RECENT_COUNT
+                      ? fill(t.common.seeAllCount, { n: historyCount })
+                      : t.common.seeAll
+                  }
               href="/history"
               styles={styles}
               wide
@@ -598,7 +598,7 @@ export default function SearchScreen() {
               ))}
               {recent.length === 0 && !loading && (
                 <View style={styles.recentEmptyBox}>
-                  <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
+                  <Text style={styles.recentEmpty}>{t.search.recentEmpty}</Text>
                 </View>
               )}
             </View>
@@ -689,8 +689,8 @@ export default function SearchScreen() {
             showsVerticalScrollIndicator={false}
           >
             <SectionHead
-              title="カテゴリから探す"
-              more="すべて見る"
+              title={t.search.categoryTitle}
+              more={t.common.seeAll}
               onPress={() => setShowAll(true)}
               styles={styles}
             />
@@ -708,8 +708,12 @@ export default function SearchScreen() {
             </View>
 
             <SectionHead
-              title="最近見たスポット"
-              more={historyCount > RECENT_COUNT ? `すべて見る (${historyCount})` : 'すべて見る'}
+              title={t.search.recentTitle}
+                                more={
+                    historyCount > RECENT_COUNT
+                      ? fill(t.common.seeAllCount, { n: historyCount })
+                      : t.common.seeAll
+                  }
               href="/history"
               styles={styles}
             />
@@ -718,7 +722,7 @@ export default function SearchScreen() {
                 <RecentRow key={e.facility.id} entry={e} styles={styles} c={c} />
               ))}
               {recent.length === 0 && !loading && (
-                <Text style={styles.recentEmpty}>まだ見た施設がありません</Text>
+                <Text style={styles.recentEmpty}>{t.search.recentEmpty}</Text>
               )}
             </View>
 
@@ -820,6 +824,7 @@ function SearchField({
   /** 絞り込み中の細い帯。大きさは large と同じで、幅は動かさない。 */
   band?: boolean;
 }) {
+  const t = useT();
   // 見た目は同じ。広がる動きだけが large にある。
   const big = large || band;
   const [focused, setFocused] = useState(false);
@@ -856,7 +861,7 @@ function SearchField({
         onChangeText={onChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        placeholder="施設名・よみがな・住所"
+        placeholder={t.search.placeholder}
         placeholderTextColor={c.textFaint}
         selectionColor={c.accent}
         style={[big ? styles.inputLarge : styles.input, styles.inputNoOutline]}
@@ -867,7 +872,7 @@ function SearchField({
         <IconButton
           icon="close-circle"
           size={big ? 19 : 18}
-          label="打ったものを消す"
+          label={t.search.clear}
           onPress={() => onChange('')}
           compact
         />
@@ -935,6 +940,7 @@ function BellButton({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
   const on = unseen > 0;
@@ -943,7 +949,7 @@ function BellButton({
     <Link href="/notices" asChild>
       <Pressable
         accessibilityRole="link"
-        accessibilityLabel={on ? `お知らせ ${unseen} 件` : 'お知らせ'}
+        accessibilityLabel={on ? fill(t.search.noticesCount, { n: unseen }) : t.search.notices}
         onHoverIn={() => setHovered(true)}
         onHoverOut={() => {
           setHovered(false);
@@ -999,6 +1005,15 @@ function CategoryCard({
   /** 3列に収まらない幅。2列にする。 */
   half?: boolean;
 }) {
+  const t = useT();
+  /*
+    説明はカテゴリの記号で引く。未知の記号には当たり障りのない
+    一言を当てる。カテゴリは管理画面から増やせるため、
+    ここに無いものが来ても札が空にならないようにする。
+  */
+  const hint =
+    (t.categoryHint as Record<string, string>)[category.code] ?? t.categoryHint.other;
+
   return (
     <Pressable
       onPress={onPress}
@@ -1017,7 +1032,7 @@ function CategoryCard({
       <View style={styles.cardText}>
         <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>{category.name}</Text>
         <Text style={wide ? styles.cardHintWide : styles.cardHint} numberOfLines={1}>
-          {CATEGORY_HINT[category.code] ?? '施設を探す'}
+          {hint}
         </Text>
       </View>
     </Pressable>
@@ -1036,6 +1051,7 @@ function RecentRow({
   c: Palette;
   wide?: boolean;
 }) {
+  const t = useT();
   const f = entry.facility;
   return (
     <Link href={`/facility/${f.id}`} asChild>
@@ -1060,7 +1076,7 @@ function RecentRow({
             {f.address_line}
           </Text>
         </View>
-        {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at)}</Text>}
+        {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at, t)}</Text>}
         <Ionicons name="chevron-forward" size={wide ? 20 : 16} color={c.textFaint} />
       </Pressable>
     </Link>
@@ -1087,11 +1103,12 @@ function SyncState({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   if (syncing) {
     return (
       <View style={styles.syncRow}>
         <ActivityIndicator size="small" color={c.accent} />
-        <Text style={styles.foot}>施設の情報を取り込んでいます…</Text>
+        <Text style={styles.foot}>{t.search.loading}</Text>
       </View>
     );
   }
@@ -1101,7 +1118,7 @@ function SyncState({
       <View style={styles.syncFail}>
         <Ionicons name="cloud-offline-outline" size={20} color={c.danger} />
         <Text style={styles.syncFailText}>
-          {sync.message ?? '情報を取得できませんでした。'}
+          {sync.problem === 'stale' ? t.sync.staleMessage : t.sync.failedMessage}
         </Text>
         <Pressable
           onPress={onRetry}
@@ -1109,7 +1126,7 @@ function SyncState({
           accessibilityRole="button"
         >
           <Ionicons name="refresh" size={15} color={c.accent} />
-          <Text style={styles.retryText}>取り込み直す</Text>
+          <Text style={styles.retryText}>{t.common.retry}</Text>
         </Pressable>
       </View>
     );
@@ -1118,8 +1135,11 @@ function SyncState({
   return (
     <Text style={styles.foot}>
       {sync.syncedAt
-        ? `端末に ${sync.facilityCount} 件（${describeSyncedAt(sync.syncedAt)}に取得）`
-        : 'まだ取り込めていません'}
+        ? fill(t.search.onDevice, {
+            n: sync.facilityCount,
+            when: describeSyncedAt(sync.syncedAt, t),
+          })
+        : t.search.notYet}
     </Text>
   );
 }
@@ -1161,6 +1181,7 @@ function ResultList({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   return (
     <FlatList
       ref={listRef}
@@ -1181,11 +1202,11 @@ function ResultList({
           <Text style={styles.resultCount} numberOfLines={1}>
             {label}
             <Text style={styles.resultCountNum}>
-              {`  ${matched} 件 / 全 ${total} 件`}
+              {fill(t.search.matched, { matched, total })}
             </Text>
           </Text>
           <Pressable onPress={onClear} hitSlop={HIT_SLOP}>
-            <Text style={styles.resultClear}>絞り込みを外す</Text>
+            <Text style={styles.resultClear}>{t.search.clearFilter}</Text>
           </Pressable>
         </View>
       }
@@ -1195,9 +1216,9 @@ function ResultList({
         ) : (
           <View style={styles.empty}>
             <Ionicons name="search-outline" size={28} color={c.textFaint} />
-            <Text style={styles.emptyTitle}>見つかりませんでした</Text>
+            <Text style={styles.emptyTitle}>{t.search.emptyTitle}</Text>
             <Text style={styles.emptyBody}>
-              施設名・よみがな・住所のいずれかでお試しください。
+              {t.search.emptyBody}
             </Text>
           </View>
         )

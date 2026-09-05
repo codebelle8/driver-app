@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * これから作る画面の置き場所。
@@ -20,6 +21,7 @@ export function ComingSoon({
   title: string;
   body: string;
 }) {
+  const t = useT();
   const c = useTheme();
   const styles = makeStyles(c);
 
@@ -32,7 +34,7 @@ export function ComingSoon({
         <View style={styles.badge}>
           <Ionicons name={icon} size={28} color={c.accent} />
         </View>
-        <Text style={styles.title}>準備中です</Text>
+        <Text style={styles.title}>{t.comingSoon.title}</Text>
         <Text style={styles.body}>{body}</Text>
       </View>
     </SafeAreaView>

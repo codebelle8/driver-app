@@ -10,6 +10,7 @@ import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { NoticeHost } from '@/components/notice-toast';
 import { SideRail } from '@/components/side-rail';
+import { LocaleProvider } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { ensureSynced } from '@/lib/sync';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
@@ -52,6 +53,13 @@ export default function RootLayout() {
   }, []);
 
   return (
+    /*
+      言語を保つ層を、配色より外側に置く。
+
+      画面だけでなく、左メニューや帯（知らせ）も文言を引く。
+      画面の並びの内側に置くと、外側にあるそれらへ届かない。
+    */
+    <LocaleProvider>
     <ThemeProvider>
       <Shell />
       {/*
@@ -75,6 +83,7 @@ export default function RootLayout() {
       */}
       <NoticeHost />
     </ThemeProvider>
+    </LocaleProvider>
   );
 }
 

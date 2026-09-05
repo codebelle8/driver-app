@@ -5,6 +5,7 @@ import type { Pin } from '@/lib/facilities';
 import type { Palette } from '@/theme';
 import { SPACE } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 検索結果を一枚の地図に並べる。広い画面でのみ使う。
@@ -61,6 +62,7 @@ export function FacilitiesMap({
   activeId: string | null;
   onSelect: (facilityId: string) => void;
 }) {
+  const t = useT();
   const c = useTheme();
   const s = makeStyles(c);
   const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -158,9 +160,9 @@ export function FacilitiesMap({
   if (!key) {
     return (
       <View style={s.fallback}>
-        <Text style={s.fallbackTitle}>地図を表示できません</Text>
+        <Text style={s.fallbackTitle}>{t.map.cannotShow}</Text>
         <Text style={s.fallbackBody}>
-          Google マップの鍵が設定されていません。一覧からは通常どおりお使いいただけます。
+          {t.map.noKey}
         </Text>
       </View>
     );
@@ -169,7 +171,7 @@ export function FacilitiesMap({
   if (pins.length === 0) {
     return (
       <View style={s.fallback}>
-        <Text style={s.fallbackBody}>この絞り込みに座標のある施設がありません。</Text>
+        <Text style={s.fallbackBody}>{t.map.noPins}</Text>
       </View>
     );
   }

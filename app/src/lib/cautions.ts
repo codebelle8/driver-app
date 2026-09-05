@@ -7,6 +7,7 @@
  *   埋もれる。該当するものだけを強調し、他は畳んで置く。
  */
 import type { Caution } from './types';
+import type { Dictionary } from './i18n/dictionaries';
 
 /** 'HH:MM:SS' を、その日の 0 時からの分数へ */
 function toMinutes(time: string): number {
@@ -76,12 +77,13 @@ export function splitByActive(
   return { active, inactive };
 }
 
-const WEEKDAY_LABEL: Record<number, string> = {
-  1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 7: '日',
-};
-
-/** 「平日 17:00–20:00」のような、適用条件の短い説明 */
-export function describeSchedule(caution: Caution): string | null {
+/**
+ * 「平日 17:00–20:00」のような、適用条件の短い説明。
+ *
+ * 曜日の呼び方は辞書から受け取る。ここで文字列を組み立てると、
+ * 言語を切り替えても日本語のまま残る。
+ */
+export function describeSchedule(caution: Caution, t: Dictionary): string | null {
   const parts: string[] = [];
 
   if (caution.weekdays.length > 0 && caution.weekdays.length < 7) {
@@ -89,7 +91,11 @@ export function describeSchedule(caution: Caution): string | null {
     const isWeekdays = days.join(',') === '1,2,3,4,5';
     const isWeekend = days.join(',') === '6,7';
     parts.push(
-      isWeekdays ? '平日' : isWeekend ? '土日' : days.map((d) => WEEKDAY_LABEL[d]).join('・'),
+      isWeekdays
+        ? t.weekdayGroup.weekdays
+        : isWeekend
+          ? t.weekdayGroup.weekend
+          : days.map((d) => t.weekday[d as 1 | 2 | 3 | 4 | 5 | 6 | 7]).join('・'),
     );
   }
 

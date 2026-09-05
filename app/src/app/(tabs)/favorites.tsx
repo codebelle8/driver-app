@@ -22,6 +22,8 @@ import {
   type FavoriteEntry,
 } from '@/lib/favorites';
 import { confirmDelete } from '@/lib/confirm';
+import { useT } from '@/lib/i18n/context';
+import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
 import { useSelection, type Selection } from '@/lib/selection';
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
@@ -39,6 +41,7 @@ import { useTheme } from '@/theme-context';
  */
 export default function FavoritesScreen() {
   const c = useTheme();
+  const t = useT();
   const styles = makeStyles(c);
 
   const [entries, setEntries] = useState<FavoriteEntry[] | null>(null);
@@ -87,9 +90,9 @@ export default function FavoritesScreen() {
   */
   function onRemove(id: string, name: string) {
     confirmDelete({
-      title: 'お気に入りから外す',
-      message: `「${name}」をお気に入りから外します。`,
-      yes: '外す',
+      title: t.favorites.removeOne,
+      message: fill(t.favorites.removeOneBody, { name }),
+      yes: t.favorites.yesRemove,
       onYes: async () => {
         dropFromView(new Set([id]));
         await removeFavorite(id);
@@ -102,9 +105,9 @@ export default function FavoritesScreen() {
     const gone = [...pick.picked];
     if (gone.length === 0) return;
     confirmDelete({
-      title: '選んだものを外す',
-      message: `${gone.length} 件をお気に入りから外します。`,
-      yes: '外す',
+      title: t.favorites.removePicked,
+      message: fill(t.favorites.removePickedBody, { n: gone.length }),
+      yes: t.favorites.yesRemove,
       onYes: async () => {
         dropFromView(new Set(gone));
         pick.exit();
@@ -116,9 +119,9 @@ export default function FavoritesScreen() {
   function onClear() {
     if (!entries || entries.length === 0) return;
     confirmDelete({
-      title: 'お気に入りをすべて解除',
-      message: `${entries.length} 件のお気に入りをすべて解除します。`,
-      yes: '解除する',
+      title: t.favorites.clearTitle,
+      message: fill(t.favorites.clearBody, { n: entries.length }),
+      yes: t.favorites.yesClear,
       onYes: async () => {
         setEntries([]);
         pick.exit();
@@ -133,9 +136,9 @@ export default function FavoritesScreen() {
       <PageWidth>
         <View style={styles.head}>
           <View style={styles.headText}>
-            <Text style={styles.heading}>お気に入り</Text>
+            <Text style={styles.heading}>{t.favorites.title}</Text>
             {entries !== null && entries.length > 0 && (
-              <Text style={styles.count}>{entries.length} 件</Text>
+              <Text style={styles.count}>{fill(t.common.count, { n: entries.length })}</Text>
             )}
           </View>
           {/*
@@ -148,7 +151,7 @@ export default function FavoritesScreen() {
                 <>
                   <Pressable onPress={pick.toggleAll} hitSlop={HIT_SLOP} accessibilityRole="button">
                     <Text style={styles.headAction}>
-                      {pick.allPicked ? 'すべて外す' : 'すべて選ぶ'}
+                      {pick.allPicked ? t.common.unselectAll : t.common.selectAll}
                     </Text>
                   </Pressable>
                   <Pressable
@@ -156,14 +159,14 @@ export default function FavoritesScreen() {
                     disabled={pick.picked.size === 0}
                     hitSlop={HIT_SLOP}
                     accessibilityRole="button"
-                    accessibilityLabel={`選んだ ${pick.picked.size} 件を外す`}
+                    accessibilityLabel={fill(t.favorites.removePickedLabel, { n: pick.picked.size })}
                   >
                     <Text style={pick.picked.size === 0 ? styles.headActionOff : styles.clearAll}>
-                      外す ({pick.picked.size})
+                      {fill(t.favorites.removeCount, { n: pick.picked.size })}
                     </Text>
                   </Pressable>
                   <Pressable onPress={pick.exit} hitSlop={HIT_SLOP} accessibilityRole="button">
-                    <Text style={styles.headAction}>やめる</Text>
+                    <Text style={styles.headAction}>{t.common.stop}</Text>
                   </Pressable>
                 </>
               ) : (
@@ -172,17 +175,17 @@ export default function FavoritesScreen() {
                     onPress={pick.toggleMode}
                     hitSlop={HIT_SLOP}
                     accessibilityRole="button"
-                    accessibilityLabel="複数を選んで外す"
+                    accessibilityLabel={t.favorites.selectLabel}
                   >
-                    <Text style={styles.headAction}>選択</Text>
+                    <Text style={styles.headAction}>{t.common.select}</Text>
                   </Pressable>
                   <Pressable
                     onPress={onClear}
                     hitSlop={HIT_SLOP}
                     accessibilityRole="button"
-                    accessibilityLabel="お気に入りをすべて解除"
+                    accessibilityLabel={t.favorites.clearAllLabel}
                   >
-                    <Text style={styles.clearAll}>すべて解除</Text>
+                    <Text style={styles.clearAll}>{t.favorites.clearAll}</Text>
                   </Pressable>
                 </>
               )}
@@ -197,12 +200,12 @@ export default function FavoritesScreen() {
             <View style={styles.emptyBadge}>
               <Ionicons name="star-outline" size={28} color={c.accent} />
             </View>
-            <Text style={styles.emptyTitle}>まだ登録がありません</Text>
+            <Text style={styles.emptyTitle}>{t.favorites.emptyTitle}</Text>
             <Text style={styles.emptyBody}>
-              施設の画面で「保存」または心印を押すと、ここに残ります。
+              {t.favorites.emptyBody}
             </Text>
             <Text style={styles.emptyBody}>
-              よく向かう施設を留めておく場所です。
+              {t.favorites.emptyHint}
             </Text>
           </View>
         ) : (
@@ -222,7 +225,7 @@ export default function FavoritesScreen() {
             )}
             ListFooterComponent={
               <Text style={styles.foot}>
-                {FAVORITE_LIMIT} 件まで残ります。この端末の中だけに保存しています。
+                {fill(t.favorites.limit, { n: FAVORITE_LIMIT })}
               </Text>
             }
           />
@@ -245,6 +248,7 @@ function FavoriteRow({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   const f = entry.facility;
   const picked = select.picked.has(f.id);
 
@@ -261,7 +265,7 @@ function FavoriteRow({
         style={picked ? styles.rowPicked : styles.row}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: picked }}
-        accessibilityLabel={`${f.name}${picked ? '（選択中）' : ''}`}
+        accessibilityLabel={`${f.name}${picked ? t.common.selected : ''}`}
       >
         <View style={styles.rowMain}>
           <View style={picked ? styles.checkOn : styles.check}>
@@ -276,7 +280,9 @@ function FavoriteRow({
               {f.city ?? ''}
               {f.address_line}
             </Text>
-            <Text style={styles.rowWhen}>{describeWhen(entry.at)}に登録</Text>
+            <Text style={styles.rowWhen}>
+              {fill(t.favorites.addedAt, { when: describeWhen(entry.at, t) })}
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -299,7 +305,9 @@ function FavoriteRow({
               {f.city ?? ''}
               {f.address_line}
             </Text>
-            <Text style={styles.rowWhen}>{describeWhen(entry.at)}に登録</Text>
+            <Text style={styles.rowWhen}>
+              {fill(t.favorites.addedAt, { when: describeWhen(entry.at, t) })}
+            </Text>
           </View>
         </Pressable>
       </Link>
@@ -312,7 +320,7 @@ function FavoriteRow({
         <IconButton
           icon="close"
           size={18}
-          label={`${f.name} をお気に入りから外す`}
+          label={fill(t.favorites.rowRemove, { name: f.name })}
           onPress={() => onRemove(f.id, f.name)}
         />
       </View>

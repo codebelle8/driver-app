@@ -55,7 +55,11 @@ export interface Notice {
   facilityId: string;
   facilityName: string;
   /** 画面に出す本文 */
-  body: string;
+  /**
+   * 本文。注意事項はそのまま出す。
+   * 新しく増えた施設は決まった一言なので、画面側が辞書から引く。
+   */
+  body?: string;
   /** 並べ替えと「新着」の判定に使う */
   at: string;
   severity?: CautionSeverity;
@@ -95,7 +99,7 @@ export async function fetchNotices(): Promise<Notice[]> {
       kind: 'added' as const,
       facilityId: a.id,
       facilityName: byId.get(a.id)!.name,
-      body: '新しく追加されました。',
+      /* 文言は画面側で引く。ここは言語を知らない。 */
       at: a.at,
     }))
     // 新しいものを先に

@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet } from 'react-native';
 
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { RADIUS } from '@/theme';
 import { useTheme, useThemeControl } from '@/theme-context';
 
@@ -15,7 +17,8 @@ export function ThemeToggle() {
   const c = useTheme();
   const { theme, toggle } = useThemeControl();
 
-  const next = theme === 'dark' ? '明るい表示' : '暗い表示';
+  const t = useT();
+  const next = theme === 'dark' ? t.mypage.light : t.mypage.dark;
 
   return (
     <Pressable
@@ -23,7 +26,7 @@ export function ThemeToggle() {
       hitSlop={8}
       style={[styles.button, { borderColor: c.border }]}
       accessibilityRole="button"
-      accessibilityLabel={`表示を切り替える: ${next}`}
+      accessibilityLabel={fill(t.mypage.themeSwitch, { next })}
     >
       <Ionicons
         name={theme === 'dark' ? 'sunny-outline' : 'moon-outline'}

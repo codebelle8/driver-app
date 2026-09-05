@@ -15,8 +15,10 @@ import {
   replaceCatalog,
   type CatalogPayload,
 } from './catalog';
+import type { Dictionary } from './i18n/dictionaries';
 import { supabase } from './supabase';
 import type { Caution, Category, EntryPoint, Facility, Photo } from './types';
+import { describeSince } from './when';
 
 /**
  * 1回の問い合わせで取る最大件数。
@@ -53,8 +55,14 @@ export interface SyncResult {
   facilityCount: number;
   /** 端末の内容がいつのものか */
   syncedAt: Date | null;
-  /** 取り込めなかった場合の理由。利用者へ出す文言。 */
-  message?: string;
+  /**
+   * 取り込めなかった場合の理由。
+   *
+   * 文言そのものではなく、どちらの理由かだけを持つ。ここは画面の
+   * 外にあり、いま選ばれている言語を知らない。文言を組み立てて
+   * しまうと、言語を切り替えても前の言語のまま残る。
+   */
+  problem?: 'stale' | 'failed';
 }
 
 /**
@@ -120,31 +128,20 @@ export async function syncCatalog(): Promise<SyncResult> {
       ok: false,
       facilityCount,
       syncedAt,
-      message:
-        facilityCount > 0
-          ? '最新の情報を取得できませんでした。前回取得した内容を表示しています。'
-          : '情報を取得できませんでした。電波の届く場所で一度お開きください。',
+      problem: facilityCount > 0 ? 'stale' : 'failed',
     };
   }
 }
 
-/** 「3分前」「昨日 14:30」のような、更新時期の短い説明 */
-export function describeSyncedAt(syncedAt: Date | null): string {
-  if (!syncedAt) return '未取得';
-
-  const minutes = Math.floor((Date.now() - syncedAt.getTime()) / 60000);
-  if (minutes < 1) return 'たった今';
-  if (minutes < 60) return `${minutes}分前`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}時間前`;
-
-  const days = Math.floor(hours / 24);
-  // 「17日前」まで来ると、いつの情報か分からなくなる。日付で示す。
-  if (days > 7) {
-    return `${syncedAt.getMonth() + 1}月${syncedAt.getDate()}日`;
-  }
-  return `${days}日前`;
+/**
+ * 「3分前」のような、更新時期の短い説明。
+ *
+ * 履歴の言い方（when.ts）と同じものを使う。別々に書いていたため、
+ * 片方だけ直る形になっていた。
+ */
+export function describeSyncedAt(syncedAt: Date | null, t: Dictionary): string {
+  if (!syncedAt) return t.sync.never;
+  return describeSince(syncedAt.getTime(), t);
 }
 
 // --- 起動時に1回だけ走らせる ---------------------------------------------------

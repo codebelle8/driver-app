@@ -12,6 +12,7 @@ import {
 import type { Palette } from '@/theme';
 import { HIT_SLOP } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 上部の写真を順に入れ替える。
@@ -329,6 +330,7 @@ function Arrow({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -338,7 +340,7 @@ function Arrow({
       onHoverOut={() => setHovered(false)}
       hitSlop={HIT_SLOP}
       accessibilityRole="button"
-      accessibilityLabel={side === 'left' ? '前の写真' : '次の写真'}
+      accessibilityLabel={side === 'left' ? t.photo.prev : t.photo.next}
       style={side === 'left' ? styles.arrowLeft : styles.arrowRight}
     >
       <View style={hovered ? styles.arrowBoxOn : styles.arrowBox}>

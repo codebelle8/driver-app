@@ -5,6 +5,8 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo } from '@/components/brand';
 import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { RADIUS, SPACE } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -54,16 +56,17 @@ export const HEADER_HEIGHT = 72;
  * あちらが下の帯を描き、広い画面ではこちらが左メニューを描く。
  */
 const NAV = [
-  { path: '/', label: '探す', on: 'search', off: 'search-outline' },
-  { path: '/favorites', label: 'お気に入り', on: 'star', off: 'star-outline' },
-  { path: '/history', label: '履歴', on: 'time', off: 'time-outline' },
-  { path: '/mypage', label: 'マイページ', on: 'person', off: 'person-outline' },
+  { path: '/', key: 'search', on: 'search', off: 'search-outline' },
+  { path: '/favorites', key: 'favorites', on: 'star', off: 'star-outline' },
+  { path: '/history', key: 'history', on: 'time', off: 'time-outline' },
+  { path: '/mypage', key: 'mypage', on: 'person', off: 'person-outline' },
 ] as const;
 
 export function SideRail() {
   const c = useTheme();
   const s = makeStyles(c);
   const here = usePathname();
+  const dict = useT();
 
   return (
     <View style={s.rail}>
@@ -102,7 +105,7 @@ export function SideRail() {
                   （aria-selected）に落ちない。見た目では緑の下地で
                   分かるが、耳で聞く方には何も伝わらない。
                 */
-                accessibilityLabel={focused ? `${t.label}（表示中）` : t.label}
+                accessibilityLabel={focused ? fill(dict.tabs.showing, { name: dict.tabs[t.key] }) : dict.tabs[t.key]}
                 /*
                   見た目は1つの object にまとめて渡す。
 
@@ -122,7 +125,7 @@ export function SideRail() {
                   style={[s.label, { color: focused ? c.accent : c.textMuted }]}
                   numberOfLines={1}
                 >
-                  {t.label}
+                  {dict.tabs[t.key]}
                 </Text>
               </Pressable>
             </Link>
@@ -135,8 +138,8 @@ export function SideRail() {
       <View style={s.art}>
         <RailArt />
         <View style={s.tagline}>
-          <Text style={s.taglineText}>スムーズな到着を、</Text>
-          <Text style={s.taglineText}>もっと快適に。</Text>
+          <Text style={s.taglineText}>{dict.brand.tagline1}</Text>
+          <Text style={s.taglineText}>{dict.brand.tagline2}</Text>
         </View>
       </View>
     </View>

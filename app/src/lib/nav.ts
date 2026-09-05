@@ -8,6 +8,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
+import { fill, type Dictionary } from './i18n/dictionaries';
 
 export type NavApp = 'google' | 'yahoo' | 'apple';
 
@@ -124,8 +125,10 @@ export async function shareFacility(options: {
   name: string;
   /** 施設の画面の在り処 */
   url: string;
+  /** 文言。呼ぶ側がいまの言語の辞書を渡す。 */
+  t: Dictionary;
 }): Promise<{ ok: boolean; how: 'shared' | 'copied' | 'failed'; text: string }> {
-  const text = `${options.name}の車寄せ案内`;
+  const text = fill(options.t.navApp.shareText, { name: options.name });
 
   if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
     const nav = navigator as Navigator & {
@@ -154,9 +157,8 @@ export async function shareFacility(options: {
   }
 }
 
-export const NAV_APP_LABEL: Record<NavApp | 'web', string> = {
-  google: 'Google マップ',
-  yahoo: 'Yahoo! カーナビ',
-  apple: 'マップ',
-  web: 'ブラウザ',
-};
+/*
+  地図アプリの呼び名は辞書（navApp）へ移した。どこからも
+  引かれていなかったが、残しておくと言語を切り替えても
+  日本語のまま出る作りが再び生える。
+*/

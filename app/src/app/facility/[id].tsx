@@ -22,13 +22,13 @@ import { fetchFacilityDetail } from '@/lib/facilities';
 import { useLayout } from '@/lib/layout';
 import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
+import { useT } from '@/lib/i18n/context';
+import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
 import { ensureSynced } from '@/lib/sync';
 import { copyCoordinates, openNavigation, shareFacility } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
 import {
-  ENTRY_POINT_KIND_LABEL,
-  PHOTO_KIND_LABEL,
   type Caution,
   type EntryPoint,
   type FacilityDetail,
@@ -61,18 +61,29 @@ const SPLIT_TEXT_WIDTH = 520;
 
 type Section = 'summary' | 'photos' | 'diagram' | 'cautions';
 
-const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'summary', label: '概要', icon: 'business-outline' },
-  { key: 'photos', label: '写真', icon: 'images-outline' },
-  { key: 'diagram', label: '案内図', icon: 'map-outline' },
-  { key: 'cautions', label: '注意', icon: 'alert-circle-outline' },
+const SECTIONS: { key: Section; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'summary', icon: 'business-outline' },
+  { key: 'photos', icon: 'images-outline' },
+  { key: 'diagram', icon: 'map-outline' },
+  { key: 'cautions', icon: 'alert-circle-outline' },
 ];
+
+/** 節の見出しを辞書から引く */
+function sectionLabel(t: Dictionary, key: Section): string {
+  return {
+    summary: t.facility.sectionSummary,
+    photos: t.facility.sectionPhotos,
+    diagram: t.facility.sectionDiagram,
+    cautions: t.facility.sectionCautions,
+  }[key];
+}
 
 export default function FacilityScreen() {
   const { isWide } = useLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const c = useTheme();
+  const t = useT();
   const styles = makeStyles(c);
 
   const [detail, setDetail] = useState<FacilityDetail | null>(null);
@@ -105,7 +116,7 @@ export default function FacilityScreen() {
         const found = await fetchFacilityDetail(id);
         if (!alive) return;
         setDetail(found);
-        if (!found) setError('この施設は見つかりませんでした。');
+        if (!found) setError(t.facility.notFound);
 
         /*
           読めたものだけを履歴に残す。
@@ -114,7 +125,7 @@ export default function FacilityScreen() {
         */
         if (found) void recordVisit(id);
       } catch {
-        if (alive) setError('施設を読み込めませんでした。');
+        if (alive) setError(t.facility.loadFailed);
       }
     })();
     return () => {
@@ -182,14 +193,14 @@ export default function FacilityScreen() {
                 accessibilityRole="button"
               >
                 <Ionicons name="search" size={15} color={c.accent} />
-                <Text style={styles.errorActionText}>施設を探す</Text>
+                <Text style={styles.errorActionText}>{t.facility.toSearch}</Text>
               </Pressable>
             </>
           ) : (
             <>
               <ActivityIndicator color={c.accent} />
               {/* 何を待っているのかを書く。無言で回るだけでは不安になる。 */}
-              <Text style={styles.errorText}>施設の情報を読み込んでいます…</Text>
+              <Text style={styles.errorText}>{t.facility.loading}</Text>
             </>
           )}
         </View>
@@ -235,7 +246,7 @@ export default function FacilityScreen() {
   async function onNavigate() {
     if (!main || !hasNav) return;
     const used = await openNavigation({ lat: main.nav_lat!, lng: main.nav_lng! });
-    if (!used) notify('地図アプリを開けませんでした', undefined, 'error');
+    if (!used) notify(t.notice.mapAppFailed, undefined, 'error');
   }
 
   /*
@@ -251,10 +262,10 @@ export default function FacilityScreen() {
         ? window.location.href
         : `https://kurumayose-navi.vercel.app/facility/${id}`;
 
-    const r = await shareFacility({ name: facility.name, url });
-    if (r.how === 'copied') notify('リンクを複製しました', r.text);
+    const r = await shareFacility({ name: facility.name, url, t });
+    if (r.how === 'copied') notify(t.notice.linkCopied, r.text);
     else if (r.how === 'failed')
-      notify('共有できませんでした', 'もう一度お試しください。', 'error');
+      notify(t.notice.shareFailed, t.notice.tryAgain, 'error');
   }
 
   return (
@@ -269,8 +280,8 @@ export default function FacilityScreen() {
         だけで、乗せても押しても見た目が変わらなかった。
       */}
       <View style={styles.topBar}>
-        <IconButton icon="arrow-back" size={22} label="戻る" onPress={() => router.back()} />
-        <Text style={styles.topTitle}>車寄せ案内</Text>
+        <IconButton icon="arrow-back" size={22} label={t.common.back} onPress={() => router.back()} />
+        <Text style={styles.topTitle}>{t.facility.title}</Text>
         {/*
           上部に共有の記号は置かない。
 
@@ -282,7 +293,7 @@ export default function FacilityScreen() {
             icon="heart-outline"
             iconOn="heart"
             on={pinned}
-            label={pinned ? 'お気に入りから外す' : 'お気に入りに入れる'}
+            label={pinned ? t.facility.unpin : t.facility.pin}
             onPress={onPin}
           />
         </View>
@@ -315,7 +326,7 @@ export default function FacilityScreen() {
             <FacilityMap
               lat={main?.nav_lat ?? facility.lat}
               lng={main?.nav_lng ?? facility.lng}
-              label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
+              label={main ? t.entryKind[main.kind] : undefined}
               width={mapWidth}
               height={mapHeight}
             />
@@ -330,7 +341,7 @@ export default function FacilityScreen() {
           {main && (
             <View style={styles.kindRow}>
               <Ionicons name="car-outline" size={13} color={c.textMuted} />
-              <Text style={styles.kindText}>{ENTRY_POINT_KIND_LABEL[main.kind]}</Text>
+              <Text style={styles.kindText}>{t.entryKind[main.kind]}</Text>
             </View>
           )}
           <Text style={styles.address}>
@@ -354,7 +365,7 @@ export default function FacilityScreen() {
               accessibilityRole="button"
             >
               <Ionicons name="navigate" size={15} color={c.accentText} />
-              <Text style={styles.actionMainText}>経路</Text>
+              <Text style={styles.actionMainText}>{t.facility.route}</Text>
             </Pressable>
             {/*
               上の心印と同じ働き。押す場所が2つあるのは、
@@ -371,10 +382,10 @@ export default function FacilityScreen() {
               ]}
               accessibilityRole="button"
               accessibilityState={{ selected: pinned }}
-              accessibilityLabel={pinned ? 'お気に入りから外す' : 'お気に入りに入れる'}
+              accessibilityLabel={pinned ? t.facility.unpin : t.facility.pin}
             >
               <Ionicons name={pinned ? 'star' : 'star-outline'} size={15} color={c.accent} />
-              <Text style={styles.actionText}>{pinned ? '保存済み' : '保存'}</Text>
+              <Text style={styles.actionText}>{pinned ? t.facility.saved : t.facility.save}</Text>
             </Pressable>
             <Pressable
               onPress={onShare}
@@ -387,7 +398,7 @@ export default function FacilityScreen() {
               accessibilityRole="button"
             >
               <Ionicons name="share-social-outline" size={15} color={c.accent} />
-              <Text style={styles.actionText}>共有</Text>
+              <Text style={styles.actionText}>{t.facility.share}</Text>
             </Pressable>
           </View>
         </View>
@@ -434,7 +445,7 @@ export default function FacilityScreen() {
           <FacilityMap
             lat={main?.nav_lat ?? facility.lat}
             lng={main?.nav_lng ?? facility.lng}
-            label={main ? ENTRY_POINT_KIND_LABEL[main.kind] : undefined}
+            label={main ? t.entryKind[main.kind] : undefined}
             width={mapWidth}
             height={mapHeight}
           />
@@ -480,6 +491,7 @@ function SectionTabs({
   c: Palette;
   wide?: boolean;
 }) {
+  const t = useT();
   return (
     <View style={wide ? styles.tabsWide : styles.tabs}>
       {SECTIONS.map((item) => {
@@ -503,7 +515,7 @@ function SectionTabs({
                 on && styles.tabTextOn,
               ]}
             >
-              {item.label}
+              {sectionLabel(t, item.key)}
             </Text>
           </Pressable>
         );
@@ -522,17 +534,20 @@ function SummaryBlock({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   if (entryPoints.length === 0) {
-    return <Text style={styles.emptyText}>この施設の入口はまだ登録されていません。</Text>;
+    return <Text style={styles.emptyText}>{t.facility.noEntryPoints}</Text>;
   }
 
   return (
     <View style={styles.stack}>
       {entryPoints.map((ep) => {
         const attrs = [
-          ep.height_limit_cm !== null ? `高さ制限 ${ep.height_limit_cm}cm` : null,
-          ep.is_roofed !== null ? (ep.is_roofed ? '屋根あり' : '屋根なし') : null,
-          ep.is_24h !== null ? (ep.is_24h ? '24時間可' : '24時間不可') : null,
+          ep.height_limit_cm !== null
+            ? fill(t.facility.heightLimit, { n: ep.height_limit_cm })
+            : null,
+          ep.is_roofed !== null ? (ep.is_roofed ? t.facility.roofed : t.facility.notRoofed) : null,
+          ep.is_24h !== null ? (ep.is_24h ? t.facility.open24h : t.facility.not24h) : null,
         ].filter(Boolean) as string[];
 
         return (
@@ -572,13 +587,13 @@ function SummaryBlock({
                   icon="copy-outline"
                   size={16}
                   compact
-                  label={`${ep.name} の座標を複製`}
+                  label={fill(t.facility.copyCoords, { name: ep.name })}
                   onPress={async () => {
                     const text = await copyCoordinates({
                       lat: ep.nav_lat!,
                       lng: ep.nav_lng!,
                     });
-                    notify('座標を複製しました', text);
+                    notify(t.notice.coordsCopied, text);
                   }}
                 />
               </View>
@@ -603,8 +618,9 @@ function PhotoGrid({
   styles: ReturnType<typeof makeStyles>;
   large?: boolean;
 }) {
+  const t = useT();
   if (photos.length === 0) {
-    return <Text style={styles.emptyText}>まだ登録されていません。</Text>;
+    return <Text style={styles.emptyText}>{t.facility.noPhotos}</Text>;
   }
 
   return (
@@ -615,7 +631,7 @@ function PhotoGrid({
           onPress={() => onOpen(offset + i)}
           style={[styles.photoItem, large && styles.photoItemLarge]}
           accessibilityRole="imagebutton"
-          accessibilityLabel={`${PHOTO_KIND_LABEL[p.kind]}を拡大する`}
+          accessibilityLabel={fill(t.facility.enlarge, { kind: t.photoKind[p.kind] })}
         >
           <Image
             source={{ uri: photoUrl(p.storage_path) }}
@@ -625,11 +641,11 @@ function PhotoGrid({
             cachePolicy="disk"
           />
           <View style={styles.photoTag}>
-            <Text style={styles.photoTagText}>{PHOTO_KIND_LABEL[p.kind]}</Text>
+            <Text style={styles.photoTagText}>{t.photoKind[p.kind]}</Text>
           </View>
           {p.is_placeholder && (
             <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoPlaceholderText}>仮画像</Text>
+              <Text style={styles.photoPlaceholderText}>{t.facility.placeholderPhoto}</Text>
             </View>
           )}
         </Pressable>
@@ -645,10 +661,11 @@ function CautionBlock({
   cautions: Caution[];
   styles: ReturnType<typeof makeStyles>;
 }) {
+  const t = useT();
   const { active, inactive } = useMemo(() => splitByActive(cautions), [cautions]);
 
   if (cautions.length === 0) {
-    return <Text style={styles.emptyText}>注意事項は登録されていません。</Text>;
+    return <Text style={styles.emptyText}>{t.facility.noCautions}</Text>;
   }
 
   return (
@@ -656,7 +673,9 @@ function CautionBlock({
       {active.map((x) => (
         <View key={x.id} style={styles.cautionNow}>
           <Text style={styles.cautionLabel}>
-            いま注意{describeSchedule(x) ? `（${describeSchedule(x)}）` : ''}
+            {describeSchedule(x, t)
+              ? fill(t.facility.nowCautionWhen, { when: describeSchedule(x, t)! })
+              : t.facility.nowCaution}
           </Text>
           <Text style={styles.cautionBody}>{x.body}</Text>
         </View>
@@ -664,7 +683,7 @@ function CautionBlock({
       {inactive.map((x) => (
         <View key={x.id} style={styles.cautionOther}>
           <Text style={styles.cautionOtherText}>
-            {describeSchedule(x) ? `${describeSchedule(x)}｜` : ''}
+            {describeSchedule(x, t) ? `${describeSchedule(x, t)}｜` : ''}
             {x.body}
           </Text>
         </View>

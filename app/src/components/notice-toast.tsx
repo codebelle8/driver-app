@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { attachNoticeHost, type Notice } from '@/lib/notice';
 import { RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -30,6 +32,7 @@ const FADE_MS = 220;
 
 export function NoticeHost() {
   const c = useTheme();
+  const t = useT();
   const s = makeStyles(c);
   const [notice, setNotice] = useState<Notice | null>(null);
   const fade = useRef(new Animated.Value(0)).current;
@@ -81,7 +84,7 @@ export function NoticeHost() {
           style={s.card}
           onPress={() => setNotice(null)}
           accessibilityRole="button"
-          accessibilityLabel={`${notice.title}。閉じる`}
+          accessibilityLabel={fill(t.common.closeWith, { title: notice.title })}
         >
           <Ionicons
             name={bad ? 'alert-circle' : 'checkmark-circle'}

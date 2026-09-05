@@ -12,6 +12,8 @@ import {
   type Notice,
 } from '@/lib/notices';
 import { describeWhen } from '@/lib/when';
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
@@ -28,6 +30,7 @@ import { useTheme } from '@/theme-context';
  */
 export default function NoticesScreen() {
   const c = useTheme();
+  const t = useT();
   const styles = makeStyles(c);
   const router = useRouter();
 
@@ -76,13 +79,13 @@ export default function NoticesScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.topBar}>
-        <IconButton icon="arrow-back" size={22} label="戻る" onPress={() => router.back()} />
+        <IconButton icon="arrow-back" size={22} label={t.common.back} onPress={() => router.back()} />
         <Text style={styles.topTitle}>
-          お知らせ{unread > 0 ? ` (${unread})` : ''}
+          {unread > 0 ? fill(t.notices.titleCount, { n: unread }) : t.notices.title}
         </Text>
         {unread > 0 ? (
-          <Pressable onPress={onReadAll} hitSlop={HIT_SLOP} accessibilityLabel="すべて既読にする">
-            <Text style={styles.readAll}>すべて既読</Text>
+          <Pressable onPress={onReadAll} hitSlop={HIT_SLOP} accessibilityLabel={t.notices.readAllLabel}>
+            <Text style={styles.readAll}>{t.notices.readAll}</Text>
           </Pressable>
         ) : (
           <View style={styles.topSpacer} />
@@ -94,16 +97,16 @@ export default function NoticesScreen() {
       ) : notices.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="notifications-off-outline" size={28} color={c.textFaint} />
-          <Text style={styles.emptyTitle}>お知らせはありません</Text>
+          <Text style={styles.emptyTitle}>{t.notices.emptyTitle}</Text>
           <Text style={styles.emptyBody}>
-            新しく増えた施設や、いま効いている注意事項がここに出ます。
+            {t.notices.emptyBody}
           </Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
           {cautions.length > 0 && (
             <>
-              <Text style={styles.section}>いま効いている注意</Text>
+              <Text style={styles.section}>{t.notices.sectionCautions}</Text>
               {cautions.map((n) => (
                 <NoticeRow
                   key={n.id}
@@ -120,7 +123,7 @@ export default function NoticesScreen() {
 
           {added.length > 0 && (
             <>
-              <Text style={styles.section}>新しく増えた施設</Text>
+              <Text style={styles.section}>{t.notices.sectionAdded}</Text>
               {added.map((n) => (
                 <NoticeRow
                   key={n.id}
@@ -135,7 +138,7 @@ export default function NoticesScreen() {
           )}
 
           <Text style={styles.foot}>
-            前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。
+            {t.notices.addedNote}
           </Text>
         </ScrollView>
       )}
@@ -159,6 +162,7 @@ function NoticeRow({
   unread: boolean;
   onOpen: (id: string) => void;
 }) {
+  const t = useT();
   return (
     <Link href={`/facility/${notice.facilityId}`} asChild>
       <Pressable
@@ -182,9 +186,9 @@ function NoticeRow({
             </Text>
           </View>
           <Text style={styles.text} numberOfLines={2}>
-            {notice.body}
+            {notice.body ?? t.notices.addedBody}
           </Text>
-          {!urgent && <Text style={styles.when}>{describeWhen(notice.at)}</Text>}
+          {!urgent && <Text style={styles.when}>{describeWhen(notice.at, t)}</Text>}
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
       </Pressable>

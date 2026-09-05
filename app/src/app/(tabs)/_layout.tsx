@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
 
@@ -32,16 +33,17 @@ const BAR_HEIGHT = 70;
 
 /** タブの並び。名前と記号を1か所にまとめる。 */
 const TABS = [
-  { name: 'index', label: '探す', on: 'search', off: 'search-outline' },
-  { name: 'favorites', label: 'お気に入り', on: 'star', off: 'star-outline' },
-  { name: 'history', label: '履歴', on: 'time', off: 'time-outline' },
-  { name: 'mypage', label: 'マイページ', on: 'person', off: 'person-outline' },
+  { name: 'index', key: 'search', on: 'search', off: 'search-outline' },
+  { name: 'favorites', key: 'favorites', on: 'star', off: 'star-outline' },
+  { name: 'history', key: 'history', on: 'time', off: 'time-outline' },
+  { name: 'mypage', key: 'mypage', on: 'person', off: 'person-outline' },
 ] as const;
 
 export default function TabsLayout() {
   const c = useTheme();
   const insets = useSafeAreaInsets();
   const { isWide } = useLayout();
+  const dict = useT();
 
   return (
     <Tabs
@@ -83,7 +85,7 @@ export default function TabsLayout() {
           key={t.name}
           name={t.name}
           options={{
-            title: t.label,
+            title: dict.tabs[t.key],
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? t.on : t.off} size={22} color={color} />
             ),
@@ -103,7 +105,7 @@ export default function TabsLayout() {
                   style={[isWide ? styles.railLabel : styles.label, { color }]}
                   numberOfLines={1}
                 >
-                  {t.label}
+                  {dict.tabs[t.key]}
                 </Text>
               </View>
             ),

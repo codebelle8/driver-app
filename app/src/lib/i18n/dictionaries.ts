@@ -1,0 +1,611 @@
+/**
+ * 画面に出す文言。
+ *
+ * **なぜ辞書に集めるか**
+ *   これまでは画面の中に直に書いていた。169個あり、同じ言い回しが
+ *   複数の画面に散っていた（「すべて選ぶ」「やめる」など）。
+ *   直すときに片方だけ直る形になっていた。
+ *
+ * **管理画面と同じ形にしている**
+ *   admin/src/lib/i18n/dictionaries.ts と同じ組み立て方にした。
+ *   両方を触る場面が多く、形が違うと読み替えの手間が増える。
+ *
+ * **施設のデータはここに入らない**
+ *   施設名・住所・進入方法の説明は発注元が入力したもので、
+ *   別の場所（データベースの英語欄）で扱う。ここにあるのは
+ *   ボタンや見出しといった画面の骨組みだけ。
+ */
+
+export const LOCALES = ['ja', 'en'] as const;
+export type Locale = (typeof LOCALES)[number];
+export const DEFAULT_LOCALE: Locale = 'ja';
+
+export function isLocale(value: unknown): value is Locale {
+  return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
+}
+
+/** 言語の名前は、その言語自身の表記で出す。英語表示でも「日本語」のまま。 */
+export const LOCALE_NAME: Record<Locale, string> = {
+  ja: '日本語',
+  en: 'English',
+};
+
+const ja = {
+  tabs: {
+    search: '探す',
+    favorites: 'お気に入り',
+    history: '履歴',
+    mypage: 'マイページ',
+    /** 読み上げに、選ばれていることを添える */
+    showing: '{name}（表示中）',
+  },
+
+  brand: {
+    tagline1: 'スムーズな到着を、',
+    tagline2: 'もっと快適に。',
+  },
+
+  common: {
+    count: '{n} 件',
+    close: '閉じる',
+    closeWith: '{title}。閉じる',
+    back: '戻る',
+    seeAll: 'すべて見る',
+    seeAllCount: 'すべて見る ({n})',
+    select: '選択',
+    selectAll: 'すべて選ぶ',
+    unselectAll: 'すべて外す',
+    stop: 'やめる',
+    selected: '（選択中）',
+    menu: 'メニュー',
+    retry: '取り込み直す',
+    top: '先頭へ',
+    topLabel: '一覧の先頭へ戻る',
+  },
+
+  /** 消してよいかを尋ねる札 */
+  confirm: {
+    noUndo: '元には戻せません。',
+    delete: '削除する',
+  },
+
+  search: {
+    lead: '行きたい場所を見つけよう',
+    placeholder: '施設名・よみがな・住所',
+    clear: '打ったものを消す',
+    here: '現在地',
+    area: '案内できる範囲',
+    categoryTitle: 'カテゴリから探す',
+    recentTitle: '最近見たスポット',
+    recentEmpty: 'まだ見た施設がありません',
+    prevCategory: '前のカテゴリを表示',
+    nextCategory: '次のカテゴリを表示',
+    allFacilities: 'すべての施設',
+    /** 「ホテル・「帝国」」のような見出し */
+    filtered: '{category}・「{query}」',
+    waiting: '取り込み待ち',
+    registered: '{n} 件を登録',
+    areaOne: '{name}（{n}件）',
+    areaMore: '{name} ほか（{n}件）',
+    loading: '施設の情報を取り込んでいます…',
+    failed: '情報を取得できませんでした。',
+    onDevice: '端末に {n} 件（{when}に取得）',
+    notYet: 'まだ取り込めていません',
+    matched: '{matched} 件 / 全 {total} 件',
+    clearFilter: '絞り込みを外す',
+    emptyTitle: '見つかりませんでした',
+    emptyBody: '施設名・よみがな・住所のいずれかでお試しください。',
+    notices: 'お知らせ',
+    noticesCount: 'お知らせ {n} 件',
+  },
+
+  /** カテゴリごとの一言。コードで引く。 */
+  categoryHint: {
+    hotel: '宿泊施設を探す',
+    residence: 'レジデンスを探す',
+    commercial: '商業施設を探す',
+    office: 'オフィスビルを探す',
+    hospital: '病院・クリニック',
+    station: '駅・空港を探す',
+    other: '施設を探す',
+  },
+
+  facility: {
+    title: '車寄せ案内',
+    sectionSummary: '概要',
+    sectionPhotos: '写真',
+    sectionDiagram: '案内図',
+    sectionCautions: '注意',
+    notFound: 'この施設は見つかりませんでした。',
+    loadFailed: '施設を読み込めませんでした。',
+    loading: '施設の情報を読み込んでいます…',
+    toSearch: '施設を探す',
+    route: '経路',
+    save: '保存',
+    saved: '保存済み',
+    share: '共有',
+    pin: 'お気に入りに入れる',
+    unpin: 'お気に入りから外す',
+    noEntryPoints: 'この施設の入口はまだ登録されていません。',
+    noPhotos: 'まだ登録されていません。',
+    noCautions: '注意事項は登録されていません。',
+    heightLimit: '高さ制限 {n}cm',
+    roofed: '屋根あり',
+    notRoofed: '屋根なし',
+    open24h: '24時間可',
+    not24h: '24時間不可',
+    copyCoords: '{name} の座標を複製',
+    placeholderPhoto: '仮画像',
+    enlarge: '{kind}を拡大する',
+    nowCaution: 'いま注意',
+    nowCautionWhen: 'いま注意（{when}）',
+  },
+
+  /** 短い知らせ（帯） */
+  notice: {
+    linkCopied: 'リンクを複製しました',
+    coordsCopied: '座標を複製しました',
+    shareFailed: '共有できませんでした',
+    tryAgain: 'もう一度お試しください。',
+    mapAppFailed: '地図アプリを開けませんでした',
+  },
+
+  favorites: {
+    title: 'お気に入り',
+    removeOne: 'お気に入りから外す',
+    removeOneBody: '「{name}」をお気に入りから外します。',
+    removePicked: '選んだものを外す',
+    removePickedBody: '{n} 件をお気に入りから外します。',
+    clearTitle: 'お気に入りをすべて解除',
+    clearBody: '{n} 件のお気に入りをすべて解除します。',
+    yesRemove: '外す',
+    yesClear: '解除する',
+    removeCount: '外す ({n})',
+    removePickedLabel: '選んだ {n} 件を外す',
+    selectLabel: '複数を選んで外す',
+    clearAll: 'すべて解除',
+    clearAllLabel: 'お気に入りをすべて解除',
+    emptyTitle: 'まだ登録がありません',
+    emptyBody: '施設の画面で「保存」または心印を押すと、ここに残ります。',
+    emptyHint: 'よく向かう施設を留めておく場所です。',
+    limit: '{n} 件まで残ります。この端末の中だけに保存しています。',
+    addedAt: '{when}に登録',
+    rowRemove: '{name} をお気に入りから外す',
+  },
+
+  history: {
+    title: '履歴',
+    removeOne: '履歴から削除',
+    removeOneBody: '「{name}」を履歴から削除します。',
+    removePicked: '選んだ履歴を削除',
+    removePickedBody: '{n} 件を履歴から削除します。',
+    clearTitle: '履歴をすべて削除',
+    clearBody: '{n} 件の履歴をすべて削除します。',
+    deleteCount: '削除 ({n})',
+    removePickedLabel: '選んだ {n} 件を削除',
+    selectLabel: '複数を選んで削除する',
+    clearAll: 'すべて削除',
+    clearAllLabel: '履歴をすべて削除',
+    emptyTitle: 'まだ履歴がありません',
+    emptyBody: '調べた施設が新しい順に並びます。',
+    emptyHint: '同じ施設へ何度も向かう際の呼び出しに使います。',
+    limit: '新しいものから {n} 件まで残ります。この端末の中だけに保存しています。',
+    seenAt: '{when}に登録',
+    rowRemove: '{name} を履歴から削除',
+  },
+
+  mypage: {
+    title: 'マイページ',
+    brightness: '画面の明るさ',
+    dark: '暗い表示',
+    light: '明るい表示',
+    themeSwitch: '表示を切り替える: {next}',
+    language: '言語',
+    languageHint: '画面の文言と施設の案内に使う言語',
+    sync: '施設情報の取り込み',
+    syncing: '取り込んでいます…',
+    syncState: '{n} 件（{when}に取得）',
+    note: '施設情報は端末の中に保存され、電波の届かない場所でも表示できます。',
+  },
+
+  notices: {
+    title: 'お知らせ',
+    titleCount: 'お知らせ ({n})',
+    readAll: 'すべて既読',
+    readAllLabel: 'すべて既読にする',
+    emptyTitle: 'お知らせはありません',
+    emptyBody: '新しく増えた施設や、いま効いている注意事項がここに出ます。',
+    sectionCautions: 'いま効いている注意',
+    sectionAdded: '新しく増えた施設',
+    addedNote: '前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。',
+    addedBody: '新しく追加されました。',
+  },
+
+  sync: {
+    staleMessage: '最新の情報を取得できませんでした。前回取得した内容を表示しています。',
+    failedMessage: '情報を取得できませんでした。電波の届く場所で一度お開きください。',
+    never: '未取得',
+  },
+
+  when: {
+    justNow: 'たった今',
+    minutesAgo: '{n}分前',
+    hoursAgo: '{n}時間前',
+    yesterday: '昨日',
+    daysAgo: '{n}日前',
+    date: '{m}月{d}日',
+    /** 英語だけが使う。日本語は date の {m} をそのまま使う。 */
+    months: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+  },
+
+  weekday: { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 7: '日' },
+  weekdayGroup: { weekdays: '平日', weekend: '土日' },
+
+  entryKind: {
+    dropoff: '車寄せ',
+    entrance: 'エントランス',
+    parking_entrance: '駐車場入口',
+    bus_stop: 'バス乗降場',
+    service: '関係者用',
+  },
+
+  photoKind: {
+    approach: '進入路',
+    dropoff: '車寄せ',
+    entrance: 'エントランス',
+    night: '夜間',
+    diagram: '進入案内図',
+    exterior: '外観',
+    other: 'その他',
+  },
+
+  map: {
+    cannotShow: '地図を表示できません',
+    noKey: 'Google マップの鍵が設定されていません。一覧からは通常どおりお使いいただけます。',
+    noPins: 'この絞り込みに座標のある施設がありません。',
+    loadFailed: '地図を読み込めませんでした',
+    noCoords: '座標が登録されていません',
+  },
+
+  navApp: {
+    google: 'Google マップ',
+    yahoo: 'Yahoo! カーナビ',
+    apple: 'マップ',
+    web: 'ブラウザ',
+    /** 人へ渡すときの一言 */
+    shareText: '{name}の車寄せ案内',
+  },
+
+  photo: {
+    prev: '前の写真',
+    next: '次の写真',
+    zoomHint: '二本指で拡大／二回叩いても拡大できます',
+  },
+
+  intro: {
+    skip: '導入を飛ばす',
+    skipHint: '画面を押すと飛ばせます',
+  },
+
+  comingSoon: {
+    title: '準備中です',
+  },
+} as const;
+
+/**
+ * `as const` によって ja の各値はリテラル型（"探す" など）になる。
+ * そのままだと en 側が代入できないため、値の型を string へ広げる。
+ * キーの過不足は引き続き検出されるので、訳し忘れは型エラーになる。
+ *
+ * 管理画面（admin）は2段の対応表で足りているが、こちらは
+ * when.months が文字列の並びを持つため、段数を決め打ちにできない。
+ * 並びは並びのまま、中身だけを広げる。
+ */
+type Widen<T> = T extends string
+  ? string
+  : T extends readonly (infer U)[]
+    ? readonly Widen<U>[]
+    : { -readonly [K in keyof T]: Widen<T[K]> };
+
+type Dictionary = Widen<typeof ja>;
+
+const en: Dictionary = {
+  tabs: {
+    search: 'Search',
+    favorites: 'Favourites',
+    history: 'History',
+    mypage: 'Settings',
+    showing: '{name} (showing)',
+  },
+
+  brand: {
+    tagline1: 'Arrive smoothly,',
+    tagline2: 'every time.',
+  },
+
+  common: {
+    count: '{n}',
+    close: 'Close',
+    closeWith: '{title}. Close',
+    back: 'Back',
+    seeAll: 'See all',
+    seeAllCount: 'See all ({n})',
+    select: 'Select',
+    selectAll: 'Select all',
+    unselectAll: 'Clear all',
+    stop: 'Cancel',
+    selected: ' (selected)',
+    menu: 'Menu',
+    retry: 'Try again',
+    top: 'Top',
+    topLabel: 'Back to the top of the list',
+  },
+
+  confirm: {
+    noUndo: 'This cannot be undone.',
+    delete: 'Delete',
+  },
+
+  search: {
+    lead: 'Find where you are heading',
+    placeholder: 'Name, reading or address',
+    clear: 'Clear what you typed',
+    here: 'Current location',
+    area: 'Area covered',
+    categoryTitle: 'Browse by category',
+    recentTitle: 'Recently viewed',
+    recentEmpty: 'You have not viewed any facilities yet',
+    prevCategory: 'Show previous categories',
+    nextCategory: 'Show next categories',
+    allFacilities: 'All facilities',
+    filtered: '{category} · "{query}"',
+    waiting: 'Waiting for data',
+    registered: '{n} facilities',
+    areaOne: '{name} ({n})',
+    areaMore: '{name} and others ({n})',
+    loading: 'Loading facility data…',
+    failed: 'Could not load the data.',
+    onDevice: '{n} on this device (fetched {when})',
+    notYet: 'Not downloaded yet',
+    matched: '{matched} of {total}',
+    clearFilter: 'Clear filters',
+    emptyTitle: 'No matches',
+    emptyBody: 'Try the name, its reading, or the address.',
+    notices: 'Notices',
+    noticesCount: 'Notices, {n} new',
+  },
+
+  categoryHint: {
+    hotel: 'Find a hotel',
+    residence: 'Find a residence',
+    commercial: 'Find a shopping centre',
+    office: 'Find an office building',
+    hospital: 'Hospitals and clinics',
+    station: 'Find a station or airport',
+    other: 'Find a facility',
+  },
+
+  facility: {
+    title: 'Entrance guide',
+    sectionSummary: 'Overview',
+    sectionPhotos: 'Photos',
+    sectionDiagram: 'Diagram',
+    sectionCautions: 'Cautions',
+    notFound: 'That facility could not be found.',
+    loadFailed: 'Could not load the facility.',
+    loading: 'Loading the facility…',
+    toSearch: 'Search facilities',
+    route: 'Route',
+    save: 'Save',
+    saved: 'Saved',
+    share: 'Share',
+    pin: 'Add to favourites',
+    unpin: 'Remove from favourites',
+    noEntryPoints: 'No entrances have been registered for this facility yet.',
+    noPhotos: 'Nothing registered yet.',
+    noCautions: 'No cautions have been registered.',
+    heightLimit: 'Height limit {n} cm',
+    roofed: 'Covered',
+    notRoofed: 'Not covered',
+    open24h: 'Open 24 hours',
+    not24h: 'Not open 24 hours',
+    copyCoords: 'Copy the coordinates for {name}',
+    placeholderPhoto: 'Placeholder',
+    enlarge: 'Enlarge the {kind} photo',
+    nowCaution: 'Applies now',
+    nowCautionWhen: 'Applies now ({when})',
+  },
+
+  notice: {
+    linkCopied: 'Link copied',
+    coordsCopied: 'Coordinates copied',
+    shareFailed: 'Could not share',
+    tryAgain: 'Please try again.',
+    mapAppFailed: 'Could not open a map app',
+  },
+
+  favorites: {
+    title: 'Favourites',
+    removeOne: 'Remove from favourites',
+    removeOneBody: 'Remove "{name}" from favourites.',
+    removePicked: 'Remove the selected items',
+    removePickedBody: 'Remove {n} from favourites.',
+    clearTitle: 'Clear all favourites',
+    clearBody: 'Remove all {n} favourites.',
+    yesRemove: 'Remove',
+    yesClear: 'Clear all',
+    removeCount: 'Remove ({n})',
+    removePickedLabel: 'Remove the {n} selected',
+    selectLabel: 'Select several to remove',
+    clearAll: 'Clear all',
+    clearAllLabel: 'Clear all favourites',
+    emptyTitle: 'Nothing saved yet',
+    emptyBody: 'Press "Save" or the heart on a facility and it will appear here.',
+    emptyHint: 'A place to keep the facilities you visit often.',
+    limit: 'Up to {n} are kept, on this device only.',
+    addedAt: 'Saved {when}',
+    rowRemove: 'Remove {name} from favourites',
+  },
+
+  history: {
+    title: 'History',
+    removeOne: 'Remove from history',
+    removeOneBody: 'Remove "{name}" from your history.',
+    removePicked: 'Delete the selected entries',
+    removePickedBody: 'Remove {n} from your history.',
+    clearTitle: 'Clear all history',
+    clearBody: 'Remove all {n} entries from your history.',
+    deleteCount: 'Delete ({n})',
+    removePickedLabel: 'Delete the {n} selected',
+    selectLabel: 'Select several to delete',
+    clearAll: 'Clear all',
+    clearAllLabel: 'Clear all history',
+    emptyTitle: 'No history yet',
+    emptyBody: 'Facilities you look up appear here, newest first.',
+    emptyHint: 'Handy for calling up a place you visit again and again.',
+    limit: 'The newest {n} are kept, on this device only.',
+    seenAt: 'Viewed {when}',
+    rowRemove: 'Remove {name} from history',
+  },
+
+  mypage: {
+    title: 'Settings',
+    brightness: 'Screen brightness',
+    dark: 'Dark',
+    light: 'Light',
+    themeSwitch: 'Switch display: {next}',
+    language: 'Language',
+    languageHint: 'Used for the interface and the facility guidance',
+    sync: 'Facility data',
+    syncing: 'Downloading…',
+    syncState: '{n} (fetched {when})',
+    note: 'Facility data is stored on this device, so it works where there is no signal.',
+  },
+
+  notices: {
+    title: 'Notices',
+    titleCount: 'Notices ({n})',
+    readAll: 'Mark all read',
+    readAllLabel: 'Mark every notice as read',
+    emptyTitle: 'No notices',
+    emptyBody: 'Newly added facilities and cautions that apply right now appear here.',
+    sectionCautions: 'Cautions that apply now',
+    sectionAdded: 'Newly added facilities',
+    addedNote: 'Facilities added since this device last downloaded, for up to 14 days.',
+    addedBody: 'Newly added.',
+  },
+
+  sync: {
+    staleMessage: 'Could not fetch the latest data. Showing what was downloaded last time.',
+    failedMessage: 'Could not fetch the data. Please open the app once where there is a signal.',
+    never: 'never',
+  },
+
+  when: {
+    justNow: 'just now',
+    minutesAgo: '{n} min ago',
+    hoursAgo: '{n} hr ago',
+    yesterday: 'yesterday',
+    daysAgo: '{n} days ago',
+    /*
+      日付の並びが言語で違う。日本語は「9月5日」、英語は「5 Sep」。
+      月の名前は months から引く。
+    */
+    date: '{d} {mon}',
+    months: [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ],
+  },
+
+  weekday: { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 7: 'Sun' },
+  weekdayGroup: { weekdays: 'Weekdays', weekend: 'Weekends' },
+
+  entryKind: {
+    dropoff: 'Drop-off',
+    entrance: 'Entrance',
+    parking_entrance: 'Car park entrance',
+    bus_stop: 'Bus stop',
+    service: 'Service entrance',
+  },
+
+  photoKind: {
+    approach: 'Approach road',
+    dropoff: 'Drop-off',
+    entrance: 'Entrance',
+    night: 'At night',
+    diagram: 'Approach diagram',
+    exterior: 'Exterior',
+    other: 'Other',
+  },
+
+  map: {
+    cannotShow: 'The map cannot be shown',
+    noKey: 'No Google Maps key is configured. The list works as usual.',
+    noPins: 'No facility in this filter has coordinates.',
+    loadFailed: 'Could not load the map',
+    noCoords: 'No coordinates registered',
+  },
+
+  navApp: {
+    google: 'Google Maps',
+    yahoo: 'Yahoo! Car Navi',
+    apple: 'Maps',
+    web: 'Browser',
+    shareText: 'Entrance guide for {name}',
+  },
+
+  photo: {
+    prev: 'Previous photo',
+    next: 'Next photo',
+    zoomHint: 'Pinch or double-tap to zoom',
+  },
+
+  intro: {
+    skip: 'Skip the intro',
+    skipHint: 'Tap the screen to skip',
+  },
+
+  comingSoon: {
+    title: 'Coming soon',
+  },
+};
+
+export const dictionaries: Record<Locale, Dictionary> = { ja, en };
+
+export type { Dictionary };
+
+/**
+ * 文中の差し込みを埋める。
+ *
+ * 「{n} 件」のような文言に値を入れる。並び順が言語で変わるため、
+ * 文字列をつなぐのではなく、埋める場所を文言の側に持たせている。
+ * 英語では「{d} {mon}」、日本語では「{m}月{d}日」のように、
+ * 同じ値でも置く順が違う。
+ */
+export function fill(template: string, values: Record<string, string | number>): string {
+  let out = template;
+  for (const [key, value] of Object.entries(values)) {
+    out = out.split(`{${key}}`).join(String(value));
+  }
+  return out;
+}
+
+/** 日付を、その言語の並びで書く。 */
+export function formatDate(t: Dictionary, d: Date): string {
+  return fill(t.when.date, {
+    m: d.getMonth() + 1,
+    d: d.getDate(),
+    mon: t.when.months[d.getMonth()],
+  });
+}

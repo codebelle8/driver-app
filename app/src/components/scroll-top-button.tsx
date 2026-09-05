@@ -5,6 +5,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme, useThemeControl } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 一覧の先頭へ戻るボタン。
@@ -56,6 +57,7 @@ export function ScrollTopButton({
   visible: boolean;
   onPress: () => void;
 }) {
+  const t = useT();
   const c = useTheme();
   const { theme } = useThemeControl();
   const styles = makeStyles(c);
@@ -117,7 +119,7 @@ export function ScrollTopButton({
         onHoverIn={startBraking}
         onHoverOut={endBraking}
         accessibilityRole="button"
-        accessibilityLabel="一覧の先頭へ戻る"
+        accessibilityLabel={t.common.topLabel}
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}
       >
         {car ? (
@@ -147,7 +149,7 @@ export function ScrollTopButton({
           <Ionicons name="chevron-up" size={13} color={c.accentText} />
         </View>
       </Pressable>
-      <Text style={styles.label}>先頭へ</Text>
+      <Text style={styles.label}>{t.common.top}</Text>
     </Animated.View>
   );
 }

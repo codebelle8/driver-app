@@ -13,6 +13,7 @@ import {
 
 import { HIT, RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * カテゴリの横並び。
@@ -211,13 +212,14 @@ function EdgeArrow({
   c: Palette;
   onPress: () => void;
 }) {
+  const t = useT();
   return (
     <Pressable
         onPress={onPress}
         // 走行前の車内で押されるため、見た目より広く当たるようにする
         hitSlop={10}
         accessibilityRole="button"
-        accessibilityLabel={side === 'left' ? '前のカテゴリを表示' : '次のカテゴリを表示'}
+        accessibilityLabel={side === 'left' ? t.search.prevCategory : t.search.nextCategory}
         style={({ pressed }) => [
           styles.arrow,
           // 地は塗らない。円と矢印だけが見え、四角い面は描かない。

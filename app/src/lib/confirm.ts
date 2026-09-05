@@ -25,21 +25,20 @@ export type ConfirmRequest = {
   /** 本文。何件を、どこから消すのか。 */
   message: string;
   /**
-   * 添える一言。既定は「元には戻せません。」
+   * 添える一言。省くと「元には戻せません。」
    *
    * 本文の末尾に続けて書いていたところ、折り返しが
    * 「元に／は戻せません」の位置に落ちて読みにくかった。
    * 行を分ければ、どの幅でも語の途中で切れない。
-   * 呼ぶ側ごとに書き方が揺れるのも防げる。
+   *
+   * 既定の文言はここでは当てない。ここは画面の外にあり、
+   * いま選ばれている言語を知らない。札を描く側が当てる。
    */
-  note: string;
-  /** 消す側の文言。「削除する」「外す」など。 */
-  yes: string;
+  note?: string;
+  /** 消す側の文言。省くと「削除する」。 */
+  yes?: string;
   onYes: () => void;
 };
-
-/** 取り消せないことを伝える一言。既定の文面。 */
-export const NO_UNDO = '元には戻せません。';
 
 type Listener = (request: ConfirmRequest | null) => void;
 
@@ -66,17 +65,15 @@ export function attachConfirmHost(next: Listener): () => void {
 export function confirmDelete(options: {
   title: string;
   message: string;
-  /** 既定は「元には戻せません。」 */
   note?: string;
-  /** 既定は「削除する」 */
   yes?: string;
   onYes: () => void;
 }): void {
   const request: ConfirmRequest = {
     title: options.title,
     message: options.message,
-    note: options.note ?? NO_UNDO,
-    yes: options.yes ?? '削除する',
+    note: options.note,
+    yes: options.yes,
     onYes: options.onYes,
   };
 

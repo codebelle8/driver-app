@@ -20,6 +20,8 @@ import {
   type HistoryEntry,
 } from '@/lib/history';
 import { confirmDelete } from '@/lib/confirm';
+import { useT } from '@/lib/i18n/context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { useSelection, type Selection } from '@/lib/selection';
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
@@ -40,6 +42,7 @@ import { useTheme } from '@/theme-context';
  */
 export default function HistoryScreen() {
   const c = useTheme();
+  const t = useT();
   const styles = makeStyles(c);
 
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
@@ -89,8 +92,8 @@ export default function HistoryScreen() {
   */
   function onRemove(id: string, name: string) {
     confirmDelete({
-      title: '履歴から削除',
-      message: `「${name}」を履歴から削除します。`,
+      title: t.history.removeOne,
+      message: fill(t.history.removeOneBody, { name }),
       onYes: async () => {
         dropFromView(new Set([id]));
         await removeVisit(id);
@@ -103,8 +106,8 @@ export default function HistoryScreen() {
     const gone = [...pick.picked];
     if (gone.length === 0) return;
     confirmDelete({
-      title: '選んだ履歴を削除',
-      message: `${gone.length} 件を履歴から削除します。`,
+      title: t.history.removePicked,
+      message: fill(t.history.removePickedBody, { n: gone.length }),
       onYes: async () => {
         dropFromView(new Set(gone));
         pick.exit();
@@ -116,8 +119,8 @@ export default function HistoryScreen() {
   function onClear() {
     if (!entries || entries.length === 0) return;
     confirmDelete({
-      title: '履歴をすべて削除',
-      message: `${entries.length} 件の履歴をすべて削除します。`,
+      title: t.history.clearTitle,
+      message: fill(t.history.clearBody, { n: entries.length }),
       onYes: async () => {
         setEntries([]);
         pick.exit();
@@ -132,9 +135,9 @@ export default function HistoryScreen() {
       <PageWidth>
       <View style={styles.head}>
         <View style={styles.headText}>
-          <Text style={styles.heading}>履歴</Text>
+          <Text style={styles.heading}>{t.history.title}</Text>
           {entries !== null && entries.length > 0 && (
-            <Text style={styles.count}>{entries.length} 件</Text>
+            <Text style={styles.count}>{fill(t.common.count, { n: entries.length })}</Text>
           )}
         </View>
         {/*
@@ -147,7 +150,7 @@ export default function HistoryScreen() {
               <>
                 <Pressable onPress={pick.toggleAll} hitSlop={HIT_SLOP} accessibilityRole="button">
                   <Text style={styles.headAction}>
-                    {pick.allPicked ? 'すべて外す' : 'すべて選ぶ'}
+                    {pick.allPicked ? t.common.unselectAll : t.common.selectAll}
                   </Text>
                 </Pressable>
                 <Pressable
@@ -155,14 +158,14 @@ export default function HistoryScreen() {
                   disabled={pick.picked.size === 0}
                   hitSlop={HIT_SLOP}
                   accessibilityRole="button"
-                  accessibilityLabel={`選んだ ${pick.picked.size} 件を削除`}
+                  accessibilityLabel={fill(t.history.removePickedLabel, { n: pick.picked.size })}
                 >
                   <Text style={pick.picked.size === 0 ? styles.headActionOff : styles.clearAll}>
-                    削除 ({pick.picked.size})
+                    {fill(t.history.deleteCount, { n: pick.picked.size })}
                   </Text>
                 </Pressable>
                 <Pressable onPress={pick.exit} hitSlop={HIT_SLOP} accessibilityRole="button">
-                  <Text style={styles.headAction}>やめる</Text>
+                  <Text style={styles.headAction}>{t.common.stop}</Text>
                 </Pressable>
               </>
             ) : (
@@ -171,17 +174,17 @@ export default function HistoryScreen() {
                   onPress={pick.toggleMode}
                   hitSlop={HIT_SLOP}
                   accessibilityRole="button"
-                  accessibilityLabel="複数を選んで削除する"
+                  accessibilityLabel={t.history.selectLabel}
                 >
-                  <Text style={styles.headAction}>選択</Text>
+                  <Text style={styles.headAction}>{t.common.select}</Text>
                 </Pressable>
                 <Pressable
                   onPress={onClear}
                   hitSlop={HIT_SLOP}
                   accessibilityRole="button"
-                  accessibilityLabel="履歴をすべて削除"
+                  accessibilityLabel={t.history.clearAllLabel}
                 >
-                  <Text style={styles.clearAll}>すべて削除</Text>
+                  <Text style={styles.clearAll}>{t.history.clearAll}</Text>
                 </Pressable>
               </>
             )}
@@ -196,12 +199,12 @@ export default function HistoryScreen() {
           <View style={styles.emptyBadge}>
             <Ionicons name="time-outline" size={28} color={c.accent} />
           </View>
-          <Text style={styles.emptyTitle}>まだ履歴がありません</Text>
+          <Text style={styles.emptyTitle}>{t.history.emptyTitle}</Text>
           <Text style={styles.emptyBody}>
-            調べた施設が新しい順に並びます。
+            {t.history.emptyBody}
           </Text>
           <Text style={styles.emptyBody}>
-            同じ施設へ何度も向かう際の呼び出しに使います。
+            {t.history.emptyHint}
           </Text>
         </View>
       ) : (
@@ -221,7 +224,7 @@ export default function HistoryScreen() {
           )}
           ListFooterComponent={
             <Text style={styles.foot}>
-              新しいものから {HISTORY_LIMIT} 件まで残ります。この端末の中だけに保存しています。
+              {fill(t.history.limit, { n: HISTORY_LIMIT })}
             </Text>
           }
         />
@@ -244,6 +247,7 @@ function HistoryRow({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const t = useT();
   const f = entry.facility;
   const picked = select.picked.has(f.id);
 
@@ -260,7 +264,7 @@ function HistoryRow({
         style={picked ? styles.rowPicked : styles.row}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: picked }}
-        accessibilityLabel={`${f.name}${picked ? '（選択中）' : ''}`}
+        accessibilityLabel={`${f.name}${picked ? t.common.selected : ''}`}
       >
         <View style={styles.rowMain}>
           <View style={picked ? styles.checkOn : styles.check}>
@@ -275,7 +279,7 @@ function HistoryRow({
               {f.city ?? ''}
               {f.address_line}
             </Text>
-            <Text style={styles.rowWhen}>{describeWhen(entry.at)}</Text>
+            <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
         </View>
       </Pressable>
@@ -298,7 +302,7 @@ function HistoryRow({
               {f.city ?? ''}
               {f.address_line}
             </Text>
-            <Text style={styles.rowWhen}>{describeWhen(entry.at)}</Text>
+            <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
         </Pressable>
       </Link>
@@ -311,7 +315,7 @@ function HistoryRow({
         <IconButton
           icon="close"
           size={18}
-          label={`${f.name} を履歴から削除`}
+          label={fill(t.history.rowRemove, { name: f.name })}
           onPress={() => onRemove(f.id, f.name)}
         />
       </View>

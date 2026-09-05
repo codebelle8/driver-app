@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { attachConfirmHost, type ConfirmRequest } from '@/lib/confirm';
+import { useT } from '@/lib/i18n/context';
 import { HIT, RADIUS, SPACE, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -30,6 +31,7 @@ import { useTheme } from '@/theme-context';
  */
 export function ConfirmHost() {
   const c = useTheme();
+  const t = useT();
   const s = makeStyles(c);
   const [request, setRequest] = useState<ConfirmRequest | null>(null);
 
@@ -72,7 +74,7 @@ export function ConfirmHost() {
       <Pressable
         style={s.backdrop}
         onPress={close}
-        accessibilityLabel="閉じる"
+        accessibilityLabel={t.common.close}
         testID="confirm-backdrop"
       >
         {/*
@@ -90,15 +92,20 @@ export function ConfirmHost() {
             本文に続けて書くと、折り返しが語の途中に落ちて読みにくい。
             色も分けて、読み飛ばしにくくする。
           */}
-          <Text style={s.note}>{request.note}</Text>
+          <Text style={s.note}>{request.note ?? t.confirm.noUndo}</Text>
 
           <View style={s.actions}>
             {/*
               testID を振ってあるのは検査のため。「やめる」は一覧の
               見出しにも同じ文言があり、名前だけでは選び分けられない。
             */}
-            <DialogButton label="やめる" onPress={close} testID="confirm-cancel" />
-            <DialogButton label={request.yes} onPress={accept} danger testID="confirm-accept" />
+            <DialogButton label={t.common.stop} onPress={close} testID="confirm-cancel" />
+            <DialogButton
+              label={request.yes ?? t.confirm.delete}
+              onPress={accept}
+              danger
+              testID="confirm-accept"
+            />
           </View>
         </Pressable>
       </Pressable>

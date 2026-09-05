@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useT } from '@/lib/i18n/context';
 
 /**
  * 起動時の導入。映像3本のあと、ロゴを見せる。
@@ -44,6 +45,7 @@ const BACKDROP = '#0B192F';
 type Phase = 'video' | 'logo';
 
 export function IntroVideo({ onDone }: { onDone?: () => void }) {
+  const t = useT();
   const [phase, setPhase] = useState<Phase>('video');
   const [index, setIndex] = useState(0);
   const [gone, setGone] = useState(false);
@@ -114,7 +116,7 @@ export function IntroVideo({ onDone }: { onDone?: () => void }) {
         onPress={finish}
         style={styles.fill}
         accessibilityRole="button"
-        accessibilityLabel="導入を飛ばす"
+        accessibilityLabel={t.intro.skip}
       >
         {phase === 'video' ? (
           <VideoView
@@ -133,7 +135,7 @@ export function IntroVideo({ onDone }: { onDone?: () => void }) {
         )}
 
         <View style={styles.skipRow} pointerEvents="none">
-          <Text style={styles.skip}>画面を押すと飛ばせます</Text>
+          <Text style={styles.skip}>{t.intro.skipHint}</Text>
           {phase === 'video' && (
             <Text style={styles.count}>
               {index + 1} / {SOURCES.length}
