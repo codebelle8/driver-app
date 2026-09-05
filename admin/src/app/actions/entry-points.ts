@@ -119,10 +119,14 @@ export async function saveCaution(
     .map((v) => Number(v))
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= 7);
 
+  const bodyEn = formData.get('body_en');
+
   const supabase = await createClient();
   const { error } = await supabase.from('cautions').insert({
     entry_point_id: entryPointId,
     body: body.trim(),
+    // 空欄は null。空文字を入れると、アプリが「訳がある」と見て空を出す。
+    body_en: typeof bodyEn === 'string' && bodyEn.trim() !== '' ? bodyEn.trim() : null,
     severity: (formData.get('severity') as 'info' | 'warn' | 'critical') ?? 'warn',
     time_from: hasFrom ? (timeFrom as string) : null,
     time_to: hasTo ? (timeTo as string) : null,

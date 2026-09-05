@@ -68,6 +68,19 @@ export const facilitySchema = z.object({
   ),
   status: z.enum(['draft', 'published', 'archived']),
   note_internal: optionalText,
+
+  /*
+    英語表記。すべて任意。
+
+    入っていない項目は、アプリが日本語へ落とす。193件の英訳が
+    揃うまで英語表示を止める作りにはしていない。半分でも読める
+    ほうが役に立つ。
+  */
+  name_en: optionalText,
+  prefecture_en: optionalText,
+  city_en: optionalText,
+  address_line_en: optionalText,
+  summary_en: optionalText,
 });
 
 export type FacilityInput = z.infer<typeof facilitySchema>;
@@ -95,6 +108,11 @@ export const entryPointSchema = z
     is_24h: z.boolean().nullable(),
     is_active: z.boolean(),
     note_internal: optionalText,
+
+    /* 英語表記。すべて任意。空なら日本語をそのまま出す。 */
+    name_en: optionalText,
+    approach_text_en: optionalText,
+    approach_from_en: optionalText,
   })
   // 緯度と経度は必ず対で入る（DB 側にも同じ制約がある）
   .refine((v) => (v.nav_lat === null) === (v.nav_lng === null), {

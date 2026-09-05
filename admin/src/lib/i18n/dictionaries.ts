@@ -238,6 +238,23 @@ const ja = {
     note: 'メモ',
     noteHint: 'アプリには表示されません',
     invalidInput: '入力内容をご確認ください。',
+
+    /*
+      英語表記。
+
+      アプリの言語を英語にしたときに使う。空欄なら日本語を
+      そのまま出すため、埋まっていない項目があっても差し支えない。
+    */
+    sectionEnglish: '英語表記',
+    englishNote:
+      'アプリを英語表示にしたときに使います。空欄の項目は日本語のまま出ます。',
+    nameEn: '施設名（英語）',
+    nameEnHint: '看板に出ている英名を優先してください（例: Imperial Hotel, Tokyo）',
+    prefectureEn: '都道府県（英語）',
+    cityEn: '市区町村（英語）',
+    addressEn: '住所（英語）',
+    addressEnHint: '英語では小さい単位から並べます（例: 1-chome, Uchisaiwaicho）',
+    summaryEn: '施設概要（英語）',
   },
   publish: {
     title: '公開状態',
@@ -287,6 +304,12 @@ const ja = {
     navLng: 'ナビ経度',
     dropoffTitle: '停車位置座標',
     dropoffHint: '進入地点と実際の停車位置が離れている場合のみ入力してください。',
+    /* 英語表記。空欄なら日本語のまま出る。 */
+    sectionEnglish: '英語表記（任意）',
+    nameEn: '名称（英語）',
+    approachTextEn: '進入方法の説明（英語）',
+    approachTextEnHint: 'ここが読めないと、英語表示にする意味がありません',
+    approachFromEn: '進入元の道路・方向（英語）',
     mapHint: '地図を押すと座標が入ります。置く先:',
     mapMissingKey: '地図の利用設定が未完了です。NEXT_PUBLIC_GOOGLE_MAPS_API_KEY をご確認ください。',
     mapFailed: '地図を読み込めませんでした。通信とキーの制限設定をご確認ください。',
@@ -320,6 +343,8 @@ const ja = {
     timeTo: '終了時刻',
     weekdays: '適用曜日',
     weekdaysHint: '指定しない場合は全曜日に適用されます',
+    /* 英語表記。空欄なら日本語のまま出る。 */
+    bodyEn: '本文（英語）',
     always: '常時',
   },
   photo: {
@@ -365,6 +390,7 @@ const ja = {
     codeHint: '英小文字。あとから変更できません（例: hotel）',
     prefixHint: '英大文字2〜5文字（例: HTL）',
     nameHint: 'アプリの絞り込みチップに出る名前',
+    nameEn: 'カテゴリ名（英語）',
     activeLabel: 'アプリに表示する',
     moveUp: '前へ移動',
     moveDown: '後ろへ移動',
@@ -619,6 +645,16 @@ const en: Dictionary = {
     note: 'Note',
     noteHint: 'Not shown in the app',
     invalidInput: 'Please check your input.',
+    sectionEnglish: 'English',
+    englishNote:
+      'Used when the app is set to English. Fields left blank fall back to Japanese.',
+    nameEn: 'Facility name (English)',
+    nameEnHint: 'Prefer the name on the building (e.g. Imperial Hotel, Tokyo)',
+    prefectureEn: 'Prefecture (English)',
+    cityEn: 'City / ward (English)',
+    addressEn: 'Address (English)',
+    addressEnHint: 'English puts the smallest unit first (e.g. 1-chome, Uchisaiwaicho)',
+    summaryEn: 'Summary (English)',
   },
   publish: {
     title: 'Publication status',
@@ -666,6 +702,11 @@ const en: Dictionary = {
     navLng: 'Navigation longitude',
     dropoffTitle: 'Stopping position',
     dropoffHint: 'Only fill this in if the approach point and the actual stopping position differ.',
+    sectionEnglish: 'English (optional)',
+    nameEn: 'Name (English)',
+    approachTextEn: 'Approach instructions (English)',
+    approachTextEnHint: 'Without this, switching the app to English has little value',
+    approachFromEn: 'Approach road / direction (English)',
     mapHint: 'Click the map to set coordinates. Target:',
     mapMissingKey: 'Map is not configured. Check NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.',
     mapFailed: 'Could not load the map. Check the network and the key restrictions.',
@@ -700,6 +741,7 @@ const en: Dictionary = {
     timeTo: 'To',
     weekdays: 'Applicable days',
     weekdaysHint: 'If none are selected it applies to every day',
+    bodyEn: 'Text (English)',
     always: 'Always',
   },
   photo: {
@@ -742,6 +784,7 @@ const en: Dictionary = {
     codeHint: 'Lowercase letters. Cannot be changed later (e.g. hotel)',
     prefixHint: '2-5 uppercase letters (e.g. HTL)',
     nameHint: 'The name shown on the filter chip in the app',
+    nameEn: 'Category name (English)',
     activeLabel: 'Show in the app',
     moveUp: 'Move earlier',
     moveDown: 'Move later',

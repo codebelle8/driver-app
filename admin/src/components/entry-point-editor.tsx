@@ -124,6 +124,43 @@ export function EntryPointEditor({
       </Field>
 
       {/*
+        英語表記。
+
+        日本語の欄のすぐ下に置く。施設の画面と違って項目が3つだけで、
+        別の枠に分けるとかえって行き来が増える。同じ内容を続けて
+        書くほうが、訳し漏れにも気づきやすい。
+      */}
+      <div className="space-y-4 rounded-lg border border-border bg-surface-2 p-4">
+        <h3 className="text-xs font-semibold text-text-muted">{e.sectionEnglish}</h3>
+
+        <Field label={e.nameEn} error={err('name_en')}>
+          <input
+            name="name_en"
+            defaultValue={entryPoint?.name_en ?? ''}
+            className={inputClass}
+            placeholder="Main drop-off"
+          />
+        </Field>
+
+        <Field label={e.approachTextEn} hint={e.approachTextEnHint} error={err('approach_text_en')}>
+          <textarea
+            name="approach_text_en"
+            defaultValue={entryPoint?.approach_text_en ?? ''}
+            rows={3}
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label={e.approachFromEn} error={err('approach_from_en')}>
+          <input
+            name="approach_from_en"
+            defaultValue={entryPoint?.approach_from_en ?? ''}
+            className={inputClass}
+          />
+        </Field>
+      </div>
+
+      {/*
         座標が2組ある理由:
         建物の代表地点にナビすると反対側から到着する経路が案内されることがあり、
         一方通行や中央分離帯があると入り直しに数分かかる。

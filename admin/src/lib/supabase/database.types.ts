@@ -34,6 +34,8 @@ export type Category = {
   id: string;
   code: string;
   name: string;
+  /** 英語表記。空ならアプリは日本語を出す。 */
+  name_en: string | null;
   code_prefix: string;
   sort_order: number;
   is_active: boolean;
@@ -45,14 +47,21 @@ export type Facility = {
   id: string;
   code: string;
   name: string;
+  /** 英語表記。空ならアプリは日本語を出す。 */
+  name_en: string | null;
   name_kana: string;
   aliases: string[];
   category_id: string;
   postal_code: string | null;
   prefecture: string;
+  prefecture_en: string | null;
   city: string | null;
+  city_en: string | null;
   address_line: string;
+  /** 英語の住所。英語では小さい単位から並べるため、並べ替えはアプリ側で行う。 */
+  address_line_en: string | null;
   summary: string | null;
+  summary_en: string | null;
   lat: number | null;
   lng: number | null;
   status: PublishStatus;
@@ -69,8 +78,12 @@ export type EntryPoint = {
   code: string;
   kind: EntryPointKind;
   name: string;
+  name_en: string | null;
   approach_text: string | null;
+  /** 進入方法の英語。ここが読めないと英語表示の意味がない。 */
+  approach_text_en: string | null;
   approach_from: string | null;
+  approach_from_en: string | null;
   nav_lat: number | null;
   nav_lng: number | null;
   dropoff_lat: number | null;
@@ -89,6 +102,8 @@ export type Caution = {
   id: string;
   entry_point_id: string;
   body: string;
+  /** 英語表記。空ならアプリは日本語を出す。 */
+  body_en: string | null;
   severity: CautionSeverity;
   time_from: string | null;
   time_to: string | null;
@@ -163,7 +178,7 @@ export interface Database {
     Tables: {
       categories: Table<
         Category,
-        Insert<Category, 'id' | 'sort_order' | 'is_active' | 'created_at' | 'updated_at'>
+        Insert<Category, 'id' | 'name_en' | 'sort_order' | 'is_active' | 'created_at' | 'updated_at'>
       >;
       facilities: Table<
         Facility,
@@ -171,6 +186,7 @@ export interface Database {
           Facility,
           | 'id' | 'aliases' | 'postal_code' | 'city' | 'summary' | 'lat' | 'lng'
           | 'status' | 'sort_order' | 'note_internal' | 'search_text'
+          | 'name_en' | 'prefecture_en' | 'city_en' | 'address_line_en' | 'summary_en'
           | 'created_at' | 'updated_at'
         >
       >;
@@ -180,14 +196,16 @@ export interface Database {
           EntryPoint,
           | 'id' | 'approach_text' | 'approach_from' | 'nav_lat' | 'nav_lng'
           | 'dropoff_lat' | 'dropoff_lng' | 'height_limit_cm' | 'is_roofed' | 'is_24h'
-          | 'is_active' | 'sort_order' | 'note_internal' | 'created_at' | 'updated_at'
+          | 'is_active' | 'sort_order' | 'note_internal'
+          | 'name_en' | 'approach_text_en' | 'approach_from_en'
+          | 'created_at' | 'updated_at'
         >
       >;
       cautions: Table<
         Caution,
         Insert<
           Caution,
-          | 'id' | 'severity' | 'time_from' | 'time_to' | 'weekdays'
+          | 'id' | 'body_en' | 'severity' | 'time_from' | 'time_to' | 'weekdays'
           | 'sort_order' | 'created_at' | 'updated_at'
         >
       >;

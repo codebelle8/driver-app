@@ -174,6 +174,69 @@ export function FacilityForm({
         </div>
       </Card>
 
+      {/*
+        英語表記。
+
+        日本語の入力の流れを変えないよう、別の枠にまとめている。
+        入力するのは日本語が主で、英語は後から埋める性質のもの。
+        同じ枠に混ぜると、必須の項目を探す手間が増える。
+
+        すべて任意。空欄の項目はアプリが日本語のまま出す。
+      */}
+      <Card className="space-y-5">
+        <div>
+          <h2 className="text-sm font-semibold text-text-muted">{f.sectionEnglish}</h2>
+          <p className="mt-1 text-xs text-text-faint">{f.englishNote}</p>
+        </div>
+
+        <Field label={f.nameEn} hint={f.nameEnHint} error={err('name_en')}>
+          <input
+            name="name_en"
+            defaultValue={facility?.name_en ?? ''}
+            className={inputClass}
+            placeholder="Imperial Hotel, Tokyo"
+          />
+        </Field>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label={f.prefectureEn} error={err('prefecture_en')}>
+            <input
+              name="prefecture_en"
+              defaultValue={facility?.prefecture_en ?? ''}
+              className={inputClass}
+              placeholder="Tokyo"
+            />
+          </Field>
+
+          <Field label={f.cityEn} error={err('city_en')}>
+            <input
+              name="city_en"
+              defaultValue={facility?.city_en ?? ''}
+              className={inputClass}
+              placeholder="Chiyoda-ku"
+            />
+          </Field>
+        </div>
+
+        <Field label={f.addressEn} hint={f.addressEnHint} error={err('address_line_en')}>
+          <input
+            name="address_line_en"
+            defaultValue={facility?.address_line_en ?? ''}
+            className={inputClass}
+            placeholder="1-chome, Uchisaiwaicho"
+          />
+        </Field>
+
+        <Field label={f.summaryEn} error={err('summary_en')}>
+          <textarea
+            name="summary_en"
+            defaultValue={facility?.summary_en ?? ''}
+            rows={3}
+            className={inputClass}
+          />
+        </Field>
+      </Card>
+
       <Card className="space-y-5">
         <h2 className="text-sm font-semibold text-text-muted">
           {f.sectionNote}

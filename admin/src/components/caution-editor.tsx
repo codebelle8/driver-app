@@ -129,6 +129,11 @@ export function CautionEditor({
             />
           </Field>
 
+          {/* 英語表記。空欄なら日本語のまま出る。 */}
+          <Field label={c.bodyEn}>
+            <textarea name="body_en" rows={2} className={inputClass} />
+          </Field>
+
           {/*
             時間帯を本文に埋め込まず独立した項目として持つことで、
             アプリ側が「今この瞬間に該当する注意事項」だけを強調表示できる。

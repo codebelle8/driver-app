@@ -27,6 +27,8 @@ function readForm(formData: FormData) {
     id: get('id'),
     code: get('code').toLowerCase(),
     name: get('name'),
+    // 空欄は null。空文字を入れると、アプリが「訳がある」と見て空を出す。
+    nameEn: get('name_en') || null,
     codePrefix: get('code_prefix').toUpperCase(),
     isActive: formData.get('is_active') === 'on',
   };
@@ -93,6 +95,7 @@ export async function createCategory(
   const { error } = await supabase.from('categories').insert({
     code: v.code,
     name: v.name,
+    name_en: v.nameEn,
     code_prefix: v.codePrefix,
     sort_order: (last?.sort_order ?? -1) + 1,
     is_active: true,

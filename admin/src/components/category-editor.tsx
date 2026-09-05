@@ -202,6 +202,16 @@ function EditRow({
               <input name="name" defaultValue={category.name} className={inputClass} />
             </Field>
 
+            {/* 英語表記。空欄なら日本語のまま出る。 */}
+            <Field label={c.nameEn}>
+              <input
+                name="name_en"
+                defaultValue={category.name_en ?? ''}
+                className={inputClass}
+                placeholder="Hotels"
+              />
+            </Field>
+
             <Field label={c.prefix} hint={c.prefixHint} error={state.errors?.code_prefix}>
               <input
                 name="code_prefix"
@@ -295,6 +305,11 @@ function AddForm({ t }: { t: Dictionary }) {
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={c.name} hint={c.nameHint} error={state.errors?.name}>
             <input name="name" required className={inputClass} placeholder="ホテル" />
+          </Field>
+
+          {/* 英語表記。空欄なら日本語のまま出る。 */}
+          <Field label={c.nameEn}>
+            <input name="name_en" className={inputClass} placeholder="Hotels" />
           </Field>
 
           <Field label={c.prefix} hint={c.prefixHint} error={state.errors?.code_prefix}>
