@@ -143,12 +143,22 @@ try {
 
   // 注意事項と写真は先頭の入口へ3件ずつ
   for (const n of [1, 2, 3]) {
-    await sb('/rest/v1/cautions', {
+    /*
+      作った行の id を控える。
+
+      控えないと、後片付けで操作履歴を消せない。実際に
+      「検証用の注意事項その1」などが発注元の履歴に残った。
+    */
+    const ca = await sb('/rest/v1/cautions', {
       method: 'POST',
+      prefer: 'return=representation',
       body: { entry_point_id: eps[0], body: `検証用の注意事項その${n}` },
     });
-    await sb('/rest/v1/photos', {
+    touched.push(ca.body?.[0]?.id);
+
+    const ph = await sb('/rest/v1/photos', {
       method: 'POST',
+      prefer: 'return=representation',
       body: {
         entry_point_id: eps[0],
         facility_id: facilityId,
@@ -158,6 +168,7 @@ try {
         sort_order: n,
       },
     });
+    touched.push(ph.body?.[0]?.id);
   }
 
   // --- ログイン ---------------------------------------------------------------
