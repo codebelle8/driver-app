@@ -250,6 +250,17 @@ const ja = {
       '仮画像のままでも公開できます。文章と座標が正しければ、ドライバーには既に十分な価値があります。',
     ready: '必要な項目はすべて揃っています。いつでも公開できます。',
     surveyorNote: '公開の切り替えは管理者が行います',
+    /* 施設そのものを消す。取り消せない。 */
+    deleteTitle: 'この施設を削除',
+    deleteButton: '施設を削除する',
+    deleteNote:
+      '入口・注意事項・写真もまとめて消えます。写真は保存領域からも削除されます。',
+    deletePublishedNote:
+      'この施設は公開中です。削除すると、アプリの検索結果から消えます。'
+      + 'すでに履歴やお気に入りに入れているドライバーには、'
+      + '「管理者が削除しました」とお知らせします。',
+    deleteConfirmBody: '「{name}」と、その入口・注意事項・写真をすべて削除します。',
+    deleteManagerOnly: '施設の削除は管理者・編集者が行います',
     readOnlyTitle: 'この施設は公開中のため、変更できません',
     readOnlyBody:
       '公開後の内容を変更できるのは管理者・編集者のみです。'
@@ -620,6 +631,15 @@ const en: Dictionary = {
       'You can publish with placeholders still in place. If the text and coordinates are correct, drivers already get real value.',
     ready: 'Everything required is in place. You can publish at any time.',
     surveyorNote: 'Publishing is handled by an administrator',
+    deleteTitle: 'Delete this facility',
+    deleteButton: 'Delete facility',
+    deleteNote:
+      'Its entrances, cautions and photos are removed too. Photo files are deleted from storage.',
+    deletePublishedNote:
+      'This facility is published. Deleting it removes it from the app’s search results. '
+      + 'Drivers who saved it will be told that an administrator deleted it.',
+    deleteConfirmBody: 'Delete "{name}" together with its entrances, cautions and photos.',
+    deleteManagerOnly: 'Deleting a facility is handled by an administrator or editor',
     readOnlyTitle: 'This facility is published and cannot be changed',
     readOnlyBody:
       'Only administrators and editors can change published content. '

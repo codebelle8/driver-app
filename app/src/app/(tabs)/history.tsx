@@ -21,6 +21,8 @@ import {
 } from '@/lib/history';
 import { confirmDelete } from '@/lib/confirm';
 import { useLocale, useT } from '@/lib/i18n/context';
+import { snapshotName } from '@/lib/gone';
+import { notify } from '@/lib/notice';
 import { facilityAddress, facilityName } from '@/lib/localized';
 import { fill } from '@/lib/i18n/dictionaries';
 import { useSelection, type Selection } from '@/lib/selection';
@@ -47,7 +49,7 @@ export default function HistoryScreen() {
   const styles = makeStyles(c);
 
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
-  const ids = (entries ?? []).map((e) => e.facility.id);
+  const ids = (entries ?? []).map((e) => e.id);
   const pick = useSelection(ids);
 
   /*
@@ -82,7 +84,7 @@ export default function HistoryScreen() {
 
   /** 画面から先に消す。控えの書き換えを待たせない。 */
   function dropFromView(gone: Set<string>) {
-    setEntries((prev) => (prev ?? []).filter((e) => !gone.has(e.facility.id)));
+    setEntries((prev) => (prev ?? []).filter((e) => !gone.has(e.id)));
   }
 
   /*
@@ -91,14 +93,25 @@ export default function HistoryScreen() {
     消す操作は元に戻せない。指が滑って触れただけで消えるのは、
     走行前の慌ただしい場面ではとくに起こりやすいため、一度受け止める。
   */
-  function onRemove(id: string, name: string) {
+  async function drop(id: string) {
+    dropFromView(new Set([id]));
+    await removeVisit(id);
+  }
+
+  /**
+   * @param silent 確かめを飛ばす。管理者に消された施設は、
+   *   押した時点で理由を伝えており、そのうえで「削除しますか」と
+   *   もう一度聞くのは手間でしかない。
+   */
+  function onRemove(id: string, name: string, silent = false) {
+    if (silent) {
+      void drop(id);
+      return;
+    }
     confirmDelete({
       title: t.history.removeOne,
       message: fill(t.history.removeOneBody, { name }),
-      onYes: async () => {
-        dropFromView(new Set([id]));
-        await removeVisit(id);
-      },
+      onYes: () => void drop(id),
     });
   }
 
@@ -211,7 +224,7 @@ export default function HistoryScreen() {
       ) : (
         <FlatList
           data={entries}
-          keyExtractor={(e) => e.facility.id}
+          keyExtractor={(e) => e.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
@@ -243,7 +256,7 @@ function HistoryRow({
   c,
 }: {
   entry: HistoryEntry;
-  onRemove: (id: string, name: string) => void;
+  onRemove: (id: string, name: string, silent?: boolean) => void;
   select: Selection;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
@@ -251,7 +264,41 @@ function HistoryRow({
   const t = useT();
   const { locale } = useLocale();
   const f = entry.facility;
-  const picked = select.picked.has(f.id);
+  const picked = select.picked.has(entry.id);
+
+  /*
+    管理者に消された施設。
+
+    黙って一覧から落とすと、留めておいたはずのものが理由もなく
+    無くなった形になる。押されたときに理由を伝えて外す。
+  */
+  const goneName = snapshotName(entry.snapshot, locale) ?? t.common.deletedFacility;
+
+  if (!f && !select.on) {
+    return (
+      <Pressable
+        style={styles.row}
+        accessibilityRole="button"
+        accessibilityLabel={`${goneName} — ${t.common.deletedBadge}`}
+        onPress={() => {
+          notify(t.notice.facilityGone, t.notice.facilityGoneBody, 'error');
+          onRemove(entry.id, goneName, true);
+        }}
+      >
+        <View style={styles.rowMain}>
+          <View style={styles.rowIcon}>
+            <Ionicons name="alert-circle-outline" size={16} color={c.textFaint} />
+          </View>
+          <View style={styles.rowBody}>
+            <Text style={[styles.rowName, styles.rowGone]} numberOfLines={1}>
+              {goneName}
+            </Text>
+            <Text style={styles.rowAddress}>{t.common.deletedBadge}</Text>
+          </View>
+        </View>
+      </Pressable>
+    );
+  }
 
   /*
     選ぶ状態のときは、行を押しても施設は開かない。
@@ -262,11 +309,11 @@ function HistoryRow({
   if (select.on) {
     return (
       <Pressable
-        onPress={() => select.toggle(f.id)}
+        onPress={() => select.toggle(entry.id)}
         style={picked ? styles.rowPicked : styles.row}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: picked }}
-        accessibilityLabel={`${facilityName(f, locale)}${picked ? t.common.selected : ''}`}
+        accessibilityLabel={`${f ? facilityName(f, locale) : goneName}${picked ? t.common.selected : ''}`}
       >
         <View style={styles.rowMain}>
           <View style={picked ? styles.checkOn : styles.check}>
@@ -274,10 +321,10 @@ function HistoryRow({
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowName} numberOfLines={1}>
-              {facilityName(f, locale)}
+              {f ? facilityName(f, locale) : goneName}
             </Text>
             <Text style={styles.rowAddress} numberOfLines={1}>
-              {facilityAddress(f, locale)}
+              {f ? facilityAddress(f, locale) : t.common.deletedBadge}
             </Text>
             <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
@@ -288,17 +335,17 @@ function HistoryRow({
 
   return (
     <View style={styles.row}>
-      <Link href={`/facility/${f.id}`} asChild>
+      <Link href={`/facility/${entry.id}`} asChild>
         <Pressable style={styles.rowMain} accessibilityRole="link">
           <View style={styles.rowIcon}>
             <Ionicons name="time-outline" size={16} color={c.accent} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowName} numberOfLines={1}>
-              {facilityName(f, locale)}
+              {f ? facilityName(f, locale) : goneName}
             </Text>
             <Text style={styles.rowAddress} numberOfLines={1}>
-              {facilityAddress(f, locale)}
+              {f ? facilityAddress(f, locale) : t.common.deletedBadge}
             </Text>
             <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
@@ -313,8 +360,8 @@ function HistoryRow({
         <IconButton
           icon="close"
           size={18}
-          label={fill(t.history.rowRemove, { name: f.name })}
-          onPress={() => onRemove(f.id, f.name)}
+          label={fill(t.history.rowRemove, { name: facilityName(f!, locale) })}
+          onPress={() => onRemove(entry.id, facilityName(f!, locale))}
         />
       </View>
     </View>
@@ -397,6 +444,8 @@ function makeStyles(c: Palette) {
     rowBody: { flex: 1 },
     rowName: { fontSize: 14, fontWeight: '700', color: c.text },
     rowAddress: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+    /* 消えた施設は、押せることだけ残して淡くする */
+    rowGone: { color: c.textFaint, textDecorationLine: 'line-through' },
     rowWhen: { fontSize: 10, color: c.textFaint, marginTop: 3 },
     remove: {
       width: 44,

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { requireManager, requireStaff } from '@/lib/auth';
+import { BUCKET, thumbPathOf } from '@/lib/photos';
 import { createClient } from '@/lib/supabase/server';
 import { facilitySchema, fieldErrors, formToObject } from '@/lib/validation';
 
@@ -118,6 +119,27 @@ export async function updateFacility(
   return { ok: true, message: '保存しました。' };
 }
 
+/**
+ * 施設を消す。
+ *
+ * **消えるのは施設だけではない**
+ *   入口・注意事項・写真は外部キーで繋がっており、施設を消すと
+ *   一緒に消える（on delete cascade）。写真の「行」は消えるが、
+ *   保存領域の「実体」は残る。参照されないファイルが積み上がると
+ *   容量を圧迫するため、先に置き場所を控えてから消す。
+ *
+ * **控えてから消す**
+ *   消したあとでは、どのファイルが紐づいていたかを引けない。
+ *   逆に、先にファイルを消して行の削除が失敗すると、一覧に出るのに
+ *   開けない写真が残る。行が消えたことを確かめてから実体を消す。
+ *
+ * **アプリ側の履歴・お気に入りには残る**
+ *   端末の中の控えは施設の id だけを持っており、サーバーからは
+ *   触れない。次の取り込みで施設が見つからなくなるため、
+ *   アプリ側が「管理者が削除しました」と伝える作りにしてある
+ *   （app/src/lib/favorites.ts, history.ts）。黙って消すと、
+ *   利用者からは不具合と区別がつかない。
+ */
 export async function deleteFacility(formData: FormData): Promise<void> {
   await requireManager();
 
@@ -125,7 +147,49 @@ export async function deleteFacility(formData: FormData): Promise<void> {
   if (typeof id !== 'string') return;
 
   const supabase = await createClient();
-  await supabase.from('facilities').delete().eq('id', id);
+
+  /*
+    施設に紐づく写真の置き場所を集める。
+
+    写真は入口に紐づくものと、施設に直に紐づくもの（外観）がある。
+    入口は施設を消すと一緒に消えるため、先に id を引いておく。
+  */
+  const { data: eps } = await supabase
+    .from('entry_points')
+    .select('id')
+    .eq('facility_id', id);
+
+  const epIds = (eps ?? []).map((e) => e.id);
+  const paths: string[] = [];
+
+  const { data: own } = await supabase
+    .from('photos')
+    .select('storage_path')
+    .eq('facility_id', id);
+  for (const p of own ?? []) paths.push(p.storage_path);
+
+  if (epIds.length > 0) {
+    const { data: epPhotos } = await supabase
+      .from('photos')
+      .select('storage_path')
+      .in('entry_point_id', epIds);
+    for (const p of epPhotos ?? []) paths.push(p.storage_path);
+  }
+
+  const { data: deleted } = await supabase
+    .from('facilities')
+    .delete()
+    .eq('id', id)
+    .select('id');
+
+  // 1行も消えていなければ、権限で弾かれている。ファイルには触れない。
+  if (!deleted || deleted.length === 0) return;
+
+  if (paths.length > 0) {
+    const all = [...new Set(paths.flatMap((x) => [x, thumbPathOf(x)]))];
+    // 消せなくても施設の削除は済んでいる。ここで止めると画面が戻らない。
+    await supabase.storage.from(BUCKET).remove(all);
+  }
 
   revalidatePath('/facilities');
   revalidatePath('/');

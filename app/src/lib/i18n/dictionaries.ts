@@ -57,6 +57,9 @@ const ja = {
     unselectAll: 'すべて外す',
     stop: 'やめる',
     selected: '（選択中）',
+    /* 管理者に消された施設。名前の控えが無いときの言い方。 */
+    deletedFacility: '削除された施設',
+    deletedBadge: '削除済み',
     menu: 'メニュー',
     retry: '取り込み直す',
     top: '先頭へ',
@@ -148,6 +151,14 @@ const ja = {
     shareFailed: '共有できませんでした',
     tryAgain: 'もう一度お試しください。',
     mapAppFailed: '地図アプリを開けませんでした',
+    /*
+      管理者が消した施設を押したとき。
+
+      黙って一覧から落とすと、留めておいたはずのものが理由もなく
+      無くなった形になり、利用者からは不具合と区別がつかない。
+    */
+    facilityGone: '管理者がこの施設を削除しました',
+    facilityGoneBody: '一覧から外しました。',
   },
 
   favorites: {
@@ -335,6 +346,8 @@ const en: Dictionary = {
     unselectAll: 'Clear all',
     stop: 'Cancel',
     selected: ' (selected)',
+    deletedFacility: 'Deleted facility',
+    deletedBadge: 'Deleted',
     menu: 'Menu',
     retry: 'Try again',
     top: 'Top',
@@ -422,6 +435,8 @@ const en: Dictionary = {
     shareFailed: 'Could not share',
     tryAgain: 'Please try again.',
     mapAppFailed: 'Could not open a map app',
+    facilityGone: 'An administrator deleted this facility',
+    facilityGoneBody: 'It has been removed from your list.',
   },
 
   favorites: {

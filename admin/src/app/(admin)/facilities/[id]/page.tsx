@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation';
 
 import { deleteEntryPoint } from '@/app/actions/entry-points';
 import { BulkCheck, BulkDelete } from '@/components/bulk-delete';
+import { ConfirmSubmit } from '@/components/confirm-dialog';
 import { DeleteButton } from '@/components/delete-button';
 import {
   checkPublishReadiness,
+  deleteFacility,
   setFacilityStatus,
   updateFacility,
 } from '@/app/actions/facilities';
@@ -325,6 +327,44 @@ export default async function FacilityDetailPage({
             t={t}
           />
         </section>
+      )}
+
+      {/*
+        施設そのものを消す。
+
+        いちばん下に、他の操作から離して置く。取り消せないうえ、
+        入口・注意事項・写真までまとめて消えるため、編集の流れの
+        途中で目に入る場所には置かない。
+
+        調査員には出さない。押しても RLS が0件に絞るため、
+        「押せるのに何も起きない」状態になる。
+      */}
+      {isManager ? (
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-danger">{t.publish.deleteTitle}</h2>
+          <Card className="space-y-3 border-danger/40">
+            <p className="text-sm leading-relaxed text-text-muted">{t.publish.deleteNote}</p>
+            {facility.status === 'published' && (
+              <Alert tone="warn">{t.publish.deletePublishedNote}</Alert>
+            )}
+            <form action={deleteFacility}>
+              <input type="hidden" name="id" value={facility.id} />
+              <ConfirmSubmit
+                type="submit"
+                heading={t.common.deleteHeading}
+                message={t.publish.deleteConfirmBody.replace('{name}', facility.name)}
+                note={t.common.noUndo}
+                confirmLabel={t.common.delete}
+                cancelLabel={t.common.cancel}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-danger/40 px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"
+              >
+                {t.publish.deleteButton}
+              </ConfirmSubmit>
+            </form>
+          </Card>
+        </section>
+      ) : (
+        <p className="text-xs text-text-faint">{t.publish.deleteManagerOnly}</p>
       )}
     </div>
   );

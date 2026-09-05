@@ -131,7 +131,8 @@ export default function FacilityScreen() {
           存在しない id で開かれた場合まで残すと、履歴から
           開けない行が並ぶことになる。
         */
-        if (found) void recordVisit(id);
+        // 名前も一緒に控える。管理者に消されたあと、何が消えたのかを出すため。
+        if (found) void recordVisit(id, found.facility);
       } catch {
         if (alive) setError(t.facility.loadFailed);
       }
@@ -247,7 +248,7 @@ export default function FacilityScreen() {
   async function onPin() {
     if (!id) return;
     setPinned((v) => !v);
-    const now = await toggleFavorite(id);
+    const now = await toggleFavorite(id, detail?.facility);
     setPinned(now);
   }
 

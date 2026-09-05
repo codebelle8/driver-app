@@ -22,6 +22,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { fetchFacilitiesByIds } from './facilities';
+import { snapshotOf, type NameSnapshot } from './gone';
 import type { Facility } from './types';
 
 const KEY = 'kn_favorites';
@@ -35,14 +36,19 @@ const KEY = 'kn_favorites';
 export const FAVORITE_LIMIT = 50;
 
 /** 保存している中身。表示に要るものは、そのつど引き直す。 */
-interface Pinned {
+interface Pinned extends NameSnapshot {
   id: string;
   /** 留めた時刻 */
   at: string;
 }
 
 export interface FavoriteEntry {
-  facility: Facility;
+  /** 施設の id。消えたあとも選択や削除に使うため、ここに持つ。 */
+  id: string;
+  /** 端末にある施設。管理者に消されたあとは null。 */
+  facility: Facility | null;
+  /** 消えたあとに出す名前の控え。施設があるうちは使わない。 */
+  snapshot: NameSnapshot;
   at: string;
 }
 
@@ -80,7 +86,7 @@ export async function isFavorite(id: string): Promise<boolean> {
  *
  * 切り替えた後の状態を返す。呼ぶ側が読み直さずに画面へ映せる。
  */
-export async function toggleFavorite(id: string): Promise<boolean> {
+export async function toggleFavorite(id: string, facility?: Facility): Promise<boolean> {
   const list = await read();
   const at = list.findIndex((x) => x.id === id);
 
@@ -90,8 +96,17 @@ export async function toggleFavorite(id: string): Promise<boolean> {
     return false;
   }
 
-  // 新しく留めたものを先頭へ。最後に留めたものから順に出す。
-  list.unshift({ id, at: new Date().toISOString() });
+  /*
+    名前も一緒に控える。
+
+    表示には使わない（施設があるうちは取り込んだ内容から引く）。
+    管理者に消されたあと、何が消えたのかを出すためだけのもの。
+  */
+  list.unshift({
+    id,
+    at: new Date().toISOString(),
+    ...(facility ? snapshotOf(facility) : {}),
+  });
   await write(list);
   return true;
 }
@@ -109,18 +124,20 @@ export async function clearFavorites(): Promise<void> {
 /**
  * 留めてある施設を、新しい順に返す。
  *
- * 端末に無い施設は落とす。取り込みで消えた施設を留めたままだと、
- * 押しても開けない行が残る。
+ * 端末に無い施設も落とさずに返す（facility が null）。
+ * 黙って消えると、留めておいたはずのものが理由もなく無くなった
+ * 形になり、利用者からは不具合と区別がつかない。
+ * 画面側が「管理者が削除しました」と伝えて外す。
  */
 export async function fetchFavorites(): Promise<FavoriteEntry[]> {
   const list = await read();
   if (list.length === 0) return [];
 
   const byId = await fetchFacilitiesByIds(list.map((x) => x.id));
-  return list
-    .map((x) => {
-      const facility = byId.get(x.id);
-      return facility ? { facility, at: x.at } : null;
-    })
-    .filter((x): x is FavoriteEntry => x !== null);
+  return list.map((x) => ({
+    id: x.id,
+    facility: byId.get(x.id) ?? null,
+    snapshot: { name: x.name, name_en: x.name_en },
+    at: x.at,
+  }));
 }

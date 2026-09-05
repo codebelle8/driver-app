@@ -599,7 +599,7 @@ export default function SearchScreen() {
             />
             <View style={styles.recentList}>
               {recent.map((e) => (
-                <RecentRow key={e.facility.id} entry={e} styles={styles} c={c} wide />
+                <RecentRow key={e.id} entry={e} styles={styles} c={c} wide />
               ))}
               {recent.length === 0 && !loading && (
                 <View style={styles.recentEmptyBox}>
@@ -724,7 +724,7 @@ export default function SearchScreen() {
             />
             <View style={styles.recentBox}>
               {recent.map((e) => (
-                <RecentRow key={e.facility.id} entry={e} styles={styles} c={c} />
+                <RecentRow key={e.id} entry={e} styles={styles} c={c} />
               ))}
               {recent.length === 0 && !loading && (
                 <Text style={styles.recentEmpty}>{t.search.recentEmpty}</Text>
@@ -1062,6 +1062,9 @@ function RecentRow({
   const t = useT();
   const { locale } = useLocale();
   const f = entry.facility;
+  // 管理者に消された施設はここに出さない。理由は履歴の一覧で伝える。
+  if (!f) return null;
+
   return (
     <Link href={`/facility/${f.id}`} asChild>
       {/*

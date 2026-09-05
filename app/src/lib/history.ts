@@ -17,6 +17,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { fetchFacilitiesByIds } from './facilities';
+import { snapshotOf, type NameSnapshot } from './gone';
 import type { Facility } from './types';
 
 const KEY = 'kn_history';
@@ -30,14 +31,19 @@ const KEY = 'kn_history';
 export const HISTORY_LIMIT = 100;
 
 /** 保存している中身。表示に要るものは、そのつど引き直す。 */
-interface Visit {
+interface Visit extends NameSnapshot {
   id: string;
   /** 最後に開いた時刻 */
   at: string;
 }
 
 export interface HistoryEntry {
-  facility: Facility;
+  /** 施設の id。消えたあとも選択や削除に使うため、ここに持つ。 */
+  id: string;
+  /** 端末にある施設。管理者に消されたあとは null。 */
+  facility: Facility | null;
+  /** 消えたあとに出す名前の控え。施設があるうちは使わない。 */
+  snapshot: NameSnapshot;
   at: string;
 }
 
@@ -68,31 +74,37 @@ async function writeVisits(list: Visit[]): Promise<void> {
  * 1つの施設を3回開いたら履歴が3行になる作りだと、
  * よく使う施設ほど一覧を埋めてしまう。
  */
-export async function recordVisit(id: string): Promise<void> {
+export async function recordVisit(id: string, facility?: Facility): Promise<void> {
   const list = await readVisits();
   const rest = list.filter((v) => v.id !== id);
-  await writeVisits([{ id, at: new Date().toISOString() }, ...rest]);
+  /*
+    名前も一緒に控える。表示には使わない。
+    管理者に消されたあと、何が消えたのかを出すためだけのもの。
+  */
+  await writeVisits([
+    { id, at: new Date().toISOString(), ...(facility ? snapshotOf(facility) : {}) },
+    ...rest,
+  ]);
 }
 
 /**
  * 履歴を、新しい順に返す。
  *
- * 端末から消えた施設は落とす。管理側で非公開にされたものが
- * 履歴からだけ開ける、という状態を残さないため。
+ * 端末から消えた施設も落とさずに返す（facility が null）。
+ * 黙って消えると、調べたはずの施設が理由もなく無くなった形になる。
+ * 画面側が「管理者が削除しました」と伝えて外す。
  */
 export async function fetchHistory(): Promise<HistoryEntry[]> {
   const visits = await readVisits();
   if (visits.length === 0) return [];
 
   const byId = await fetchFacilitiesByIds(visits.map((v) => v.id));
-
-  const out: HistoryEntry[] = [];
-  for (const v of visits) {
-    const facility = byId.get(v.id);
-    if (!facility) continue;
-    out.push({ facility, at: v.at });
-  }
-  return out;
+  return visits.map((v) => ({
+    id: v.id,
+    facility: byId.get(v.id) ?? null,
+    snapshot: { name: v.name, name_en: v.name_en },
+    at: v.at,
+  }));
 }
 
 /** 履歴に何件あるか。一覧を組み立てずに数だけ要るとき用。 */
