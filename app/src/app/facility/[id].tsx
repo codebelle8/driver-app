@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Platform,
   Pressable,
@@ -23,6 +22,7 @@ import { fetchFacilityDetail } from '@/lib/facilities';
 import { useLayout } from '@/lib/layout';
 import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
+import { notify } from '@/lib/notice';
 import { ensureSynced } from '@/lib/sync';
 import { copyCoordinates, openNavigation, shareFacility } from '@/lib/nav';
 import { photoUrl } from '@/lib/supabase';
@@ -67,22 +67,6 @@ const SECTIONS: { key: Section; label: string; icon: keyof typeof Ionicons.glyph
   { key: 'diagram', label: '案内図', icon: 'map-outline' },
   { key: 'cautions', label: '注意', icon: 'alert-circle-outline' },
 ];
-
-/**
- * 短い知らせ。
- *
- * web には Alert が無く、押しても何も起きないように見えていた。
- * 環境ごとの違いをここで吸収する。
- */
-function notify(title: string, body: string) {
-  if (Platform.OS === 'web') {
-    window.alert(`${title}
-
-${body}`);
-    return;
-  }
-  Alert.alert(title, body);
-}
 
 export default function FacilityScreen() {
   const { isWide } = useLayout();
@@ -251,7 +235,7 @@ export default function FacilityScreen() {
   async function onNavigate() {
     if (!main || !hasNav) return;
     const used = await openNavigation({ lat: main.nav_lat!, lng: main.nav_lng! });
-    if (!used) Alert.alert('地図アプリを開けませんでした');
+    if (!used) notify('地図アプリを開けませんでした', undefined, 'error');
   }
 
   /*
@@ -269,7 +253,8 @@ export default function FacilityScreen() {
 
     const r = await shareFacility({ name: facility.name, url });
     if (r.how === 'copied') notify('リンクを複製しました', r.text);
-    else if (r.how === 'failed') notify('共有できませんでした', 'もう一度お試しください。');
+    else if (r.how === 'failed')
+      notify('共有できませんでした', 'もう一度お試しください。', 'error');
   }
 
   return (

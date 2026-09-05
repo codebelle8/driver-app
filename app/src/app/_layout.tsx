@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 
 import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
+import { NoticeHost } from '@/components/notice-toast';
 import { SideRail } from '@/components/side-rail';
 import { useLayout } from '@/lib/layout';
 import { ensureSynced } from '@/lib/sync';
@@ -68,6 +69,11 @@ export default function RootLayout() {
         導入映像より後ろで構わない。映像が出ている間は誰も消せない。
       */}
       <ConfirmHost />
+      {/*
+        短い知らせの帯。画面の下に重ねる。
+        札より後ろで構わない。札が出ている間に知らせは起きない。
+      */}
+      <NoticeHost />
     </ThemeProvider>
   );
 }
