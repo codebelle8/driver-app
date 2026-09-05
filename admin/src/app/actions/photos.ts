@@ -7,6 +7,7 @@ import { requireStaff } from '@/lib/auth';
 import { BUCKET, DETAIL_MAX, THUMB_MAX, thumbPathOf } from '@/lib/photos';
 import { createClient } from '@/lib/supabase/server';
 import type { PhotoKind } from '@/lib/supabase/database.types';
+import { pickIds } from '@/lib/validation';
 import type { ActionState } from './facilities';
 
 /**
@@ -345,12 +346,19 @@ export async function replacePhoto(
     : { ok: true, message: `写真を差し替えました。ただし古い画像が残りました: ${cleaned.reason}` };
 }
 
+/**
+ * 写真を消す。1件でも、選んだぶんをまとめてでも。
+ *
+ * getAll で受けているのは、まとめて消すときに同じ名前の隠し入力を
+ * 選んだ数だけ並べるため。1件のときは要素が1つの配列になるだけで、
+ * 経路は変わらない。
+ */
 export async function deletePhoto(formData: FormData): Promise<void> {
   await requireStaff();
 
-  const id = formData.get('id');
+  const ids = pickIds(formData);
   const facilityId = formData.get('facility_id');
-  if (typeof id !== 'string' || typeof facilityId !== 'string') return;
+  if (ids.length === 0 || typeof facilityId !== 'string') return;
 
   const supabase = await createClient();
 
@@ -360,15 +368,19 @@ export async function deletePhoto(formData: FormData): Promise<void> {
     delete() は、権限が無くて1行も消えなかった場合もエラーにならない。
     確かめずにファイルを消すと、一覧には残るのに開けない写真ができる。
     調査員は公開済みの写真を消せないため、これは実際に起こり得る。
+
+    まとめて消す場合も同じで、消せた行だけがここへ返る。
+    選んだ数ではなく返ってきた行を辿ることで、消せなかったぶんの
+    ファイルまで巻き添えにしない。
   */
   const { data: deleted } = await supabase
     .from('photos')
     .delete()
-    .eq('id', id)
+    .in('id', ids)
     .select('storage_path');
 
-  if (deleted && deleted.length > 0) {
-    await removeFiles(supabase, deleted[0].storage_path);
+  for (const row of deleted ?? []) {
+    await removeFiles(supabase, row.storage_path);
   }
 
   revalidatePath(`/facilities/${facilityId}`);

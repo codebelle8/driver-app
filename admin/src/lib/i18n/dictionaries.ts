@@ -752,3 +752,44 @@ const en: Dictionary = {
 export const dictionaries: Record<Locale, Dictionary> = { ja, en };
 
 export type { Dictionary };
+
+/** まとめて削除の枠に渡す文言 */
+export type BulkLabels = {
+  select: string;
+  selectAll: string;
+  unselectAll: string;
+  selectCancel: string;
+  /** 「削除 ({count})」 */
+  deleteSelected: string;
+  heading: string;
+  /** 「{count} 件を削除します。」 */
+  confirmMany: string;
+  noUndo: string;
+  delete: string;
+  cancel: string;
+};
+
+/**
+ * 辞書から、まとめて削除の枠に要る文言を集める。
+ *
+ * 呼ぶ側が3か所あり、そのたびに10項目を書き写すと、
+ * 増やしたときに一部だけ古いままになる。
+ *
+ * 部品側（bulk-delete.tsx）ではなくここに置いているのは、
+ * あちらが 'use client' のため。サーバー側で描く画面からは、
+ * client の付いた出口を呼べない。
+ */
+export function bulkLabels(t: Dictionary): BulkLabels {
+  return {
+    select: t.common.select,
+    selectAll: t.common.selectAll,
+    unselectAll: t.common.unselectAll,
+    selectCancel: t.common.selectCancel,
+    deleteSelected: t.common.deleteSelected,
+    heading: t.common.deleteHeading,
+    confirmMany: t.common.deleteManyConfirm,
+    noUndo: t.common.noUndo,
+    delete: t.common.delete,
+    cancel: t.common.cancel,
+  };
+}

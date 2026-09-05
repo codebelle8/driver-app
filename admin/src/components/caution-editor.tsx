@@ -4,10 +4,16 @@ import { useActionState, useState } from 'react';
 
 import { deleteCaution, saveCaution } from '@/app/actions/entry-points';
 import type { ActionState } from '@/app/actions/facilities';
+import { BulkCheck, BulkDelete } from '@/components/bulk-delete';
 import { DeleteButton } from '@/components/delete-button';
 import { Alert, Badge, Button, Field, inputClass } from '@/components/ui';
-import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { bulkLabels, type Dictionary } from '@/lib/i18n/dictionaries';
 import type { Caution } from '@/lib/supabase/database.types';
+
+/** 注意事項には見出しがない。どれかを示すのに本文の頭を使う。 */
+function shortBody(body: string): string {
+  return body.length > 20 ? `${body.slice(0, 20)}…` : body;
+}
 
 function timeRangeLabel(c: Caution): string | null {
   if (!c.time_from || !c.time_to) return null;
@@ -43,6 +49,13 @@ export function CautionEditor({
   return (
     <div className="space-y-3">
       {cautions.length > 0 && (
+        <BulkDelete
+          name="caution"
+          action={deleteCaution}
+          extra={{ facility_id: facilityId }}
+          ids={cautions.map((x) => x.id)}
+          labels={bulkLabels(t)}
+        >
         <ul className="space-y-2">
           {cautions.map((item) => {
             const range = timeRangeLabel(item);
@@ -67,26 +80,29 @@ export function CautionEditor({
                     )}
                   </div>
                 </div>
-                <form action={deleteCaution}>
-                  <input type="hidden" name="id" value={item.id} />
-                  <input type="hidden" name="facility_id" value={facilityId} />
-                  <DeleteButton
-                    /* 注意事項に見出しはない。本文の頭で、どれかを示す。 */
-                    name={item.body.length > 20 ? `${item.body.slice(0, 20)}…` : item.body}
-                    labels={{
-                      heading: t.common.deleteHeading,
-                      confirm: t.common.deleteOneConfirm,
-                      noUndo: t.common.noUndo,
-                      delete: t.common.delete,
-                      cancel: t.common.cancel,
-                    }}
-                    label={t.common.delete}
-                  />
-                </form>
+                {/* 注意事項に見出しはない。本文の頭で、どれかを示す。 */}
+                <BulkCheck id={item.id} label={shortBody(item.body)}>
+                  <form action={deleteCaution}>
+                    <input type="hidden" name="id" value={item.id} />
+                    <input type="hidden" name="facility_id" value={facilityId} />
+                    <DeleteButton
+                      name={shortBody(item.body)}
+                      labels={{
+                        heading: t.common.deleteHeading,
+                        confirm: t.common.deleteOneConfirm,
+                        noUndo: t.common.noUndo,
+                        delete: t.common.delete,
+                        cancel: t.common.cancel,
+                      }}
+                      label={t.common.delete}
+                    />
+                  </form>
+                </BulkCheck>
               </li>
             );
           })}
         </ul>
+        </BulkDelete>
       )}
 
       {!open ? (

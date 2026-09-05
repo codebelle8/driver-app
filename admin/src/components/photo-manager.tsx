@@ -5,9 +5,10 @@ import { useActionState, useRef, useState } from 'react';
 
 import type { ActionState } from '@/app/actions/facilities';
 import { deletePhoto, movePhoto, replacePhoto, uploadPhoto } from '@/app/actions/photos';
+import { BulkCheck, BulkDelete } from '@/components/bulk-delete';
 import { DeleteButton } from '@/components/delete-button';
 import { Alert, Badge, Button, Field, inputClass } from '@/components/ui';
-import type { Dictionary } from '@/lib/i18n/dictionaries';
+import { bulkLabels, type Dictionary } from '@/lib/i18n/dictionaries';
 import { thumbUrlOf } from '@/lib/photos';
 import type { Photo, PhotoKind } from '@/lib/supabase/database.types';
 
@@ -53,6 +54,14 @@ export function PhotoManager({
           <span className="text-xs text-text-faint">{p.emptyHint}</span>
         </p>
       ) : (
+        <BulkDelete
+          name="photo"
+          action={deletePhoto}
+          extra={{ facility_id: facilityId }}
+          ids={photos.map((x) => x.id)}
+          labels={bulkLabels(t)}
+          enabled={!readOnly}
+        >
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo, i) => (
             <li
@@ -106,27 +115,33 @@ export function PhotoManager({
                         label={p.replace}
                       />
                     </div>
-                    <form action={deletePhoto}>
-                      <input type="hidden" name="id" value={photo.id} />
-                      <input type="hidden" name="facility_id" value={facilityId} />
-                      <DeleteButton
-                        name={photo.caption || t.photoKind[photo.kind]}
-                        labels={{
-                          heading: t.common.deleteHeading,
-                          confirm: t.common.deleteOneConfirm,
-                          noUndo: t.common.noUndo,
-                          delete: t.common.delete,
-                          cancel: t.common.cancel,
-                        }}
-                        label={t.common.delete}
-                      />
-                    </form>
+                    <BulkCheck
+                      id={photo.id}
+                      label={photo.caption || t.photoKind[photo.kind]}
+                    >
+                      <form action={deletePhoto}>
+                        <input type="hidden" name="id" value={photo.id} />
+                        <input type="hidden" name="facility_id" value={facilityId} />
+                        <DeleteButton
+                          name={photo.caption || t.photoKind[photo.kind]}
+                          labels={{
+                            heading: t.common.deleteHeading,
+                            confirm: t.common.deleteOneConfirm,
+                            noUndo: t.common.noUndo,
+                            delete: t.common.delete,
+                            cancel: t.common.cancel,
+                          }}
+                          label={t.common.delete}
+                        />
+                      </form>
+                    </BulkCheck>
                   </div>
                 )}
               </div>
             </li>
           ))}
         </ul>
+        </BulkDelete>
       )}
 
       {!readOnly && (

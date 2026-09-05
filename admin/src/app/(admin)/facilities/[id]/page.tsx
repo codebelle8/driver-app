@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { deleteEntryPoint } from '@/app/actions/entry-points';
+import { BulkCheck, BulkDelete } from '@/components/bulk-delete';
 import { DeleteButton } from '@/components/delete-button';
 import {
   checkPublishReadiness,
@@ -14,6 +15,7 @@ import { FacilityForm } from '@/components/facility-form';
 import { PhotoManager } from '@/components/photo-manager';
 import { Alert, Badge, Button, Card, PageHeader, StatusBadge } from '@/components/ui';
 import { canEditFacility, requireStaff } from '@/lib/auth';
+import { bulkLabels } from '@/lib/i18n/dictionaries';
 import { getDictionary } from '@/lib/i18n/server';
 import { createClient } from '@/lib/supabase/server';
 
@@ -187,6 +189,14 @@ export default async function FacilityDetailPage({
             <p className="text-sm leading-relaxed text-text-muted">{t.entryPoint.empty}</p>
           </Card>
         ) : (
+          <BulkDelete
+            name="entry-point"
+            action={deleteEntryPoint}
+            extra={{ facility_id: facility.id }}
+            ids={entryPoints.map((ep) => ep.id)}
+            labels={bulkLabels(t)}
+            enabled={editable}
+          >
           <div className="space-y-5">
             {entryPoints.map((ep) => {
               const epPhotos = (photos ?? []).filter((p) => p.entry_point_id === ep.id);
@@ -210,21 +220,23 @@ export default async function FacilityDetailPage({
                       {t.entryPoint.photos} {epPhotos.length} {t.common.sheets}
                     </Badge>
                     {editable && (
-                      <form action={deleteEntryPoint}>
-                        <input type="hidden" name="id" value={ep.id} />
-                        <input type="hidden" name="facility_id" value={facility.id} />
-                        <DeleteButton
-                          name={ep.name}
-                          labels={{
-                            heading: t.common.deleteHeading,
-                            confirm: t.common.deleteOneConfirm,
-                            noUndo: t.common.noUndo,
-                            delete: t.common.delete,
-                            cancel: t.common.cancel,
-                          }}
-                          label={t.entryPoint.deleteThis}
-                        />
-                      </form>
+                      <BulkCheck id={ep.id} label={ep.name}>
+                        <form action={deleteEntryPoint}>
+                          <input type="hidden" name="id" value={ep.id} />
+                          <input type="hidden" name="facility_id" value={facility.id} />
+                          <DeleteButton
+                            name={ep.name}
+                            labels={{
+                              heading: t.common.deleteHeading,
+                              confirm: t.common.deleteOneConfirm,
+                              noUndo: t.common.noUndo,
+                              delete: t.common.delete,
+                              cancel: t.common.cancel,
+                            }}
+                            label={t.entryPoint.deleteThis}
+                          />
+                        </form>
+                      </BulkCheck>
                     )}
                   </div>
 
@@ -298,6 +310,7 @@ export default async function FacilityDetailPage({
               );
             })}
           </div>
+          </BulkDelete>
         )}
       </section>
 

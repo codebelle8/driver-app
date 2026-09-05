@@ -126,6 +126,31 @@ export function formToObject(formData: FormData): Record<string, unknown> {
   return out;
 }
 
+/**
+ * 消す対象の id を取り出す。
+ *
+ * まとめて消すときは同じ名前の隠し入力が選んだ数だけ並ぶため、
+ * get ではなく getAll で受ける。1件のときは要素が1つの配列になる。
+ *
+ * **形を確かめてから通す**
+ *   id は UUID にしている。画面から来る値をそのまま問い合わせへ
+ *   渡すと、細工された値が条件に混ざる余地を残す。ここで弾けば、
+ *   呼ぶ側は件数のことだけを考えればよくなる。
+ *
+ * **重複は落とす**
+ *   同じ id が二度入っても消える結果は同じだが、件数の表示が
+ *   実際と食い違う。
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function pickIds(formData: FormData, name = 'id'): string[] {
+  const seen = new Set<string>();
+  for (const value of formData.getAll(name)) {
+    if (typeof value === 'string' && UUID.test(value)) seen.add(value);
+  }
+  return [...seen];
+}
+
 /** zod のエラーを「項目名 → メッセージ」へ整形する */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { requireStaff } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
-import { entryPointSchema, fieldErrors, formToObject } from '@/lib/validation';
+import { entryPointSchema, fieldErrors, formToObject, pickIds } from '@/lib/validation';
 import type { ActionState } from './facilities';
 
 /** チェックボックス／三値のセレクトを boolean | null へ寄せる */
@@ -63,15 +63,23 @@ export async function saveEntryPoint(
   return { ok: true, message: '入口の情報を保存しました。' };
 }
 
+/**
+ * 入口を消す。1件でも、選んだぶんをまとめてでも。
+ *
+ * getAll で受けているのは、まとめて消すときに同じ名前の隠し入力を
+ * 選んだ数だけ並べるため。1件のときは要素が1つの配列になるだけで、
+ * 経路は変わらない。件数ごとに別の処理を持つと、権限の確認や
+ * 画面の作り直しを二重に書くことになる。
+ */
 export async function deleteEntryPoint(formData: FormData): Promise<void> {
   await requireStaff();
 
-  const id = formData.get('id');
+  const ids = pickIds(formData);
   const facilityId = formData.get('facility_id');
-  if (typeof id !== 'string' || typeof facilityId !== 'string') return;
+  if (ids.length === 0 || typeof facilityId !== 'string') return;
 
   const supabase = await createClient();
-  await supabase.from('entry_points').delete().eq('id', id);
+  await supabase.from('entry_points').delete().in('id', ids);
 
   revalidatePath(`/facilities/${facilityId}`);
   revalidatePath('/');
@@ -127,15 +135,16 @@ export async function saveCaution(
   return { ok: true, message: '注意事項を追加しました。' };
 }
 
+/** 注意事項を消す。1件でも、選んだぶんをまとめてでも。 */
 export async function deleteCaution(formData: FormData): Promise<void> {
   await requireStaff();
 
-  const id = formData.get('id');
+  const ids = pickIds(formData);
   const facilityId = formData.get('facility_id');
-  if (typeof id !== 'string' || typeof facilityId !== 'string') return;
+  if (ids.length === 0 || typeof facilityId !== 'string') return;
 
   const supabase = await createClient();
-  await supabase.from('cautions').delete().eq('id', id);
+  await supabase.from('cautions').delete().in('id', ids);
 
   revalidatePath(`/facilities/${facilityId}`);
 }
