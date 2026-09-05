@@ -34,6 +34,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAddedFacilities } from './catalog';
 import { isActiveNow } from './cautions';
 import { fetchCautionsWithFacility, fetchFacilitiesByIds } from './facilities';
+import type { Locale } from './i18n/dictionaries';
+import { facilityName as pickName } from './localized';
 import type { CautionSeverity } from './types';
 
 /** 読んだお知らせの控え */
@@ -71,7 +73,10 @@ export interface Notice {
  * 注意事項を先に置く。いま現地で効いている条件のほうが、
  * 「更新されました」より切迫しているため。
  */
-export async function fetchNotices(): Promise<Notice[]> {
+/**
+ * @param locale 施設名の言語。お知らせの一覧でも英語で読めるようにする。
+ */
+export async function fetchNotices(locale: Locale = 'ja'): Promise<Notice[]> {
   const withFacility = await fetchCautionsWithFacility();
 
   const cautions: Notice[] = withFacility
@@ -80,7 +85,7 @@ export async function fetchNotices(): Promise<Notice[]> {
       id: 'c:' + caution.id,
       kind: 'caution' as const,
       facilityId: facility.id,
-      facilityName: facility.name,
+      facilityName: pickName(facility, locale),
       body: caution.body,
       // 注意事項は「いま効いている」ことが要点で、いつ書かれたかは問わない
       at: new Date().toISOString(),
@@ -98,7 +103,7 @@ export async function fetchNotices(): Promise<Notice[]> {
       id: 'a:' + a.id + ':' + a.at,
       kind: 'added' as const,
       facilityId: a.id,
-      facilityName: byId.get(a.id)!.name,
+      facilityName: pickName(byId.get(a.id)!, locale),
       /* 文言は画面側で引く。ここは言語を知らない。 */
       at: a.at,
     }))

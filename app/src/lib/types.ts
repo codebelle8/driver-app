@@ -24,10 +24,23 @@ export type PhotoKind =
   | 'exterior'
   | 'other';
 
+/*
+  英語欄（*_en）について
+
+  発注元が入力した日本語のとなりに、英訳を持つ。空でよい。
+  訳が入っていない項目は、画面側が日本語へ落とす。193件の英訳が
+  揃うまで英語表示を止める、という作りにはしない。半分でも読める
+  ほうが役に立つ。
+
+  取り出しは lib/localized.ts の pick() を通す。ここを直に読むと、
+  空のときの落とし方が場所ごとにばらつく。
+*/
+
 export interface Category {
   id: string;
   code: string;
   name: string;
+  name_en: string | null;
   sort_order: number;
 }
 
@@ -38,10 +51,15 @@ export interface Facility {
   name_kana: string;
   aliases: string[];
   category_id: string;
+  name_en: string | null;
   prefecture: string;
+  prefecture_en: string | null;
   city: string | null;
+  city_en: string | null;
   address_line: string;
+  address_line_en: string | null;
   summary: string | null;
+  summary_en: string | null;
   lat: number | null;
   lng: number | null;
   /**
@@ -60,6 +78,7 @@ export interface Caution {
   id: string;
   entry_point_id: string;
   body: string;
+  body_en: string | null;
   severity: CautionSeverity;
   /** 'HH:MM:SS'。null なら常時適用 */
   time_from: string | null;
@@ -86,8 +105,11 @@ export interface EntryPoint {
   code: string;
   kind: EntryPointKind;
   name: string;
+  name_en: string | null;
   approach_text: string | null;
+  approach_text_en: string | null;
   approach_from: string | null;
+  approach_from_en: string | null;
   /**
    * ナビへ渡す座標。建物の中心ではなく「進入レーンの入口」。
    * このアプリの価値の中心にあたる値。

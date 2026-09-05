@@ -33,7 +33,8 @@ import { fetchHistory, type HistoryEntry } from '@/lib/history';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
 import { describePlace } from '@/lib/place';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
+import { categoryName, facilityAddress, facilityName } from '@/lib/localized';
 import { fill } from '@/lib/i18n/dictionaries';
 import { useLayout } from '@/lib/layout';
 import { describeWhen } from '@/lib/when';
@@ -185,6 +186,7 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function SearchScreen() {
   const c = useTheme();
   const t = useT();
+  const { locale } = useLocale();
   const styles = makeStyles(c);
   const { width: winWidth, height: winHeight, isMedium, isWide, isThreeUp } = useLayout();
 
@@ -264,7 +266,7 @@ export default function SearchScreen() {
       setSync((prev) => ({ ...prev, facilityCount: area.total }));
       setLoading(false);
 
-      const [notices, read] = await Promise.all([fetchNotices(), getRead()]);
+      const [notices, read] = await Promise.all([fetchNotices(locale), getRead()]);
       if (alive) setUnseen(countUnread(notices, read));
     })();
 
@@ -280,14 +282,14 @@ export default function SearchScreen() {
       setCategories(cats);
       setCoverage(area);
 
-      const [notices, read] = await Promise.all([fetchNotices(), getRead()]);
+      const [notices, read] = await Promise.all([fetchNotices(locale), getRead()]);
       if (alive) setUnseen(countUnread(notices, read));
     })();
 
     return () => {
       alive = false;
     };
-  }, [readLocal]);
+  }, [readLocal, locale]);
 
   /*
     この画面へ戻るたびに、お知らせの未読数と履歴を読み直す。
@@ -311,7 +313,7 @@ export default function SearchScreen() {
         */
         await ensureSynced();
         const [notices, read, history] = await Promise.all([
-          fetchNotices(),
+          fetchNotices(locale),
           getRead(),
           fetchHistory(),
         ]);
@@ -341,7 +343,7 @@ export default function SearchScreen() {
     const { cats, area } = await readLocal();
     setCategories(cats);
     setCoverage(area);
-  }, [readLocal]);
+  }, [readLocal, locale]);
 
   /*
     一度に読む件数。
@@ -401,23 +403,26 @@ export default function SearchScreen() {
     let alive = true;
     // 絞り込んでいないときは端末にある全件。事務所で開いた直後に
     // 「どのあたりを網羅しているか」が一目で分かる。
-    fetchPins(isFiltered ? facilities : undefined).then((p) => {
+    fetchPins(isFiltered ? facilities : undefined, locale).then((p) => {
       if (alive) setPins(p);
     });
     return () => {
       alive = false;
     };
-  }, [isWide, isFiltered, facilities, sync.facilityCount]);
+  }, [isWide, isFiltered, facilities, sync.facilityCount, locale]);
 
   /** 見出しに出す、いま効いている絞り込み */
   const filterLabel = useMemo(() => {
     const cat = categories.find((x) => x.id === categoryId);
     if (query.trim() && cat)
-      return fill(t.search.filtered, { category: cat.name, query: query.trim() });
-    if (cat) return cat.name;
+      return fill(t.search.filtered, {
+        category: categoryName(cat, locale),
+        query: query.trim(),
+      });
+    if (cat) return categoryName(cat, locale);
     if (query.trim()) return `「${query.trim()}」`;
     return t.search.allFacilities;
-  }, [categories, categoryId, query, t]);
+  }, [categories, categoryId, query, t, locale]);
 
   const chips = useMemo(
     () => categories.filter((cat) => CATEGORY_ICON[cat.code]),
@@ -1006,6 +1011,7 @@ function CategoryCard({
   half?: boolean;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   /*
     説明はカテゴリの記号で引く。未知の記号には当たり障りのない
     一言を当てる。カテゴリは管理画面から増やせるため、
@@ -1030,7 +1036,9 @@ function CategoryCard({
         <Ionicons name={CATEGORY_ICON[category.code]} size={wide ? 26 : 20} color={c.accent} />
       </View>
       <View style={styles.cardText}>
-        <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>{category.name}</Text>
+        <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>
+          {categoryName(category, locale)}
+        </Text>
         <Text style={wide ? styles.cardHintWide : styles.cardHint} numberOfLines={1}>
           {hint}
         </Text>
@@ -1052,6 +1060,7 @@ function RecentRow({
   wide?: boolean;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const f = entry.facility;
   return (
     <Link href={`/facility/${f.id}`} asChild>
@@ -1065,15 +1074,13 @@ function RecentRow({
         </View>
         <View style={styles.recentBody}>
           <Text style={wide ? styles.recentNameWide : styles.recentName} numberOfLines={1}>
-            {f.name}
+            {facilityName(f, locale)}
           </Text>
           <Text
             style={wide ? styles.recentAddressWide : styles.recentAddress}
             numberOfLines={1}
           >
-            {f.prefecture}
-            {f.city ?? ''}
-            {f.address_line}
+            {facilityAddress(f, locale)}
           </Text>
         </View>
         {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at, t)}</Text>}
@@ -1257,6 +1264,7 @@ function FacilityRow({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  const { locale } = useLocale();
   return (
     <Link href={`/facility/${facility.id}`} asChild>
       {/*
@@ -1283,12 +1291,10 @@ function FacilityRow({
         </View>
         <View style={styles.rowBody}>
           <Text style={styles.rowName} numberOfLines={1}>
-            {facility.name}
+            {facilityName(facility, locale)}
           </Text>
           <Text style={styles.rowAddress} numberOfLines={1}>
-            {facility.prefecture}
-            {facility.city ?? ''}
-            {facility.address_line}
+            {facilityAddress(facility, locale)}
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.textFaint} />

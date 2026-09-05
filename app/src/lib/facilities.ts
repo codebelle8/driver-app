@@ -16,6 +16,8 @@
  * 端末に届いた時点で、すべて公開済みのもの。
  */
 import { getCatalog } from './catalog';
+import type { Locale } from './i18n/dictionaries';
+import { facilityName } from './localized';
 import { normalizeSearchText } from './search';
 import type {
   Caution,
@@ -198,7 +200,13 @@ export interface Pin {
  * 「その施設がどこにあるか」が分かれば足り、どちらの進入路かは
  * 詳細画面で示す。
  */
-export async function fetchPins(facilities?: Facility[]): Promise<Pin[]> {
+/**
+ * @param locale ピンに添える名前の言語。地図の上でも英語で読めるようにする。
+ */
+export async function fetchPins(
+  facilities?: Facility[],
+  locale: Locale = 'ja',
+): Promise<Pin[]> {
   const c = await getCatalog();
   const targets = facilities ?? c.facilities;
 
@@ -212,7 +220,7 @@ export async function fetchPins(facilities?: Facility[]): Promise<Pin[]> {
   const pins: Pin[] = [];
   for (const f of targets) {
     const at = first.get(f.id) ?? (f.lat !== null && f.lng !== null ? { lat: f.lat, lng: f.lng } : null);
-    if (at) pins.push({ facilityId: f.id, name: f.name, ...at });
+    if (at) pins.push({ facilityId: f.id, name: facilityName(f, locale), ...at });
   }
   return pins;
 }

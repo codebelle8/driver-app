@@ -78,21 +78,21 @@ export interface SyncResult {
  */
 export async function fetchCatalog(): Promise<CatalogPayload> {
   const [categories, facilities, entryPoints, cautions, photos] = await Promise.all([
-      fetchAll<Category>('categories', 'id, code, name, sort_order', 'sort_order'),
+      fetchAll<Category>('categories', 'id, code, name, name_en, sort_order', 'sort_order'),
       fetchAll<Facility>(
         'facilities',
-        'id, code, name, name_kana, aliases, category_id, prefecture, city, address_line, summary, lat, lng, sort_order, updated_at',
+        'id, code, name, name_en, name_kana, aliases, category_id, prefecture, prefecture_en, city, city_en, address_line, address_line_en, summary, summary_en, lat, lng, sort_order, updated_at',
         // クライアント様の表の番号順。よみが揃っていないため、かな順にはしない。
         'sort_order',
       ),
       fetchAll<EntryPoint>(
         'entry_points',
-        'id, facility_id, code, kind, name, approach_text, approach_from, nav_lat, nav_lng, dropoff_lat, dropoff_lng, height_limit_cm, is_roofed, is_24h, sort_order',
+        'id, facility_id, code, kind, name, name_en, approach_text, approach_text_en, approach_from, approach_from_en, nav_lat, nav_lng, dropoff_lat, dropoff_lng, height_limit_cm, is_roofed, is_24h, sort_order',
         'sort_order',
       ),
       fetchAll<Caution>(
         'cautions',
-        'id, entry_point_id, body, severity, time_from, time_to, weekdays, sort_order',
+        'id, entry_point_id, body, body_en, severity, time_from, time_to, weekdays, sort_order',
         'sort_order',
       ),
       fetchAll<Photo>(

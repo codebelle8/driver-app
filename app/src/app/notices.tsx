@@ -12,7 +12,7 @@ import {
   type Notice,
 } from '@/lib/notices';
 import { describeWhen } from '@/lib/when';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
 import { IconButton } from '@/components/icon-button';
@@ -31,6 +31,7 @@ import { useTheme } from '@/theme-context';
 export default function NoticesScreen() {
   const c = useTheme();
   const t = useT();
+  const { locale } = useLocale();
   const styles = makeStyles(c);
   const router = useRouter();
 
@@ -40,7 +41,7 @@ export default function NoticesScreen() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [list, already] = await Promise.all([fetchNotices(), getRead()]);
+      const [list, already] = await Promise.all([fetchNotices(locale), getRead()]);
       if (!alive) return;
       setNotices(list);
       setRead(already);
@@ -48,7 +49,8 @@ export default function NoticesScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+    // 言語を変えたら取り直す。施設名は取った時点の言語で控えている。
+  }, [locale]);
 
   /*
     開いただけでは既読にしない。

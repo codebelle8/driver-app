@@ -22,7 +22,14 @@ import { fetchFacilityDetail } from '@/lib/facilities';
 import { useLayout } from '@/lib/layout';
 import { isFavorite, toggleFavorite } from '@/lib/favorites';
 import { recordVisit } from '@/lib/history';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
+import {
+  approachText,
+  cautionBody,
+  entryPointName,
+  facilityAddress,
+  facilityName,
+} from '@/lib/localized';
 import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
 import { ensureSynced } from '@/lib/sync';
@@ -84,6 +91,7 @@ export default function FacilityScreen() {
   const router = useRouter();
   const c = useTheme();
   const t = useT();
+  const { locale } = useLocale();
   const styles = makeStyles(c);
 
   const [detail, setDetail] = useState<FacilityDetail | null>(null);
@@ -262,7 +270,7 @@ export default function FacilityScreen() {
         ? window.location.href
         : `https://kurumayose-navi.vercel.app/facility/${id}`;
 
-    const r = await shareFacility({ name: facility.name, url, t });
+    const r = await shareFacility({ name: facilityName(facility, locale), url, t });
     if (r.how === 'copied') notify(t.notice.linkCopied, r.text);
     else if (r.how === 'failed')
       notify(t.notice.shareFailed, t.notice.tryAgain, 'error');
@@ -337,18 +345,14 @@ export default function FacilityScreen() {
         <View style={styles.headBlock}>
           {/* 下から引き上げる作りを示す印。指で扱う画面だけに出す。 */}
           {!isWide && <View style={styles.grip} />}
-          <Text style={styles.name}>{facility.name}</Text>
+          <Text style={styles.name}>{facilityName(facility, locale)}</Text>
           {main && (
             <View style={styles.kindRow}>
               <Ionicons name="car-outline" size={13} color={c.textMuted} />
               <Text style={styles.kindText}>{t.entryKind[main.kind]}</Text>
             </View>
           )}
-          <Text style={styles.address}>
-            {facility.prefecture}
-            {facility.city ?? ''}
-            {facility.address_line}
-          </Text>
+          <Text style={styles.address}>{facilityAddress(facility, locale)}</Text>
 
           {/* 操作 */}
           <View style={styles.actions}>
@@ -535,6 +539,7 @@ function SummaryBlock({
   c: Palette;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   if (entryPoints.length === 0) {
     return <Text style={styles.emptyText}>{t.facility.noEntryPoints}</Text>;
   }
@@ -556,9 +561,11 @@ function SummaryBlock({
               <View style={styles.cardBadge}>
                 <Text style={styles.cardBadgeText}>{ep.code}</Text>
               </View>
-              <Text style={styles.cardTitle}>{ep.name}</Text>
+              <Text style={styles.cardTitle}>{entryPointName(ep, locale)}</Text>
             </View>
-            {ep.approach_text && <Text style={styles.cardBody}>{ep.approach_text}</Text>}
+            {approachText(ep, locale) && (
+              <Text style={styles.cardBody}>{approachText(ep, locale)}</Text>
+            )}
             {attrs.length > 0 && (
               <View style={styles.chips}>
                 {attrs.map((a) => (
@@ -587,7 +594,7 @@ function SummaryBlock({
                   icon="copy-outline"
                   size={16}
                   compact
-                  label={fill(t.facility.copyCoords, { name: ep.name })}
+                  label={fill(t.facility.copyCoords, { name: entryPointName(ep, locale) })}
                   onPress={async () => {
                     const text = await copyCoordinates({
                       lat: ep.nav_lat!,
@@ -662,6 +669,7 @@ function CautionBlock({
   styles: ReturnType<typeof makeStyles>;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const { active, inactive } = useMemo(() => splitByActive(cautions), [cautions]);
 
   if (cautions.length === 0) {
@@ -677,14 +685,14 @@ function CautionBlock({
               ? fill(t.facility.nowCautionWhen, { when: describeSchedule(x, t)! })
               : t.facility.nowCaution}
           </Text>
-          <Text style={styles.cautionBody}>{x.body}</Text>
+          <Text style={styles.cautionBody}>{cautionBody(x, locale)}</Text>
         </View>
       ))}
       {inactive.map((x) => (
         <View key={x.id} style={styles.cautionOther}>
           <Text style={styles.cautionOtherText}>
             {describeSchedule(x, t) ? `${describeSchedule(x, t)}｜` : ''}
-            {x.body}
+            {cautionBody(x, locale)}
           </Text>
         </View>
       ))}

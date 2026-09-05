@@ -20,7 +20,8 @@ import {
   type HistoryEntry,
 } from '@/lib/history';
 import { confirmDelete } from '@/lib/confirm';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
+import { facilityAddress, facilityName } from '@/lib/localized';
 import { fill } from '@/lib/i18n/dictionaries';
 import { useSelection, type Selection } from '@/lib/selection';
 import { ensureSynced } from '@/lib/sync';
@@ -248,6 +249,7 @@ function HistoryRow({
   c: Palette;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const f = entry.facility;
   const picked = select.picked.has(f.id);
 
@@ -264,7 +266,7 @@ function HistoryRow({
         style={picked ? styles.rowPicked : styles.row}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: picked }}
-        accessibilityLabel={`${f.name}${picked ? t.common.selected : ''}`}
+        accessibilityLabel={`${facilityName(f, locale)}${picked ? t.common.selected : ''}`}
       >
         <View style={styles.rowMain}>
           <View style={picked ? styles.checkOn : styles.check}>
@@ -272,12 +274,10 @@ function HistoryRow({
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowName} numberOfLines={1}>
-              {f.name}
+              {facilityName(f, locale)}
             </Text>
             <Text style={styles.rowAddress} numberOfLines={1}>
-              {f.prefecture}
-              {f.city ?? ''}
-              {f.address_line}
+              {facilityAddress(f, locale)}
             </Text>
             <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
@@ -295,12 +295,10 @@ function HistoryRow({
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowName} numberOfLines={1}>
-              {f.name}
+              {facilityName(f, locale)}
             </Text>
             <Text style={styles.rowAddress} numberOfLines={1}>
-              {f.prefecture}
-              {f.city ?? ''}
-              {f.address_line}
+              {facilityAddress(f, locale)}
             </Text>
             <Text style={styles.rowWhen}>{describeWhen(entry.at, t)}</Text>
           </View>
