@@ -3,7 +3,6 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -91,7 +90,7 @@ export default function HistoryScreen() {
   function onRemove(id: string, name: string) {
     confirmDelete({
       title: '履歴から削除',
-      message: `「${name}」を履歴から削除します。元には戻せません。`,
+      message: `「${name}」を履歴から削除します。`,
       onYes: async () => {
         dropFromView(new Set([id]));
         await removeVisit(id);
@@ -105,7 +104,7 @@ export default function HistoryScreen() {
     if (gone.length === 0) return;
     confirmDelete({
       title: '選んだ履歴を削除',
-      message: `${gone.length} 件を履歴から削除します。元には戻せません。`,
+      message: `${gone.length} 件を履歴から削除します。`,
       onYes: async () => {
         dropFromView(new Set(gone));
         pick.exit();
@@ -118,7 +117,7 @@ export default function HistoryScreen() {
     if (!entries || entries.length === 0) return;
     confirmDelete({
       title: '履歴をすべて削除',
-      message: `${entries.length} 件の履歴をすべて削除します。元には戻せません。`,
+      message: `${entries.length} 件の履歴をすべて削除します。`,
       onYes: async () => {
         setEntries([]);
         pick.exit();

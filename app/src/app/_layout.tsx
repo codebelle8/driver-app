@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { useEffect } from 'react';
 
+import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { SideRail } from '@/components/side-rail';
 import { useLayout } from '@/lib/layout';
@@ -59,6 +60,14 @@ export default function RootLayout() {
         3枚重なることになるため、映像に一本化した。
       */}
       <IntroVideo />
+      {/*
+        消してよいかを尋ねる札。
+
+        画面の外に置くのは、呼ぶ場所が一覧の行・見出し・詳細画面と
+        散らばるため。画面ごとに持たせると同じ組み立てが増える。
+        導入映像より後ろで構わない。映像が出ている間は誰も消せない。
+      */}
+      <ConfirmHost />
     </ThemeProvider>
   );
 }

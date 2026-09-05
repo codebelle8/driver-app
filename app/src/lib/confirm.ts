@@ -5,36 +5,90 @@
  *   消す操作は元に戻せない。指が滑って触れただけで消えるのは、
  *   走行前の慌ただしい場面ではとくに起こりやすい。
  *
- * **環境ごとの違いをここで吸収する**
- *   端末側には Alert があり、ブラウザには confirm がある。
- *   呼ぶ側がその違いを気にせずに済むようにまとめる。
+ * **ブラウザの confirm をやめた**
+ *   以前は window.confirm と Alert.alert を使っていた。動きはするが、
+ *   出てくるのはブラウザや端末の作った灰色の枠で、アプリの配色とも
+ *   書体とも揃わない。暗い配色で使っている最中に白い枠が出ると、
+ *   夜間の車内では目が眩む。文言の並び順も決められず、
+ *   「はい／いいえ」の位置が環境ごとに入れ替わる。
  *
- * **「はい」を右に置かない**
- *   端末側の Alert は、消す側を destructive として示す。
- *   ブラウザの confirm は並びを決められないため、文面のほうで
- *   何が起きるかを明示する。
+ * **ここは入れ物だけを持つ**
+ *   見た目は components/confirm-dialog.tsx が描く。呼ぶ側は関数を
+ *   一つ呼ぶだけで済ませたいので、画面の外から頼めるようにしてある。
+ *   画面ごとに状態を持たせると、行の中・見出しの中・一覧の外と
+ *   呼び出す場所が散らばるぶんだけ同じ組み立てが増える。
  */
-import { Alert, Platform } from 'react-native';
 
-export function confirmDelete(options: {
+export type ConfirmRequest = {
   /** 見出し。何を消すのか。 */
   title: string;
-  /** 本文。件数と、元に戻せないことを書く。 */
+  /** 本文。何件を、どこから消すのか。 */
   message: string;
-  /** 消す側の文言。「削除する」「解除する」など。 */
+  /**
+   * 添える一言。既定は「元には戻せません。」
+   *
+   * 本文の末尾に続けて書いていたところ、折り返しが
+   * 「元に／は戻せません」の位置に落ちて読みにくかった。
+   * 行を分ければ、どの幅でも語の途中で切れない。
+   * 呼ぶ側ごとに書き方が揺れるのも防げる。
+   */
+  note: string;
+  /** 消す側の文言。「削除する」「外す」など。 */
+  yes: string;
+  onYes: () => void;
+};
+
+/** 取り消せないことを伝える一言。既定の文面。 */
+export const NO_UNDO = '元には戻せません。';
+
+type Listener = (request: ConfirmRequest | null) => void;
+
+let listener: Listener | null = null;
+/** 出し口が用意される前に頼まれたぶん。用意でき次第すぐ出す。 */
+let waiting: ConfirmRequest | null = null;
+
+/**
+ * 出し口を登録する。ConfirmHost からのみ呼ぶ。
+ * 戻り値を呼ぶと登録を外す。
+ */
+export function attachConfirmHost(next: Listener): () => void {
+  listener = next;
+  if (waiting) {
+    const held = waiting;
+    waiting = null;
+    next(held);
+  }
+  return () => {
+    if (listener === next) listener = null;
+  };
+}
+
+export function confirmDelete(options: {
+  title: string;
+  message: string;
+  /** 既定は「元には戻せません。」 */
+  note?: string;
+  /** 既定は「削除する」 */
   yes?: string;
   onYes: () => void;
 }): void {
-  const yes = options.yes ?? '削除する';
+  const request: ConfirmRequest = {
+    title: options.title,
+    message: options.message,
+    note: options.note ?? NO_UNDO,
+    yes: options.yes ?? '削除する',
+    onYes: options.onYes,
+  };
 
-  if (Platform.OS === 'web') {
-    // ブラウザは見出しと本文を分けられない。1つにまとめて出す。
-    if (window.confirm(`${options.title}\n\n${options.message}`)) options.onYes();
+  /*
+    出し口がまだ無ければ持っておく。
+
+    捨ててしまうと、押したのに何も起きない画面になる。
+    無言で消えるより、一拍遅れて出るほうがまだ分かる。
+  */
+  if (!listener) {
+    waiting = request;
     return;
   }
-
-  Alert.alert(options.title, options.message, [
-    { text: 'やめる', style: 'cancel' },
-    { text: yes, style: 'destructive', onPress: options.onYes },
-  ]);
+  listener(request);
 }

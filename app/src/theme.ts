@@ -23,6 +23,10 @@ const light = {
   accentText: '#ffffff',
   danger: '#b3261e',
   dangerSoft: '#fdecea',
+  // 塗りつぶした danger の上に乗せる文字。
+  // 明るい配色では地が濃いので白、暗い配色では地が明るいので濃い墨。
+  // accentText と同じ考え方。白のままでは暗い配色で 3:1 まで落ちる。
+  dangerText: '#ffffff',
   warn: '#9a6410',
   warnSoft: '#fdf3e2',
   // as const を付けないのは、付けると各色が固定値の型になり
@@ -44,6 +48,7 @@ const dark: typeof light = {
   accentText: '#06120d',
   danger: '#e5675c',
   dangerSoft: '#2a1614',
+  dangerText: '#2a0b08',
   warn: '#d9a441',
   warnSoft: '#2a2113',
 };

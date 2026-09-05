@@ -3,7 +3,6 @@ import { Link, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Platform,
   Pressable,
@@ -89,7 +88,7 @@ export default function FavoritesScreen() {
   function onRemove(id: string, name: string) {
     confirmDelete({
       title: 'お気に入りから外す',
-      message: `「${name}」をお気に入りから外します。元には戻せません。`,
+      message: `「${name}」をお気に入りから外します。`,
       yes: '外す',
       onYes: async () => {
         dropFromView(new Set([id]));
@@ -104,7 +103,7 @@ export default function FavoritesScreen() {
     if (gone.length === 0) return;
     confirmDelete({
       title: '選んだものを外す',
-      message: `${gone.length} 件をお気に入りから外します。元には戻せません。`,
+      message: `${gone.length} 件をお気に入りから外します。`,
       yes: '外す',
       onYes: async () => {
         dropFromView(new Set(gone));
@@ -118,7 +117,7 @@ export default function FavoritesScreen() {
     if (!entries || entries.length === 0) return;
     confirmDelete({
       title: 'お気に入りをすべて解除',
-      message: `${entries.length} 件のお気に入りをすべて解除します。元には戻せません。`,
+      message: `${entries.length} 件のお気に入りをすべて解除します。`,
       yes: '解除する',
       onYes: async () => {
         setEntries([]);
