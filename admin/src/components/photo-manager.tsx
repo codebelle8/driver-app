@@ -5,6 +5,7 @@ import { useActionState, useRef, useState } from 'react';
 
 import type { ActionState } from '@/app/actions/facilities';
 import { deletePhoto, movePhoto, replacePhoto, uploadPhoto } from '@/app/actions/photos';
+import { DeleteButton } from '@/components/delete-button';
 import { Alert, Badge, Button, Field, inputClass } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import { thumbUrlOf } from '@/lib/photos';
@@ -108,12 +109,11 @@ export function PhotoManager({
                     <form action={deletePhoto}>
                       <input type="hidden" name="id" value={photo.id} />
                       <input type="hidden" name="facility_id" value={facilityId} />
-                      <button
-                        type="submit"
-                        className="text-xs text-text-faint transition-colors hover:text-danger"
-                      >
-                        {t.common.delete}
-                      </button>
+                      <DeleteButton
+                        name={photo.caption || t.photoKind[photo.kind]}
+                        confirmText={t.common.deleteOneConfirm}
+                        label={t.common.delete}
+                      />
                     </form>
                   </div>
                 )}

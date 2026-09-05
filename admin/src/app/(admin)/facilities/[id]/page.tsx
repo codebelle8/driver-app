@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { deleteEntryPoint } from '@/app/actions/entry-points';
+import { DeleteButton } from '@/components/delete-button';
 import {
   checkPublishReadiness,
   setFacilityStatus,
@@ -212,12 +213,11 @@ export default async function FacilityDetailPage({
                       <form action={deleteEntryPoint}>
                         <input type="hidden" name="id" value={ep.id} />
                         <input type="hidden" name="facility_id" value={facility.id} />
-                        <button
-                          type="submit"
-                          className="text-xs text-text-faint transition-colors hover:text-danger"
-                        >
-                          {t.entryPoint.deleteThis}
-                        </button>
+                        <DeleteButton
+                          name={ep.name}
+                          confirmText={t.common.deleteOneConfirm}
+                          label={t.entryPoint.deleteThis}
+                        />
                       </form>
                     )}
                   </div>

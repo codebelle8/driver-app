@@ -118,6 +118,20 @@ const ja = {
     saved: '保存しました',
     cancel: 'キャンセル',
     delete: '削除',
+    /*
+      消す前の確かめ。
+
+      取り消せない操作は、押した瞬間ではなく一度受け止める。
+      何が・いくつ消えるのかと、戻せないことを文面に書く。
+    */
+    deleteOneConfirm: '「{name}」を削除します。元には戻せません。',
+    deleteManyConfirm: '{count} 件を削除します。元には戻せません。',
+    /* まとめて消すための選択 */
+    select: '選択',
+    selectAll: 'すべて選ぶ',
+    unselectAll: 'すべて外す',
+    selectCancel: 'やめる',
+    deleteSelected: '削除 ({count})',
     close: '閉じる',
     add: '追加',
     back: '一覧へ戻る',
@@ -477,6 +491,13 @@ const en: Dictionary = {
     saved: 'Saved',
     cancel: 'Cancel',
     delete: 'Delete',
+    deleteOneConfirm: 'Delete "{name}". This cannot be undone.',
+    deleteManyConfirm: 'Delete {count} items. This cannot be undone.',
+    select: 'Select',
+    selectAll: 'Select all',
+    unselectAll: 'Clear all',
+    selectCancel: 'Cancel',
+    deleteSelected: 'Delete ({count})',
     close: 'Close',
     add: 'Add',
     back: 'Back to list',

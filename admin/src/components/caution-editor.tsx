@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { deleteCaution, saveCaution } from '@/app/actions/entry-points';
 import type { ActionState } from '@/app/actions/facilities';
+import { DeleteButton } from '@/components/delete-button';
 import { Alert, Badge, Button, Field, inputClass } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import type { Caution } from '@/lib/supabase/database.types';
@@ -69,12 +70,12 @@ export function CautionEditor({
                 <form action={deleteCaution}>
                   <input type="hidden" name="id" value={item.id} />
                   <input type="hidden" name="facility_id" value={facilityId} />
-                  <button
-                    type="submit"
-                    className="text-xs text-text-faint transition-colors hover:text-danger"
-                  >
-                    {t.common.delete}
-                  </button>
+                  <DeleteButton
+                    /* 注意事項に見出しはない。本文の頭で、どれかを示す。 */
+                    name={item.body.length > 20 ? `${item.body.slice(0, 20)}…` : item.body}
+                    confirmText={t.common.deleteOneConfirm}
+                    label={t.common.delete}
+                  />
                 </form>
               </li>
             );
