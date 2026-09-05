@@ -9,6 +9,7 @@ import {
   updateCategory,
 } from '@/app/actions/categories';
 import type { ActionState } from '@/app/actions/facilities';
+import { ConfirmSubmit } from '@/components/confirm-dialog';
 import { Alert, Badge, Button, Card, Field, inputClass } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import type { Category } from '@/lib/supabase/database.types';
@@ -173,6 +174,7 @@ function EditRow({
   t: Dictionary;
 }) {
   const c = t.categories;
+  const common = t.common;
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (prev, formData) => {
       const result = await updateCategory(prev, formData);
@@ -248,14 +250,16 @@ function EditRow({
               外部キーが on delete restrict のため DB でも弾かれるが、
               そのときの文言は利用者に伝わらない。
             */}
-            <button
+            <ConfirmSubmit
               type="submit"
               formAction={deleteAction}
               disabled={deleting || inUse}
               title={inUse ? c.inUseHint : c.delete}
-              onClick={(e) => {
-                if (!confirm(c.deleteConfirm)) e.preventDefault();
-              }}
+              heading={common.deleteHeading}
+              message={c.deleteConfirm}
+              note={common.noUndo}
+              confirmLabel={common.delete}
+              cancelLabel={common.cancel}
               className={
                 'text-xs transition-colors ' +
                 (inUse
@@ -264,7 +268,7 @@ function EditRow({
               }
             >
               {c.delete}
-            </button>
+            </ConfirmSubmit>
           </div>
 
           {inUse && <p className="text-xs text-text-faint">{c.inUseHint}</p>}

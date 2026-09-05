@@ -132,7 +132,13 @@ export default async function AccountsPage() {
                             <AccountDeleteButton
                               userId={p.user_id}
                               name={p.display_name}
-                              labels={{ delete: a.delete, confirm: a.deleteConfirm }}
+                              labels={{
+                                delete: a.delete,
+                                confirm: a.deleteConfirm,
+                                heading: t.common.deleteHeading,
+                                noUndo: t.common.noUndo,
+                                cancel: t.common.cancel,
+                              }}
                             />
                           </div>
                         )}

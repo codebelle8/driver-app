@@ -1,5 +1,7 @@
 'use client';
 
+import { ConfirmSubmit } from '@/components/confirm-dialog';
+
 /**
  * 確かめてから消すボタン。
  *
@@ -19,28 +21,36 @@
  */
 export function DeleteButton({
   name,
-  confirmText,
+  labels,
   label,
   className,
 }: {
   /** 消すものの名前。文面の {name} に入る。 */
   name: string;
-  /** 確かめの文面。{name} を含む。 */
-  confirmText: string;
+  /** 札に出す文言。辞書の common から渡す。 */
+  labels: {
+    heading: string;
+    /** {name} を含む文面 */
+    confirm: string;
+    noUndo: string;
+    delete: string;
+    cancel: string;
+  };
+  /** ボタン自体の文言。「削除」「この入口を削除」など。 */
   label: string;
   className?: string;
 }) {
   return (
-    <button
+    <ConfirmSubmit
       type="submit"
-      onClick={(e) => {
-        if (!confirm(confirmText.replace('{name}', name))) e.preventDefault();
-      }}
-      className={
-        className ?? 'text-xs text-text-faint transition-colors hover:text-danger'
-      }
+      heading={labels.heading}
+      message={labels.confirm.replace('{name}', name)}
+      note={labels.noUndo}
+      confirmLabel={labels.delete}
+      cancelLabel={labels.cancel}
+      className={className ?? 'text-xs text-text-faint transition-colors hover:text-danger'}
     >
       {label}
-    </button>
+    </ConfirmSubmit>
   );
 }

@@ -4,12 +4,15 @@
  *   node tools/test-delete-confirm.mjs                       本番を検査
  *   node tools/test-delete-confirm.mjs http://localhost:3000 手元を検査
  *
- * 見るのは2点。
+ * 見るのは4点。
  *   1. 押したとき確かめが出るか（出ないなら、取り消せない操作が素通りする）
- *   2. 「いいえ」で本当に残るか
+ *   2. それがブラウザの confirm ではなく、画面の中の札であること
+ *   3. 「キャンセル」で本当に残ること
+ *   4. 「削除」で本当に消えること
  *
- * 「はい」で消えることも続けて確かめる。確かめを挟んだ結果、
- * 本来の削除まで止まってしまっては元も子もない。
+ * 4 を省くと、確かめを挟んだ結果として本来の削除まで止まって
+ * しまったことに気づけない。管理画面の削除は form の action が
+ * 受け持っており、押した側のボタンが伝わらないと動かなくなる。
  */
 import { readFileSync } from 'node:fs';
 
@@ -32,6 +35,15 @@ const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 
 const EMAIL = 'ui-delete-check@kurumayose.invalid';
 const PASSWORD = 'Rk7pWn2xCe5vQa';
+
+/*
+  消す相手のアカウント。
+
+  自分自身の行には削除ボタンが出ない（誤って自分を消せないように
+  してある）ため、検査には別のアカウントが要る。
+*/
+const TARGET_EMAIL = 'ui-delete-target@kurumayose.invalid';
+const TARGET_NAME = '削除検証用_対象';
 
 let pass = 0;
 const failures = [];
@@ -70,9 +82,12 @@ async function sb(path, { method = 'GET', body, prefer } = {}) {
 const EP_NAME = '検証用_正面車寄せ';
 const CAUTION_BODY = '検証用の注意事項。20文字を超える長さにして、末尾が省略されることも見る。';
 const PHOTO_CAPTION = '検証用の写真の説明';
+const CATEGORY_NAME = '検証用カテゴリ';
 
 let userId = null;
+let targetId = null;
 let facilityId = null;
+let categoryId2 = null;
 let browser = null;
 
 try {
@@ -93,6 +108,19 @@ try {
   await sb('/rest/v1/admin_profiles', {
     method: 'POST',
     body: { user_id: userId, display_name: '削除検証用', role: 'admin' },
+  });
+
+  const staleTarget = (users.body?.users ?? []).find((u) => u.email === TARGET_EMAIL);
+  if (staleTarget) await sb(`/auth/v1/admin/users/${staleTarget.id}`, { method: 'DELETE' });
+  const target = await sb('/auth/v1/admin/users', {
+    method: 'POST',
+    body: { email: TARGET_EMAIL, password: PASSWORD, email_confirm: true },
+  });
+  targetId = target.body?.id;
+  if (!targetId) throw new Error(`対象アカウント作成に失敗: ${JSON.stringify(target.body)}`);
+  await sb('/rest/v1/admin_profiles', {
+    method: 'POST',
+    body: { user_id: targetId, display_name: TARGET_NAME, role: 'surveyor' },
   });
 
   const cat = await sb('/rest/v1/categories?select=id&code=eq.hotel');
@@ -142,19 +170,26 @@ try {
   });
   if (!ph.body?.[0]?.id) throw new Error(`写真の作成に失敗: ${JSON.stringify(ph.body)}`);
 
+  // 施設が紐づいていないカテゴリ。紐づいていると削除ボタンが押せない。
+  const cat2 = await sb('/rest/v1/categories', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { code: 'verifycat', name: CATEGORY_NAME, code_prefix: 'VFY', sort_order: 900 },
+  });
+  categoryId2 = cat2.body?.[0]?.id;
+  if (!categoryId2) throw new Error(`カテゴリ作成に失敗: ${JSON.stringify(cat2.body)}`);
+
   // --- ログイン ---------------------------------------------------------------
   browser = await chromium.launch();
-  const context = await browser.newContext({ locale: 'ja-JP' });
+  const context = await browser.newContext({ locale: 'ja-JP', viewport: { width: 1440, height: 1000 } });
   const page = await context.newPage();
 
-  // 出た確かめを覚えておく。既定では playwright が黙って打ち消すため、
-  // 受け止めないと「いいえ」を押したのと同じ扱いになる。
-  let dialogs = [];
-  let answer = 'dismiss';
+  // ブラウザの confirm / alert が出たら記録する。
+  // 既定では playwright が黙って打ち消すため、出たこと自体に気づけない。
+  let nativeDialogs = [];
   page.on('dialog', async (d) => {
-    dialogs.push(d.message());
-    if (answer === 'accept') await d.accept();
-    else await d.dismiss();
+    nativeDialogs.push(`${d.type()}: ${d.message()}`);
+    await d.dismiss();
   });
 
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
@@ -164,115 +199,153 @@ try {
   await page.waitForFunction(() => !location.pathname.startsWith('/login'), { timeout: 30000 });
   check('管理者としてログインできる', true);
 
-  const open = async () => {
-    await page.goto(`${BASE}/facilities/${facilityId}`, { waitUntil: 'networkidle' });
-  };
+  const card = page.getByTestId('confirm-card');
+  const cancel = page.getByTestId('confirm-cancel');
+  const accept = page.getByTestId('confirm-accept');
 
   const rows = async (table, query) =>
     (await sb(`/rest/v1/${table}?select=id&${query}`)).body ?? [];
 
-  // --- 注意事項 ---------------------------------------------------------------
-  console.log('\n--- 注意事項 ---');
-  await open();
-  dialogs = [];
-  answer = 'dismiss';
-  const cautionButton = page
-    .locator('li', { hasText: CAUTION_BODY.slice(0, 12) })
-    .locator('button', { hasText: /^削除$/ });
-  check('注意事項の削除ボタンが出ている', (await cautionButton.count()) > 0);
-  if (await cautionButton.count()) await cautionButton.first().click();
-  await page.waitForTimeout(1200);
+  /**
+   * 1か所ぶんを通しで見る。
+   *
+   * @param name    見出しに出す場所の名前
+   * @param goto    その画面を開く
+   * @param button  削除ボタンを指す locator を返す
+   * @param expect  札の本文に入っているはずの文字
+   * @param count   いま残っている件数を数える
+   */
+  async function run({ name, goto, button, expect, count }) {
+    console.log(`\n--- ${name} ---`);
+    await goto();
+    nativeDialogs = [];
 
-  check('注意事項の削除で確かめが出る', dialogs.length > 0, `出た確かめ: ${dialogs.length}件`);
-  check(
-    '確かめに本文の頭が入っている',
-    dialogs.some((m) => m.includes(CAUTION_BODY.slice(0, 20))),
-    dialogs.join(' / '),
-  );
-  check(
-    '長い本文は省略されている',
-    dialogs.some((m) => m.includes('…')),
-    dialogs.join(' / '),
-  );
+    const b = button();
+    check(`${name}: 削除ボタンが出ている`, (await b.count()) > 0, `${await b.count()}個`);
+    if ((await b.count()) === 0) return;
 
-  const afterNo = await rows('cautions', `body=eq.${encodeURIComponent(CAUTION_BODY)}`);
-  check('「いいえ」で注意事項は残る', afterNo.length === 1, `残り${afterNo.length}件`);
+    await b.first().click();
+    await page.waitForTimeout(800);
 
-  answer = 'accept';
-  dialogs = [];
-  await open();
-  const cautionAgain = page.locator('li', { hasText: CAUTION_BODY.slice(0, 12) }).locator('button', {
-    hasText: /^削除$/,
+    check(
+      `${name}: ブラウザの confirm を使っていない`,
+      nativeDialogs.length === 0,
+      nativeDialogs.join(' / '),
+    );
+    check(`${name}: 画面の中に札が出る`, (await card.count()) === 1);
+
+    const text = (await card.count()) ? await card.innerText() : '';
+    check(`${name}: 見出しが「削除しますか？」`, text.includes('削除しますか？'), text);
+    check(`${name}: 何が消えるかが書かれている`, text.includes(expect), text);
+    check(`${name}: 元に戻せない旨が書かれている`, text.includes('元には戻せません'), text);
+
+    // --- やめる -------------------------------------------------------------
+    await cancel.click();
+    await page.waitForTimeout(600);
+    check(`${name}: 「キャンセル」で札が閉じる`, (await card.count()) === 0);
+    check(`${name}: 「キャンセル」で残っている`, (await count()) === 1, `残り${await count()}件`);
+
+    // --- Esc ----------------------------------------------------------------
+    await button().first().click();
+    await page.waitForTimeout(500);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(600);
+    check(`${name}: Esc でやめられる`, (await card.count()) === 0);
+    check(`${name}: Esc でも残っている`, (await count()) === 1);
+
+    // --- 消す ---------------------------------------------------------------
+    await button().first().click();
+    await page.waitForTimeout(500);
+    await accept.click();
+    await page.waitForTimeout(2500);
+    check(`${name}: 「削除」で消える`, (await count()) === 0, `残り${await count()}件`);
+  }
+
+  const facility = async () => {
+    await page.goto(`${BASE}/facilities/${facilityId}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+  };
+
+  await run({
+    name: '注意事項',
+    goto: facility,
+    button: () =>
+      page.locator('li', { hasText: CAUTION_BODY.slice(0, 12) }).locator('button', {
+        hasText: /^削除$/,
+      }),
+    expect: CAUTION_BODY.slice(0, 20),
+    count: async () =>
+      (await rows('cautions', `body=eq.${encodeURIComponent(CAUTION_BODY)}`)).length,
   });
-  if (await cautionAgain.count()) await cautionAgain.first().click();
-  await page.waitForTimeout(2500);
-  const afterYes = await rows('cautions', `body=eq.${encodeURIComponent(CAUTION_BODY)}`);
-  check('「はい」で注意事項は消える', afterYes.length === 0, `残り${afterYes.length}件`);
 
-  // --- 写真 -------------------------------------------------------------------
+  // 画像の中身はいらない。storage に置かなくても一覧には並ぶ。
+  await run({
+    name: '写真',
+    goto: facility,
+    button: () =>
+      page.locator('li', { hasText: PHOTO_CAPTION }).locator('button', { hasText: /^削除$/ }),
+    expect: PHOTO_CAPTION,
+    count: async () => (await rows('photos', `caption=eq.${encodeURIComponent(PHOTO_CAPTION)}`)).length,
+  });
+
+  await run({
+    name: '入口・車寄せ',
+    goto: facility,
+    button: () => page.getByRole('button', { name: 'この入口を削除' }),
+    expect: EP_NAME,
+    count: async () => (await rows('entry_points', `facility_id=eq.${facilityId}`)).length,
+  });
+
+  await run({
+    name: 'カテゴリ',
+    goto: async () => {
+      await page.goto(`${BASE}/categories`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(800);
+      // 行ごとに「編集」で開く作りなので、まず開く
+      await page
+        .locator('tr', { hasText: CATEGORY_NAME })
+        .getByRole('button', { name: '編集' })
+        .click();
+      await page.waitForTimeout(600);
+    },
+    button: () => page.locator('tr').getByRole('button', { name: '削除', exact: true }),
+    expect: 'このカテゴリを削除します',
+    count: async () => (await rows('categories', `id=eq.${categoryId2}`)).length,
+  });
+
+  // --- アカウント ---------------------------------------------------------------
   //
-  // 画像の中身はいらない。storage に置かなくても、一覧には並び、
-  // 削除ボタンは出る。ここで見たいのは押したときの動きだけ。
-  console.log('\n--- 写真 ---');
-  await open();
-  dialogs = [];
-  answer = 'dismiss';
-  const photoButton = page
-    .locator('li', { hasText: PHOTO_CAPTION })
-    .locator('button', { hasText: /^削除$/ });
-  check('写真の削除ボタンが出ている', (await photoButton.count()) > 0);
-  if (await photoButton.count()) await photoButton.first().click();
-  await page.waitForTimeout(1200);
-
-  check('写真の削除で確かめが出る', dialogs.length > 0, `出た確かめ: ${dialogs.length}件`);
-  check(
-    '確かめに写真の説明が入っている',
-    dialogs.some((m) => m.includes(PHOTO_CAPTION)),
-    dialogs.join(' / '),
-  );
-
-  const photoNo = await rows('photos', `entry_point_id=eq.${epId}`);
-  check('「いいえ」で写真は残る', photoNo.length === 1, `残り${photoNo.length}件`);
-
-  answer = 'accept';
-  dialogs = [];
-  await open();
-  const photoAgain = page
-    .locator('li', { hasText: PHOTO_CAPTION })
-    .locator('button', { hasText: /^削除$/ });
-  if (await photoAgain.count()) await photoAgain.first().click();
-  await page.waitForTimeout(2500);
-  const photoYes = await rows('photos', `entry_point_id=eq.${epId}`);
-  check('「はい」で写真は消える', photoYes.length === 0, `残り${photoYes.length}件`);
-
-  // --- 入口 -------------------------------------------------------------------
-  console.log('\n--- 入口・車寄せ ---');
-  await open();
-  dialogs = [];
-  answer = 'dismiss';
-  const epButton = page.getByRole('button', { name: 'この入口を削除' });
-  check('入口の削除ボタンが出ている', (await epButton.count()) > 0);
-  if (await epButton.count()) await epButton.first().click();
-  await page.waitForTimeout(1200);
-
-  check('入口の削除で確かめが出る', dialogs.length > 0, `出た確かめ: ${dialogs.length}件`);
-  check(
-    '確かめに入口の名前が入っている',
-    dialogs.some((m) => m.includes(EP_NAME)),
-    dialogs.join(' / '),
-  );
-
-  const epNo = await rows('entry_points', `facility_id=eq.${facilityId}`);
-  check('「いいえ」で入口は残る', epNo.length === 1, `残り${epNo.length}件`);
-
-  answer = 'accept';
-  dialogs = [];
-  await open();
-  const epAgain = page.getByRole('button', { name: 'この入口を削除' });
-  if (await epAgain.count()) await epAgain.first().click();
-  await page.waitForTimeout(2500);
-  const epYes = await rows('entry_points', `facility_id=eq.${facilityId}`);
-  check('「はい」で入口は消える', epYes.length === 0, `残り${epYes.length}件`);
+  // 消してしまうとログイン中の自分が消えかねないため、ここは
+  // 札が出るところまでを見る。文面が長く、以前は confirm の中で
+  // 途中から読めなくなっていた箇所でもある。
+  console.log('\n--- アカウント ---');
+  await page.goto(`${BASE}/accounts`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  nativeDialogs = [];
+  const accountDelete = page
+    .locator('tr', { hasText: TARGET_NAME })
+    .getByRole('button', { name: '削除' });
+  check('アカウントの削除ボタンが出ている', (await accountDelete.count()) > 0);
+  if (await accountDelete.count()) {
+    await accountDelete.first().click();
+    await page.waitForTimeout(800);
+    check(
+      'アカウント: ブラウザの confirm を使っていない',
+      nativeDialogs.length === 0,
+      nativeDialogs.join(' / '),
+    );
+    check('アカウント: 画面の中に札が出る', (await card.count()) === 1);
+    const text = (await card.count()) ? await card.innerText() : '';
+    check('アカウント: 誰のものか書かれている', text.includes(TARGET_NAME), text);
+    check(
+      'アカウント: 「停止する」の案内まで読める',
+      text.includes('「停止する」をお使いください'),
+      text,
+    );
+    await cancel.click();
+    await page.waitForTimeout(600);
+    check('アカウント: 「キャンセル」で札が閉じる', (await card.count()) === 0);
+  }
 } finally {
   console.log('\n--- 後片付け ---');
   if (browser) await browser.close();
@@ -281,11 +354,19 @@ try {
     const r = await sb(`/rest/v1/facilities?id=eq.${facilityId}`, { method: 'DELETE' });
     console.log(`  ${r.ok ? '削除' : '削除失敗'}  検証用の施設`);
   }
-  if (userId) {
-    await sb(`/rest/v1/audit_logs?actor_id=eq.${userId}`, { method: 'DELETE' });
-    await sb(`/rest/v1/admin_profiles?user_id=eq.${userId}`, { method: 'DELETE' });
-    const r = await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
-    console.log(`  ${r.ok ? '削除' : '削除失敗'}  検証用のアカウント`);
+  if (categoryId2) {
+    const r = await sb(`/rest/v1/categories?id=eq.${categoryId2}`, { method: 'DELETE' });
+    console.log(`  ${r.ok ? '削除' : '既に無い'}  検証用のカテゴリ`);
+  }
+  for (const [label, id] of [
+    ['検証用のアカウント', userId],
+    ['対象のアカウント', targetId],
+  ]) {
+    if (!id) continue;
+    await sb(`/rest/v1/audit_logs?actor_id=eq.${id}`, { method: 'DELETE' });
+    await sb(`/rest/v1/admin_profiles?user_id=eq.${id}`, { method: 'DELETE' });
+    const r = await sb(`/auth/v1/admin/users/${id}`, { method: 'DELETE' });
+    console.log(`  ${r.ok ? '削除' : '削除失敗'}  ${label}`);
   }
 
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);

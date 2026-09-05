@@ -111,7 +111,13 @@ export function PhotoManager({
                       <input type="hidden" name="facility_id" value={facilityId} />
                       <DeleteButton
                         name={photo.caption || t.photoKind[photo.kind]}
-                        confirmText={t.common.deleteOneConfirm}
+                        labels={{
+                          heading: t.common.deleteHeading,
+                          confirm: t.common.deleteOneConfirm,
+                          noUndo: t.common.noUndo,
+                          delete: t.common.delete,
+                          cancel: t.common.cancel,
+                        }}
                         label={t.common.delete}
                       />
                     </form>

@@ -215,7 +215,13 @@ export default async function FacilityDetailPage({
                         <input type="hidden" name="facility_id" value={facility.id} />
                         <DeleteButton
                           name={ep.name}
-                          confirmText={t.common.deleteOneConfirm}
+                          labels={{
+                            heading: t.common.deleteHeading,
+                            confirm: t.common.deleteOneConfirm,
+                            noUndo: t.common.noUndo,
+                            delete: t.common.delete,
+                            cancel: t.common.cancel,
+                          }}
                           label={t.entryPoint.deleteThis}
                         />
                       </form>

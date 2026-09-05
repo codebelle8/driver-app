@@ -82,9 +82,9 @@ const ja = {
     resume: '再開する',
     delete: '削除',
     deleteConfirm:
-      '{name} さんのアカウントを完全に削除します。元に戻せません。' +
+      '{name} さんのアカウントを完全に削除します。' +
       '操作履歴の実行者欄が空欄になります。' +
-      'ログインを止めるだけであれば「停止する」をお使いください。よろしいですか？',
+      'ログインを止めるだけであれば「停止する」をお使いください。',
     deleteNote:
       '「停止する」はログインを止めるだけで、お名前も操作履歴も残ります。' +
       '「削除」は認証情報ごと消すため、操作履歴の実行者が空欄になります。通常は停止をお勧めします。',
@@ -122,10 +122,14 @@ const ja = {
       消す前の確かめ。
 
       取り消せない操作は、押した瞬間ではなく一度受け止める。
-      何が・いくつ消えるのかと、戻せないことを文面に書く。
+      何が・いくつ消えるのかを本文に書き、戻せないことは
+      行を分けて添える（noUndo）。本文の末尾に続けて書くと、
+      折り返しが語の途中に落ちて読みにくかった。
     */
-    deleteOneConfirm: '「{name}」を削除します。元には戻せません。',
-    deleteManyConfirm: '{count} 件を削除します。元には戻せません。',
+    deleteHeading: '削除しますか？',
+    deleteOneConfirm: '「{name}」を削除します。',
+    deleteManyConfirm: '{count} 件を削除します。',
+    noUndo: '元には戻せません。',
     /* まとめて消すための選択 */
     select: '選択',
     selectAll: 'すべて選ぶ',
@@ -352,7 +356,7 @@ const ja = {
     moveUp: '前へ移動',
     moveDown: '後ろへ移動',
     delete: '削除',
-    deleteConfirm: 'このカテゴリを削除します。よろしいですか？',
+    deleteConfirm: 'このカテゴリを削除します。',
     inUseHint: '施設が紐づいているカテゴリは削除できません。「停止」で一覧から隠せます。',
   },
   kind: {
@@ -455,9 +459,9 @@ const en: Dictionary = {
     resume: 'Resume',
     delete: 'Delete',
     deleteConfirm:
-      'Permanently delete the account for {name}. This cannot be undone. ' +
+      'Permanently delete the account for {name}. ' +
       'The actor in the activity history will be left blank. ' +
-      'To only stop them signing in, use Suspend instead. Are you sure?',
+      'To only stop them signing in, use Suspend instead.',
     deleteNote:
       'Suspend only stops sign-in; the name and activity history remain. ' +
       'Delete removes the credentials, so the actor is left blank. Suspend is usually the better choice.',
@@ -491,8 +495,10 @@ const en: Dictionary = {
     saved: 'Saved',
     cancel: 'Cancel',
     delete: 'Delete',
-    deleteOneConfirm: 'Delete "{name}". This cannot be undone.',
-    deleteManyConfirm: 'Delete {count} items. This cannot be undone.',
+    deleteHeading: 'Delete?',
+    deleteOneConfirm: 'Delete "{name}".',
+    deleteManyConfirm: 'Delete {count} items.',
+    noUndo: 'This cannot be undone.',
     select: 'Select',
     selectAll: 'Select all',
     unselectAll: 'Clear all',
@@ -716,7 +722,7 @@ const en: Dictionary = {
     moveUp: 'Move earlier',
     moveDown: 'Move later',
     delete: 'Delete',
-    deleteConfirm: 'Delete this category. Are you sure?',
+    deleteConfirm: 'Delete this category.',
     inUseHint: 'A category with facilities cannot be deleted. Use Inactive to hide it.',
     prefixTitle: 'About the prefix',
     prefixBody:

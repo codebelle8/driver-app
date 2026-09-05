@@ -73,7 +73,13 @@ export function CautionEditor({
                   <DeleteButton
                     /* 注意事項に見出しはない。本文の頭で、どれかを示す。 */
                     name={item.body.length > 20 ? `${item.body.slice(0, 20)}…` : item.body}
-                    confirmText={t.common.deleteOneConfirm}
+                    labels={{
+                      heading: t.common.deleteHeading,
+                      confirm: t.common.deleteOneConfirm,
+                      noUndo: t.common.noUndo,
+                      delete: t.common.delete,
+                      cancel: t.common.cancel,
+                    }}
                     label={t.common.delete}
                   />
                 </form>
