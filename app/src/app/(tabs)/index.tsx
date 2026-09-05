@@ -622,18 +622,28 @@ export default function SearchScreen() {
       )}
 
       {/*
-        広い画面で絞り込んでいるとき。検索欄を細い帯にして、
-        下に一覧と地図を左右で並べる。
+        広い画面で絞り込んでいるとき、検索欄を細い帯にして上へ置く。
+
+        左右分割の枝の中に入れていたため、768〜1023px で絞り込むと
+        検索欄が画面から消えていた。この幅は左メニューは出るが
+        左右には並べないため、どちらの枝からも外れていた。
+        打った言葉が見えず、直すことも消すこともできない状態だった。
+
+        絞り込んでいるあいだ、検索欄はどの幅でも要る。
       */}
+      {isWide && isFiltered && (
+        <View style={styles.searchBand}>
+          {/*
+            大きさは上部のものと揃える。打ち始めた瞬間に文字が
+            19px から 14px へ落ちると、同じ欄が入れ替わったように見える。
+          */}
+          <SearchField query={query} onChange={setQuery} styles={styles} c={c} band />
+        </View>
+      )}
+
+      {/* 左右に並べるのは 1024px から。一覧の右に地図を置く。 */}
       {isSplit && isFiltered && (
         <>
-          <View style={styles.searchBand}>
-            {/*
-              大きさは上部のものと揃える。打ち始めた瞬間に文字が
-              19px から 14px へ落ちると、同じ欄が入れ替わったように見える。
-            */}
-            <SearchField query={query} onChange={setQuery} styles={styles} c={c} band />
-          </View>
 
           <View style={styles.split}>
             <View style={styles.splitList}>

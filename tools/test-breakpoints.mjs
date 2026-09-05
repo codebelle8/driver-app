@@ -4,13 +4,16 @@
  *   node tools/test-breakpoints.mjs                        手元の書き出し (4173)
  *   node tools/test-breakpoints.mjs https://kurumayose-navi.vercel.app
  *
- * 見るのは3点。
+ * 見るのは5点。
  *   1. 768px から左メニューが出て、下タブが消えること
  *   2. 767px では逆であること（区切りの直前で切り替わる）
  *   3. どの幅でも横にはみ出さず、カテゴリの札が折り返さないこと
+ *   4. どの幅でも、絞り込んでいるあいだ検索欄が出ていること
+ *   5. 端末を回しても、打った言葉が残ること
  *
- * 3 が要点。区切りを下げると本文の幅が減る。「オフィスビル」が
- * 折り返して説明が切れる、という崩れは実際に起きた。
+ * 4 と 5 は実際に落ちていた。768〜1023px で絞り込むと検索欄が
+ * 消え、打った言葉が見えず、直すことも消すこともできなかった。
+ * 幅ごとに枝を分けたとき、この幅がどちらの枝からも外れていた。
  */
 import { chromium } from 'playwright';
 
@@ -100,6 +103,62 @@ try {
     const hasMap = await page.evaluate(() => !!document.querySelector('.gm-style'));
     check(`${w}px: 一覧の横に地図 ${split ? 'あり' : 'なし'}`, hasMap === split, `地図=${hasMap}`);
 
+    /*
+      絞り込んでいるあいだ、検索欄は出ていなければならない。
+
+      打った言葉が見えないと、直すことも消すこともできない。
+      「絞り込みを外す」以外に戻る道が無くなる。
+    */
+    const field = page.getByPlaceholder(/施設名|Name, reading/);
+    check(`${w}px: 絞り込み中も検索欄が出ている`, (await field.count()) === 1, `${await field.count()}個`);
+    if ((await field.count()) === 1) {
+      check(`${w}px: 打った言葉が入っている`, (await field.inputValue()) === 'ホテル');
+    }
+
+    await page.close();
+  }
+  /*
+    端末を回したときに、打った言葉が残るか。
+
+    幅が区切りをまたぐと画面の作りが入れ替わる。入れ替えの仕方を
+    誤ると、打った言葉ごと消える。利用者からは「最初に戻った」
+    ように見える。
+  */
+  console.log('\n--- 端末の回転 ---');
+  for (const [name, from] of [
+    ['携帯（390 → 844）', { width: 390, height: 844 }],
+    ['タブレット（768 → 1024）', { width: 768, height: 1024 }],
+  ]) {
+    const page = await browser.newPage({ viewport: from });
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4000);
+    const skip = page.getByRole('button', { name: /導入を飛ばす|Skip the intro/ });
+    if (await skip.count()) await skip.first().click().catch(() => {});
+    await page.waitForTimeout(700);
+
+    await page.getByPlaceholder(/施設名|Name, reading/).fill('ホテル');
+    await page.waitForTimeout(2200);
+
+    await page.setViewportSize({ width: from.height, height: from.width });
+    await page.waitForTimeout(2200);
+    const turned = page.getByPlaceholder(/施設名|Name, reading/);
+    check(
+      `${name}: 回しても検索欄が残る`,
+      (await turned.count()) === 1,
+      `${await turned.count()}個`,
+    );
+    check(
+      `${name}: 回しても打った言葉が残る`,
+      (await turned.count()) === 1 && (await turned.inputValue()) === 'ホテル',
+    );
+
+    await page.setViewportSize(from);
+    await page.waitForTimeout(1800);
+    const back = page.getByPlaceholder(/施設名|Name, reading/);
+    check(
+      `${name}: 戻しても打った言葉が残る`,
+      (await back.count()) === 1 && (await back.inputValue()) === 'ホテル',
+    );
     await page.close();
   }
 } finally {
