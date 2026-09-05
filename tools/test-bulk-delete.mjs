@@ -19,6 +19,8 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 const BASE = (process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app').replace(/\/$/, '');
 
 function loadEnv(path) {
@@ -71,6 +73,9 @@ async function sb(path, { method = 'GET', body, prefer } = {}) {
   return { ok: res.ok, status: res.status, body: parsed };
 }
 
+/** 触った行の id。後片付けで操作履歴を消すのに使う。 */
+const touched = [];
+
 let userId = null;
 let facilityId = null;
 let browser = null;
@@ -110,6 +115,7 @@ try {
     },
   });
   facilityId = fac.body?.[0]?.id;
+  touched.push(facilityId);
   if (!facilityId) throw new Error(`施設作成に失敗: ${JSON.stringify(fac.body)}`);
 
   /*
@@ -132,6 +138,7 @@ try {
     });
     if (!r.body?.[0]?.id) throw new Error(`入口作成に失敗: ${JSON.stringify(r.body)}`);
     eps.push(r.body[0].id);
+    touched.push(r.body[0].id);
   }
 
   // 注意事項と写真は先頭の入口へ3件ずつ
@@ -311,6 +318,11 @@ try {
     const r = await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
     console.log(`  ${r.ok ? '削除' : '削除失敗'}  検証用のアカウント`);
   }
+
+  // 操作履歴はいちばん最後に消す。先に消すと、上の削除がまた行を作る。
+  touched.push(userId, facilityId);
+  const purged = await purgeAuditLogs(sb, touched);
+  console.log(`  削除    検証で残した操作履歴 ${purged} 件`);
 
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);

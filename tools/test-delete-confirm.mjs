@@ -18,6 +18,8 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 const BASE = (process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app').replace(/\/$/, '');
 
 function loadEnv(path) {
@@ -84,6 +86,9 @@ const CAUTION_BODY = '検証用の注意事項。20文字を超える長さに�
 const PHOTO_CAPTION = '検証用の写真の説明';
 const CATEGORY_NAME = '検証用カテゴリ';
 
+/** 触った行の id。後片付けで操作履歴を消すのに使う。 */
+const touched = [];
+
 let userId = null;
 let targetId = null;
 let facilityId = null;
@@ -140,6 +145,7 @@ try {
     },
   });
   facilityId = fac.body?.[0]?.id;
+  touched.push(facilityId);
   if (!facilityId) throw new Error(`施設作成に失敗: ${JSON.stringify(fac.body)}`);
 
   const ep = await sb('/rest/v1/entry_points', {
@@ -148,6 +154,7 @@ try {
     body: { facility_id: facilityId, code: 'A', kind: 'dropoff', name: EP_NAME },
   });
   const epId = ep.body?.[0]?.id;
+  touched.push(epId);
   if (!epId) throw new Error(`入口作成に失敗: ${JSON.stringify(ep.body)}`);
 
   const ca = await sb('/rest/v1/cautions', {
@@ -156,6 +163,7 @@ try {
     body: { entry_point_id: epId, body: CAUTION_BODY },
   });
   if (!ca.body?.[0]?.id) throw new Error(`注意事項の作成に失敗: ${JSON.stringify(ca.body)}`);
+  touched.push(ca.body[0].id);
 
   const ph = await sb('/rest/v1/photos', {
     method: 'POST',
@@ -169,6 +177,7 @@ try {
     },
   });
   if (!ph.body?.[0]?.id) throw new Error(`写真の作成に失敗: ${JSON.stringify(ph.body)}`);
+  touched.push(ph.body[0].id);
 
   // 施設が紐づいていないカテゴリ。紐づいていると削除ボタンが押せない。
   const cat2 = await sb('/rest/v1/categories', {
@@ -177,6 +186,7 @@ try {
     body: { code: 'verifycat', name: CATEGORY_NAME, code_prefix: 'VFY', sort_order: 900 },
   });
   categoryId2 = cat2.body?.[0]?.id;
+  touched.push(categoryId2);
   if (!categoryId2) throw new Error(`カテゴリ作成に失敗: ${JSON.stringify(cat2.body)}`);
 
   // --- ログイン ---------------------------------------------------------------
@@ -368,6 +378,14 @@ try {
     const r = await sb(`/auth/v1/admin/users/${id}`, { method: 'DELETE' });
     console.log(`  ${r.ok ? '削除' : '削除失敗'}  ${label}`);
   }
+
+  /*
+    操作履歴はいちばん最後に消す。
+    先に消すと、上の削除がまた新しい行を作る。
+  */
+  touched.push(userId, targetId, facilityId, categoryId2);
+  const purged = await purgeAuditLogs(sb, touched);
+  console.log(`  削除    検証で残した操作履歴 ${purged} 件`);
 
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);

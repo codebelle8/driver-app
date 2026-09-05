@@ -16,6 +16,8 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 const BASE = (process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app').replace(/\/$/, '');
 
 function loadEnv(path) {
@@ -215,6 +217,10 @@ try {
 
 console.log('');
 if (failures.length) {
+  // 操作履歴はいちばん最後に消す。先に消すと、上の削除がまた行を作る。
+  const purged = await purgeAuditLogs(sb, [publishedId, draftId, userId]);
+  console.log(`  削除    検証で残した操作履歴 ${purged} 件`);
+
   console.error(`合格 ${pass} 件 / 失敗 ${failures.length} 件`);
   failures.forEach((f) => console.error(`  - ${f}`));
   process.exitCode = 1;

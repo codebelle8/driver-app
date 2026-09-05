@@ -96,15 +96,41 @@ try {
   // 画面に出てくるが翻訳対象ではないもの。
   //   - 言語選択の選択肢（言語名はその言語で書くのが通例）
   //   - 利用者が登録した値（アカウント名・カテゴリ名など）
-  const [cats, profs] = await Promise.all([
+  /*
+    施設名・住所・入口名・注意事項の本文も「データの値」にあたる。
+
+    以前はカテゴリ名と利用者名だけを除いていた。193件の施設を
+    取り込んだ時点で施設一覧と操作履歴が日本語で埋まり、
+    訳し漏れが1つも無くても失敗するようになっていた。
+    失敗が常態になった検査は、本当の訳し漏れを隠す。
+  */
+  const [cats, profs, facs, eps, cauts] = await Promise.all([
     sb('/rest/v1/categories?select=name'),
     sb('/rest/v1/admin_profiles?select=display_name'),
+    sb('/rest/v1/facilities?select=name,name_kana,prefecture,city,address_line'),
+    sb('/rest/v1/entry_points?select=name'),
+    sb('/rest/v1/cautions?select=body'),
   ]);
+  const listOf = (r, ...keys) =>
+    Array.isArray(r.body) ? r.body.flatMap((row) => keys.map((k) => row[k])) : [];
+
   const dataValues = [
     '日本語',
-    ...(Array.isArray(cats.body) ? cats.body.map((c) => c.name) : []),
-    ...(Array.isArray(profs.body) ? profs.body.map((p) => p.display_name) : []),
-  ].filter(Boolean);
+    ...listOf(cats, 'name'),
+    ...listOf(profs, 'display_name'),
+    ...listOf(facs, 'name', 'name_kana', 'prefecture', 'city', 'address_line'),
+    ...listOf(eps, 'name'),
+    ...listOf(cauts, 'body'),
+  ]
+    .filter(Boolean)
+    /*
+      長いものから消す。
+
+      「東京都」を先に消すと「東京都千代田区…」が崩れて、
+      短い断片が残る。実際に「帝国東京」という有り得ない
+      文字列が残存として報告された。
+    */
+    .sort((a, b) => b.length - a.length);
 
   browser = await chromium.launch();
 

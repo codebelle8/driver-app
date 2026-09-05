@@ -89,6 +89,8 @@ const ja = {
       '「停止する」はログインを止めるだけで、お名前も操作履歴も残ります。' +
       '「削除」は認証情報ごと消すため、操作履歴の実行者が空欄になります。通常は停止をお勧めします。',
     self: 'ご自身',
+    owner: '所有者',
+    ownerLocked: '所有者のため操作できません',
     empty: 'まだアカウントがありません。',
     roleNote: '役割ごとにできることが異なります。',
     adminOnly: 'この画面は管理者のみご利用いただけます。',
@@ -466,6 +468,8 @@ const en: Dictionary = {
       'Suspend only stops sign-in; the name and activity history remain. ' +
       'Delete removes the credentials, so the actor is left blank. Suspend is usually the better choice.',
     self: 'You',
+    owner: 'Owner',
+    ownerLocked: 'The owner cannot be changed here',
     empty: 'No accounts yet.',
     roleNote: 'Each role can do different things.',
     adminOnly: 'This page is available to administrators only.',

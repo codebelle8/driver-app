@@ -84,7 +84,7 @@ export default async function AccountsPage() {
                         )}
                         {owner && (
                           <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent">
-                            所有者
+                            {a.owner}
                           </span>
                         )}
                       </td>
@@ -144,7 +144,7 @@ export default async function AccountsPage() {
                         )}
                         {owner && !isMe && (
                           <span className="text-xs text-text-muted">
-                            所有者のため操作できません
+                            {a.ownerLocked}
                           </span>
                         )}
                       </td>

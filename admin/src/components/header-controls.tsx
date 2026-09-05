@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { GlobeIcon, MoonIcon, SunIcon } from '@/components/icons';
+import { MoonIcon, SunIcon } from '@/components/icons';
+import { Flag } from '@/components/flag';
 import type { Locale } from '@/lib/i18n/dictionaries';
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -195,8 +196,11 @@ export function LocaleSelect({
         aria-expanded={open}
         className="flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-surface pl-2.5 pr-2 text-xs font-medium text-text transition-colors hover:border-accent focus:border-accent disabled:opacity-60 sm:pl-2.5"
       >
-        {/* 狭い画面では地球アイコンを隠し、横幅を詰める */}
-        <GlobeIcon width={15} height={15} className="hidden text-text-faint sm:block" />
+        {/*
+          旗を出すので、地球の印は要らなくなった。
+          印が2つ並ぶと、どちらが今の言語を指しているのか読み取りにくい。
+        */}
+        <Flag locale={current.value} />
         {current.label}
         <svg
           width="10"
@@ -236,10 +240,11 @@ export function LocaleSelect({
                 aria-selected={l.value === locale}
                 onClick={() => select(l.value)}
                 className={
-                  'block w-full whitespace-nowrap px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2 ' +
+                  'flex w-full items-center gap-2 whitespace-nowrap px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2 ' +
                   (l.value === locale ? 'font-semibold text-accent' : 'text-text')
                 }
               >
+                <Flag locale={l.value} />
                 {l.label}
               </button>
             </li>
