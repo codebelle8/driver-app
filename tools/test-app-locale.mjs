@@ -129,7 +129,35 @@ try {
     const text = await page.innerText('body');
     check('施設: 見出しが Entrance guide になる', text.includes('Entrance guide'), text.slice(0, 120));
     check('施設: 経路が Route になる', text.includes('Route'));
+
+    /*
+      画面の枠だけでなく、施設のデータも英語になっているか。
+
+      ここが要点。枠だけ英語で中身が日本語のままだと、
+      ドライバーが本当に読みたい進入方法が読めない。
+    */
+    check(
+      '施設: 施設名が英語になっている',
+      /Hotel|Tokyo|Inn|Resort/.test(text),
+      text.slice(0, 160),
+    );
+    check(
+      '施設: 住所が英語の並びになっている',
+      /-ku, Tokyo|, Tokyo|, Chiba/.test(text),
+      text.slice(0, 300),
+    );
+    check(
+      '施設: 進入方法が英語になっている',
+      /Not yet surveyed|drop-off|ramp|entrance|grounds|Terminal/i.test(text),
+      text.slice(0, 400),
+    );
+    check('施設: 入口名が Drop-off になっている', /Drop-off|Entrance/.test(text));
   }
+
+  // --- 探す画面のカテゴリ ---------------------------------------------------------
+  await open('/');
+  const home = await page.innerText('body');
+  check('探す: カテゴリが英語になっている', home.includes('Hotels'), home.slice(0, 300));
 
   // --- 開き直しても残るか ---------------------------------------------------------
   console.log('\n--- 開き直す ---');

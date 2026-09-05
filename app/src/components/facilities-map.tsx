@@ -5,7 +5,8 @@ import type { Pin } from '@/lib/facilities';
 import type { Palette } from '@/theme';
 import { SPACE } from '@/theme';
 import { useTheme } from '@/theme-context';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
+import { loadMaps, MAP_OPTIONS } from '@/lib/maps';
 
 /**
  * 検索結果を一枚の地図に並べる。広い画面でのみ使う。
@@ -31,27 +32,6 @@ const SINGLE_ZOOM = 16;
 /** ピンを囲ったときに空ける余白（px） */
 const PADDING = 56;
 
-let loading: Promise<void> | null = null;
-
-function loadMaps(key: string): Promise<void> {
-  if (typeof document === 'undefined') return Promise.reject(new Error('web ではありません'));
-  const w = window as unknown as { google?: { maps?: unknown } };
-  if (w.google?.maps) return Promise.resolve();
-  if (loading) return loading;
-
-  loading = new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src =
-      'https://maps.googleapis.com/maps/api/js' +
-      `?key=${encodeURIComponent(key)}&language=ja&region=JP`;
-    el.async = true;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('地図を読み込めませんでした'));
-    document.head.appendChild(el);
-  });
-  return loading;
-}
-
 export function FacilitiesMap({
   pins,
   activeId,
@@ -63,6 +43,7 @@ export function FacilitiesMap({
   onSelect: (facilityId: string) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const c = useTheme();
   const s = makeStyles(c);
   const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -84,7 +65,7 @@ export function FacilitiesMap({
     if (!key || pins.length === 0) return;
     let alive = true;
 
-    loadMaps(key)
+    loadMaps(key, locale)
       .then(() => {
         const el = box.current as unknown as HTMLElement | null;
         if (!alive || !el) return;
@@ -94,10 +75,7 @@ export function FacilitiesMap({
         map.current ??= new g.maps.Map(el, {
           center: { lat: pins[0].lat, lng: pins[0].lng },
           zoom: SINGLE_ZOOM,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          keyboardShortcuts: false,
+          ...MAP_OPTIONS,
         });
 
         for (const m of markers.current.values()) m.setMap(null);
@@ -143,7 +121,7 @@ export function FacilitiesMap({
     return () => {
       alive = false;
     };
-  }, [key, pins]);
+  }, [key, pins, locale]);
 
   // --- 指している施設を目立たせる ---------------------------------------------
   useEffect(() => {

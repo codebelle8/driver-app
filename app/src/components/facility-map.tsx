@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { StaticMap } from '@/components/static-map';
+import { useLocale } from '@/lib/i18n/context';
+import { loadMaps, MAP_OPTIONS } from '@/lib/maps';
 
 /**
  * 施設の地図。
@@ -22,27 +24,6 @@ import { StaticMap } from '@/components/static-map';
 /** 地図の寄り具合。建物と前の道路が読める程度。 */
 const ZOOM = 17;
 
-let loading: Promise<void> | null = null;
-
-/** Google の地図を読み込む。一度きり。 */
-function loadMaps(key: string): Promise<void> {
-  if (typeof document === 'undefined') return Promise.reject(new Error('web ではありません'));
-  const w = window as unknown as { google?: { maps?: unknown } };
-  if (w.google?.maps) return Promise.resolve();
-  if (loading) return loading;
-
-  loading = new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src =
-      'https://maps.googleapis.com/maps/api/js' +
-      `?key=${encodeURIComponent(key)}&language=ja&region=JP`;
-    el.async = true;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('地図を読み込めませんでした'));
-    document.head.appendChild(el);
-  });
-  return loading;
-}
 
 export function FacilityMap({
   lat,
@@ -59,6 +40,7 @@ export function FacilityMap({
   height: number;
 }) {
   const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const { locale } = useLocale();
   const box = useRef<View>(null);
   const [failed, setFailed] = useState(false);
 
@@ -66,7 +48,7 @@ export function FacilityMap({
     if (!key || lat === null || lng === null) return;
     let alive = true;
 
-    loadMaps(key)
+    loadMaps(key, locale)
       .then(() => {
         // View の実体は div。web でのみ触れる。
         const el = box.current as unknown as HTMLElement | null;
@@ -76,10 +58,7 @@ export function FacilityMap({
         const map = new g.maps.Map(el, {
           center: { lat, lng },
           zoom: ZOOM,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          keyboardShortcuts: false,
+          ...MAP_OPTIONS,
         });
 
         new g.maps.Marker({ map, position: { lat, lng }, title: label });
@@ -91,7 +70,7 @@ export function FacilityMap({
     return () => {
       alive = false;
     };
-  }, [key, lat, lng, label]);
+  }, [key, lat, lng, label, locale]);
 
   // 鍵が無い・読み込めない・座標が無い場合は国土地理院の地図
   if (!key || failed || lat === null || lng === null) {
