@@ -188,7 +188,7 @@ export default function SearchScreen() {
   const t = useT();
   const { locale } = useLocale();
   const styles = makeStyles(c);
-  const { width: winWidth, height: winHeight, isMedium, isWide, isThreeUp } = useLayout();
+  const { width: winWidth, height: winHeight, isWide, isSplit, isThreeUp } = useLayout();
 
   /*
     上部の帯の高さ。幅に対する比で決める（HERO_BAND_ASPECT の説明を参照）。
@@ -396,7 +396,8 @@ export default function SearchScreen() {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isWide) {
+    // 地図は左右に並べるときだけ出す。ピンもそのときだけ集める。
+    if (!isSplit) {
       setPins([]);
       return;
     }
@@ -409,7 +410,7 @@ export default function SearchScreen() {
     return () => {
       alive = false;
     };
-  }, [isWide, isFiltered, facilities, sync.facilityCount, locale]);
+  }, [isSplit, isFiltered, facilities, sync.facilityCount, locale]);
 
   /** 見出しに出す、いま効いている絞り込み */
   const filterLabel = useMemo(() => {
@@ -576,7 +577,14 @@ export default function SearchScreen() {
                   onPress={() => setCategoryId(cat.id)}
                   styles={styles}
                   c={c}
-                  wide
+                  /*
+                    大きい札は 1024px から。
+
+                    768px では左メニュー 256px を引くと本文が512pxで、
+                    2列にすると1枚が236px。大きい札だと
+                    「オフィスビル」が折り返し、説明も切れていた。
+                  */
+                  wide={isSplit}
                   half={!isThreeUp}
                 />
               ))}
@@ -617,7 +625,7 @@ export default function SearchScreen() {
         広い画面で絞り込んでいるとき。検索欄を細い帯にして、
         下に一覧と地図を左右で並べる。
       */}
-      {isWide && isFiltered && (
+      {isSplit && isFiltered && (
         <>
           <View style={styles.searchBand}>
             {/*
@@ -667,10 +675,14 @@ export default function SearchScreen() {
         </>
       )}
 
-      {/* 狭い画面の中身 */}
-      {!isWide &&
-        (isFiltered ? (
-          <ResultList
+      {/*
+        左右に並べないときの一覧。
+
+        スマホ（〜767）と、PC の骨格だが幅の足りない画面（768〜1023）の
+        両方がここへ来る。地図は出さず、一覧だけを縦に出す。
+      */}
+      {!isSplit && isFiltered && (
+        <ResultList
             listRef={listRef}
             facilities={facilities}
             loading={loading}
@@ -685,14 +697,17 @@ export default function SearchScreen() {
               setCategoryId(null);
               setShowAll(false);
             }}
-            styles={styles}
-            c={c}
-          />
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.browse}
-            showsVerticalScrollIndicator={false}
-          >
+          styles={styles}
+          c={c}
+        />
+      )}
+
+      {/* スマホの入口。カテゴリの札と、最近見たスポット。 */}
+      {!isWide && !isFiltered && (
+        <ScrollView
+          contentContainerStyle={styles.browse}
+          showsVerticalScrollIndicator={false}
+        >
             <SectionHead
               title={t.search.categoryTitle}
               more={t.common.seeAll}
@@ -707,7 +722,6 @@ export default function SearchScreen() {
                   onPress={() => setCategoryId(cat.id)}
                   styles={styles}
                   c={c}
-                  wide={isMedium}
                 />
               ))}
             </View>
@@ -731,9 +745,9 @@ export default function SearchScreen() {
               )}
             </View>
 
-            <SyncState syncing={syncing} sync={sync} onRetry={retry} styles={styles} c={c} />
-          </ScrollView>
-        ))}
+          <SyncState syncing={syncing} sync={sync} onRetry={retry} styles={styles} c={c} />
+        </ScrollView>
+      )}
 
       <ScrollTopButton
         visible={isFiltered && !atTop}

@@ -74,7 +74,7 @@ export function SideRail() {
         <BrandLogo height={44} />
       </View>
 
-      <View style={s.nav}>
+      <View style={s.nav} role="tablist">
         {NAV.map((t) => {
           /*
             いまどこにいるか。
@@ -99,12 +99,17 @@ export function SideRail() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: focused }}
                 /*
-                  読み上げ向けに、選ばれていることを文言でも添える。
+                  ブラウザへは role と aria-selected を直に渡す。
 
-                  accessibilityState の selected は、ブラウザ側の属性
-                  （aria-selected）に落ちない。見た目では緑の下地で
-                  分かるが、耳で聞く方には何も伝わらない。
+                  Link の asChild は中身を <a> に差し替えるため、
+                  accessibilityRole も accessibilityState も属性に
+                  落ちない。DOM を見て気づいた（role="tab" の要素が
+                  1つも無かった）。見た目では緑の下地で分かるが、
+                  耳で聞く方には並びの種類も現在地も伝わらない。
                 */
+                role="tab"
+                aria-selected={focused}
+                /* 読み上げ向けに、選ばれていることを文言でも添える */
                 accessibilityLabel={focused ? fill(dict.tabs.showing, { name: dict.tabs[t.key] }) : dict.tabs[t.key]}
                 /*
                   見た目は1つの object にまとめて渡す。

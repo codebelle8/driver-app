@@ -86,7 +86,7 @@ function sectionLabel(t: Dictionary, key: Section): string {
 }
 
 export default function FacilityScreen() {
-  const { isWide } = useLayout();
+  const { isSplit } = useLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const c = useTheme();
@@ -233,8 +233,8 @@ export default function FacilityScreen() {
     見込みで引いていたため、右側に数十pxの隙間が残った。
     枠そのものを測れば、見込みは要らない。
   */
-  const mapWidth = isWide ? mapBox.width : winWidth - SPACE.lg * 2;
-  const mapHeight = isWide ? mapBox.height : MAP_HEIGHT;
+  const mapWidth = isSplit ? mapBox.width : winWidth - SPACE.lg * 2;
+  const mapHeight = isSplit ? mapBox.height : MAP_HEIGHT;
 
   const main = entryPoints[0];
   const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
@@ -314,9 +314,9 @@ export default function FacilityScreen() {
         地図は縦長のまま動かさない。説明を読み進めるあいだも
         「どこに着けるのか」が視界に残っていてほしい。
       */}
-      <View style={isWide ? styles.split : styles.splitOff}>
+      <View style={isSplit ? styles.split : styles.splitOff}>
       <ScrollView
-        style={isWide ? styles.splitText : undefined}
+        style={isSplit ? styles.splitText : undefined}
         contentContainerStyle={styles.page}
         showsVerticalScrollIndicator={false}
       >
@@ -330,7 +330,7 @@ export default function FacilityScreen() {
           地図を押してナビを開始する作りはやめた。指で動かす操作と
           区別が付かないため。ナビの開始は下の「経路」が担う。
         */}
-        {!isWide && (
+        {!isSplit && (
           <View style={styles.map}>
             <FacilityMap
               lat={main?.nav_lat ?? facility.lat}
@@ -345,7 +345,7 @@ export default function FacilityScreen() {
         {/* 名前・住所 */}
         <View style={styles.headBlock}>
           {/* 下から引き上げる作りを示す印。指で扱う画面だけに出す。 */}
-          {!isWide && <View style={styles.grip} />}
+          {!isSplit && <View style={styles.grip} />}
           <Text style={styles.name}>{facilityName(facility, locale)}</Text>
           {main && (
             <View style={styles.kindRow}>
@@ -409,7 +409,7 @@ export default function FacilityScreen() {
         </View>
 
 
-        {isWide && (
+        {isSplit && (
           <SectionTabs section={section} onChange={setSection} styles={styles} c={c} wide />
         )}
 
@@ -432,7 +432,7 @@ export default function FacilityScreen() {
         </View>
       </ScrollView>
 
-      {isWide && (
+      {isSplit && (
         <View
           style={styles.splitMap}
           onLayout={(e) => {
@@ -468,7 +468,7 @@ export default function FacilityScreen() {
         広い画面では逆で、下端は指の届く場所ではなく、ただ遠い。
         中身のすぐ上へ置く（左の列の中）。
       */}
-      {!isWide && (
+      {!isSplit && (
         <SectionTabs section={section} onChange={setSection} styles={styles} c={c} />
       )}
 

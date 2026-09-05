@@ -16,17 +16,31 @@
  *   PC でも窓を半分にすればスマホと同じ幅になる。**そのときの幅だけ**で決める。
  *
  *     〜767      スマホ。1段組み。下タブ。
- *     768〜1023  タブレット。2段組みだが、案内は縦積みのまま。
- *     1024〜1199 PC。左の縦メニュー。一覧と地図を左右に並べる。
+ *     768〜1023  PC の骨格（左の縦メニュー）。中身は縦積み。
+ *     1024〜1199 一覧と地図を左右に並べる。
  *     1200〜     カテゴリの札を3列にする。
  */
 import { useWindowDimensions } from 'react-native';
 
-/** 2段組みに切り替える幅 */
-export const MEDIUM = 768;
+/**
+ * PC の骨格に切り替える幅。
+ *
+ * 左の縦メニューを出し、下タブを消す。
+ *
+ * 以前は 1024 にしていたが、768〜1023 の画面（iPad の縦、PC の窓を
+ * 半分にしたとき）でスマホの見た目のままだった。左メニューは
+ * 256px で、768px でも本文に 512px 残る。一覧を1列で出すには足りる。
+ */
+export const WIDE = 768;
 
-/** 左メニューと左右分割に切り替える幅 */
-export const WIDE = 1024;
+/**
+ * 一覧と地図を左右に並べる幅。
+ *
+ * 骨格とは分けている。施設の画面の文章の列は 520px 固定で、
+ * 768px から左メニュー 256px を引くと 512px しか残らない。
+ * 文章の列だけで幅を使い切り、地図の置き場所が無くなる。
+ */
+export const SPLIT = 1024;
 
 /**
  * カテゴリの札を3列にできる幅。
@@ -49,10 +63,10 @@ export const CONTENT_MAX = 1120;
 export interface Layout {
   width: number;
   height: number;
-  /** 768px 以上。2段組みにしてよい */
-  isMedium: boolean;
-  /** 1024px 以上。左メニューと左右分割を出す */
+  /** 768px 以上。左メニューを出し、下タブを消す */
   isWide: boolean;
+  /** 1024px 以上。一覧と地図を左右に並べる */
+  isSplit: boolean;
   /** 1200px 以上。カテゴリの札を3列にできる */
   isThreeUp: boolean;
 }
@@ -62,8 +76,8 @@ export function useLayout(): Layout {
   return {
     width,
     height,
-    isMedium: width >= MEDIUM,
     isWide: width >= WIDE,
+    isSplit: width >= SPLIT,
     isThreeUp: width >= THREE_UP,
   };
 }
