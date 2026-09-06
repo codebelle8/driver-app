@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
   Pressable,
   ScrollView,
@@ -86,7 +85,15 @@ function sectionLabel(t: Dictionary, key: Section): string {
 }
 
 export default function FacilityScreen() {
-  const { isSplit } = useLayout();
+  /*
+    幅は useLayout（useWindowDimensions）から取る。
+
+    Dimensions.get('window') で読んでいたが、あれは一度読むだけで
+    幅が変わっても更新されない。端末を回すと地図だけが元の幅の
+    ままで、右側が白く残っていた。この画面は isSplit しか見て
+    いないため、1024px をまたがない回転では描き直しも起きない。
+  */
+  const { isSplit, width: winWidth } = useLayout();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const c = useTheme();
@@ -102,7 +109,6 @@ export default function FacilityScreen() {
   const [pinned, setPinned] = useState(false);
   /** 広い画面で地図を置く枠の実寸 */
   const [mapBox, setMapBox] = useState({ width: 0, height: 0 });
-  const { width: winWidth } = Dimensions.get('window');
 
   useEffect(() => {
     let alive = true;
