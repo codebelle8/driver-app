@@ -39,7 +39,7 @@ import { fill } from '@/lib/i18n/dictionaries';
 import { useLayout } from '@/lib/layout';
 import { describeWhen } from '@/lib/when';
 import type { Category, Facility } from '@/lib/types';
-import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -1063,7 +1063,17 @@ function CategoryCard({
         <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>
           {categoryName(category, locale)}
         </Text>
-        <Text style={wide ? styles.cardHintWide : styles.cardHint} numberOfLines={1}>
+        {/*
+          狭い札では2行まで許す。
+
+          375px で2列にすると札は163pxで、記号と余白を引くと
+          文字に使えるのは95px。「オフィスビルを探す」は12pxで
+          108px あり、1行に縛ると末尾が切れていた。
+        */}
+        <Text
+          style={wide ? styles.cardHintWide : styles.cardHint}
+          numberOfLines={wide ? 1 : 2}
+        >
           {hint}
         </Text>
       </View>
@@ -1109,8 +1119,15 @@ function RecentRow({
           >
             {facilityAddress(f, locale)}
           </Text>
+          {/*
+            いつ見たかは、行の右ではなく住所の下へ置く。
+
+            右に置くと、住所に使える幅が60pxほど削られる。320pxの
+            画面では住所が入りきらず、末尾が切れていた。
+            お気に入りと履歴の一覧も、時刻は同じ位置に出している。
+          */}
+          {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at, t)}</Text>}
         </View>
-        {!wide && <Text style={styles.recentWhen}>{describeWhen(entry.at, t)}</Text>}
         <Ionicons name="chevron-forward" size={wide ? 20 : 16} color={c.textFaint} />
       </Pressable>
     </Link>
@@ -1398,8 +1415,8 @@ function makeStyles(c: Palette) {
       borderBottomWidth: 1,
       borderBottomColor: c.border,
     },
-    placeLabelWide: { fontSize: 12, color: c.textFaint },
-    placeValueWide: { fontSize: 16, color: c.text, fontWeight: '700' },
+    placeLabelWide: { fontSize: TEXT.sub, color: c.textFaint },
+    placeValueWide: { fontSize: TEXT.title, color: c.text, fontWeight: '700' },
     badge: {
       position: 'absolute',
       top: -4,
@@ -1412,11 +1429,11 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    badgeText: { fontSize: 10, fontWeight: '800', color: '#ffffff' },
+    badgeText: { fontSize: TEXT.small, fontWeight: '800', color: '#ffffff' },
     place: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
     placeText: { flex: 1 },
-    placeLabel: { fontSize: 10, color: c.textFaint },
-    placeValue: { fontSize: 12, color: c.text, fontWeight: '600' },
+    placeLabel: { fontSize: TEXT.small, color: c.textFaint },
+    placeValue: { fontSize: TEXT.sub, color: c.text, fontWeight: '600' },
 
     // --- 見出しと検索欄 ---
     head: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.md },
@@ -1433,8 +1450,8 @@ function makeStyles(c: Palette) {
       検索の範囲なのかが読み取れなくなる。
     */
     headWide: { width: SPLIT_LIST_WIDTH, paddingTop: SPACE.sm },
-    leadWide: { fontSize: 15, marginTop: 0, marginBottom: SPACE.xs },
-    lead: { fontSize: 13, color: c.textMuted, marginTop: 6 },
+    leadWide: { fontSize: TEXT.bodyStrong, marginTop: 0, marginBottom: SPACE.xs },
+    lead: { fontSize: TEXT.body, color: c.textMuted, marginTop: 6 },
     searchBox: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1447,7 +1464,7 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    input: { flex: 1, fontSize: 14, color: c.text, paddingVertical: 0 },
+    input: { flex: 1, fontSize: TEXT.body, color: c.text, paddingVertical: 0 },
 
     /*
       広い画面の上部。呼びかけと検索欄を大きく置き、右に絵を敷く。
@@ -1489,7 +1506,7 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     // 文字は大きく。欄の高さは変えない。
-    inputLarge: { flex: 1, fontSize: 19, color: c.text, paddingVertical: 0 },
+    inputLarge: { flex: 1, fontSize: TEXT.lead, color: c.text, paddingVertical: 0 },
 
     /*
       ブラウザが入力欄へ描く黒い枠を消す。
@@ -1534,8 +1551,8 @@ function makeStyles(c: Palette) {
       marginTop: SPACE.md,
       marginBottom: SPACE.sm,
     },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    sectionMore: { fontSize: 12, color: c.accent, fontWeight: '600' },
+    sectionTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    sectionMore: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
     sectionHeadWide: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1543,8 +1560,8 @@ function makeStyles(c: Palette) {
       marginTop: SECTION_GAP,
       marginBottom: SPACE.md,
     },
-    sectionTitleWide: { fontSize: 19, fontWeight: '700', color: c.text },
-    sectionMoreWide: { fontSize: 13, color: c.accent, fontWeight: '600' },
+    sectionTitleWide: { fontSize: TEXT.lead, fontWeight: '700', color: c.text },
+    sectionMoreWide: { fontSize: TEXT.body, color: c.accent, fontWeight: '600' },
 
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
     card: {
@@ -1588,8 +1605,8 @@ function makeStyles(c: Palette) {
       88px。「オフィスビル」が折り返し、説明も切れていた。
     */
     cardHalf: { width: '48%' },
-    cardTitleWide: { fontSize: 16, fontWeight: '700', color: c.text },
-    cardHintWide: { fontSize: 13, color: c.textMuted, marginTop: 3 },
+    cardTitleWide: { fontSize: TEXT.title, fontWeight: '700', color: c.text },
+    cardHintWide: { fontSize: TEXT.body, color: c.textMuted, marginTop: 3 },
     cardHover: { borderColor: c.borderStrong, backgroundColor: c.surface2 },
     cardPressed: { borderColor: c.accent, backgroundColor: c.surface2 },
     cardIcon: {
@@ -1601,8 +1618,8 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     cardText: { flex: 1 },
-    cardTitle: { fontSize: 13, fontWeight: '700', color: c.text },
-    cardHint: { fontSize: 10, color: c.textMuted, marginTop: 1 },
+    cardTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    cardHint: { fontSize: TEXT.small, color: c.textMuted, marginTop: 1 },
 
     /*
       広い画面では、1行ずつ独立した札にする。
@@ -1630,8 +1647,8 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    recentNameWide: { fontSize: 15, fontWeight: '700', color: c.text },
-    recentAddressWide: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    recentNameWide: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
+    recentAddressWide: { fontSize: TEXT.body, color: c.textMuted, marginTop: 2 },
     recentEmptyBox: {
       height: 68,
       alignItems: 'center',
@@ -1667,12 +1684,12 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     recentBody: { flex: 1 },
-    recentName: { fontSize: 13, fontWeight: '700', color: c.text },
-    recentAddress: { fontSize: 11, color: c.textMuted, marginTop: 1 },
-    recentWhen: { fontSize: 10, color: c.textFaint },
-    recentEmpty: { padding: SPACE.lg, fontSize: 12, color: c.textFaint, textAlign: 'center' },
+    recentName: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    recentAddress: { fontSize: TEXT.small, color: c.textMuted, marginTop: 1 },
+    recentWhen: { fontSize: TEXT.small, color: c.textFaint },
+    recentEmpty: { padding: SPACE.lg, fontSize: TEXT.sub, color: c.textFaint, textAlign: 'center' },
 
-    foot: { marginTop: SPACE.lg, fontSize: 11, color: c.textFaint, textAlign: 'center' },
+    foot: { marginTop: SPACE.lg, fontSize: TEXT.small, color: c.textFaint, textAlign: 'center' },
     syncRow: {
       marginTop: SPACE.lg,
       flexDirection: 'row',
@@ -1691,10 +1708,10 @@ function makeStyles(c: Palette) {
       borderColor: c.danger,
     },
     syncFailText: {
-      fontSize: 12,
+      fontSize: TEXT.sub,
       color: c.text,
       textAlign: 'center',
-      lineHeight: 18,
+      lineHeight: 19,
     },
     retry: {
       flexDirection: 'row',
@@ -1708,7 +1725,7 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     retryPressed: { backgroundColor: c.surface2 },
-    retryText: { fontSize: 13, fontWeight: '700', color: c.accent },
+    retryText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
 
     // --- 絞り込みの結果 ---
     list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
@@ -1745,9 +1762,9 @@ function makeStyles(c: Palette) {
       justifyContent: 'space-between',
       paddingBottom: SPACE.sm,
     },
-    resultCount: { flex: 1, fontSize: 12, color: c.text, fontWeight: '700' },
+    resultCount: { flex: 1, fontSize: TEXT.sub, color: c.text, fontWeight: '700' },
     resultCountNum: { color: c.textMuted, fontWeight: '400' },
-    resultClear: { fontSize: 12, color: c.accent, fontWeight: '600' },
+    resultClear: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
 
     row: {
       flexDirection: 'row',
@@ -1771,13 +1788,13 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     rowBody: { flex: 1 },
-    rowName: { fontSize: 14, fontWeight: '700', color: c.text },
-    rowAddress: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+    rowName: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    rowAddress: { fontSize: TEXT.small, color: c.textMuted, marginTop: 1 },
 
     spinner: { marginTop: SPACE.xl },
     loadingMore: { paddingVertical: SPACE.lg },
     empty: { alignItems: 'center', gap: 6, paddingTop: SPACE.xl },
-    emptyTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    emptyBody: { fontSize: 12, color: c.textMuted, textAlign: 'center' },
+    emptyTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    emptyBody: { fontSize: TEXT.sub, color: c.textMuted, textAlign: 'center' },
   });
 }

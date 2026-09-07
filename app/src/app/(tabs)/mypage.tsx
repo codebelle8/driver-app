@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
 import { useEffect, useState } from 'react';
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
 import { useLocale, useT } from '@/lib/i18n/context';
@@ -161,7 +161,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     head: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, paddingBottom: SPACE.md },
-    heading: { fontSize: 22, fontWeight: '800', color: c.accent },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
     box: {
       marginHorizontal: SPACE.lg,
       borderRadius: RADIUS.md,
@@ -188,8 +188,8 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     body: { flex: 1 },
-    name: { fontSize: 13, fontWeight: '700', color: c.text },
-    hint: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+    name: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    hint: { fontSize: TEXT.small, color: c.textMuted, marginTop: 1 },
     choices: { flexDirection: 'row', gap: SPACE.xs },
     choice: {
       flexDirection: 'row',
@@ -207,13 +207,13 @@ function makeStyles(c: Palette) {
       borderColor: c.accent,
       backgroundColor: c.accentSoft,
     },
-    choiceText: { fontSize: 12, fontWeight: '700' },
+    choiceText: { fontSize: TEXT.sub, fontWeight: '700' },
     note: {
       marginTop: SPACE.md,
       paddingHorizontal: SPACE.lg,
-      fontSize: 11,
+      fontSize: TEXT.small,
       color: c.textFaint,
-      lineHeight: 17,
+      lineHeight: 18,
     },
   });
 }

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
+import { TEXT } from '@/theme';
 
 /**
  * 画面の切り替え。
@@ -120,15 +121,15 @@ const styles = StyleSheet.create({
   // 文字が収まる高さを確保する。切り落とさない。
   labelBox: { height: 18, justifyContent: 'center', alignItems: 'center' },
   label: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: TEXT.small,
+    lineHeight: 17,
     fontWeight: '600',
     textAlign: 'center',
   },
   // 左メニューでは横に並ぶため、左寄せにして文字も大きくする
   railLabelBox: { height: 22, justifyContent: 'center' },
   railLabel: {
-    fontSize: 14,
+    fontSize: TEXT.body,
     lineHeight: 20,
     fontWeight: '600',
   },

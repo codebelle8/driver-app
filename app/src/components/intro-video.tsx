@@ -4,6 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useT } from '@/lib/i18n/context';
+import { TEXT } from '@/theme';
 
 /**
  * 起動時の導入。映像3本のあと、ロゴを見せる。
@@ -168,6 +169,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  skip: { fontSize: 12, color: 'rgba(255,255,255,0.72)' },
-  count: { fontSize: 11, color: 'rgba(255,255,255,0.45)' },
+  skip: { fontSize: TEXT.sub, color: 'rgba(255,255,255,0.72)' },
+  count: { fontSize: TEXT.small, color: 'rgba(255,255,255,0.45)' },
 });

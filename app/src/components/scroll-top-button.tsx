@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme, useThemeControl } from '@/theme-context';
 import { useT } from '@/lib/i18n/context';
 
@@ -199,6 +199,6 @@ function makeStyles(c: Palette) {
       borderWidth: 2,
       borderColor: c.surface,
     },
-    label: { fontSize: 11, color: c.textMuted },
+    label: { fontSize: TEXT.small, color: c.textMuted },
   });
 }

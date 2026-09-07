@@ -7,7 +7,7 @@ import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
-import { RADIUS, SPACE } from '@/theme';
+import { RADIUS, SPACE, TEXT } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -190,12 +190,12 @@ const makeStyles = (c: Palette) =>
       marginRight: SPACE.lg - 3,
     },
     barOff: { width: 3, marginRight: SPACE.lg - 3 },
-    label: { fontSize: 15, fontWeight: '600' },
+    label: { fontSize: TEXT.bodyStrong, fontWeight: '600' },
 
     art: { flex: 1, justifyContent: 'flex-end' },
     tagline: { padding: SPACE.xl },
     taglineText: {
-      fontSize: 14,
+      fontSize: TEXT.body,
       lineHeight: 22,
       fontWeight: '600',
       color: c.textMuted,

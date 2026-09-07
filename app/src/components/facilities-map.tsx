@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { Pin } from '@/lib/facilities';
 import type { Palette } from '@/theme';
-import { SPACE } from '@/theme';
+import { SPACE, TEXT } from '@/theme';
 import { useTheme } from '@/theme-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { loadMaps, MAP_OPTIONS } from '@/lib/maps';
@@ -180,11 +180,11 @@ const makeStyles = (c: Palette) =>
       padding: SPACE.xl,
       backgroundColor: c.bgSub,
     },
-    fallbackTitle: { fontSize: 14, fontWeight: '700', color: c.text },
+    fallbackTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
     fallbackBody: {
-      fontSize: 12,
+      fontSize: TEXT.sub,
       color: c.textMuted,
       textAlign: 'center',
-      lineHeight: 18,
+      lineHeight: 19,
     },
   });

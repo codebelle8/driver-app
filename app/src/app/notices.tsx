@@ -14,7 +14,7 @@ import {
 import { describeWhen } from '@/lib/when';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
-import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { useTheme } from '@/theme-context';
@@ -207,13 +207,13 @@ function makeStyles(c: Palette) {
       paddingHorizontal: SPACE.lg,
       paddingVertical: SPACE.sm,
     },
-    topTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: c.text },
+    topTitle: { flex: 1, textAlign: 'center', fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
     topSpacer: { width: 22 },
-    readAll: { fontSize: 12, color: c.accent, fontWeight: '600' },
+    readAll: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
 
     page: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
     section: {
-      fontSize: 13,
+      fontSize: TEXT.body,
       fontWeight: '700',
       color: c.text,
       marginTop: SPACE.md,
@@ -265,15 +265,15 @@ function makeStyles(c: Palette) {
     body: { flex: 1 },
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: c.accent },
-    name: { flex: 1, fontSize: 13, fontWeight: '400', color: c.textMuted },
-    nameUnread: { flex: 1, fontSize: 13, fontWeight: '700', color: c.text },
-    text: { fontSize: 12, color: c.textMuted, marginTop: 2, lineHeight: 17 },
-    when: { fontSize: 11, color: c.textFaint, marginTop: 3 },
+    name: { flex: 1, fontSize: TEXT.body, fontWeight: '400', color: c.textMuted },
+    nameUnread: { flex: 1, fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    text: { fontSize: TEXT.sub, color: c.textMuted, marginTop: 2, lineHeight: 18 },
+    when: { fontSize: TEXT.small, color: c.textFaint, marginTop: 3 },
 
     spinner: { marginTop: SPACE.xl },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: SPACE.xl },
-    emptyTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    emptyBody: { fontSize: 12, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
-    foot: { marginTop: SPACE.md, fontSize: 11, color: c.textFaint, textAlign: 'center', lineHeight: 17 },
+    emptyTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    emptyBody: { fontSize: TEXT.sub, color: c.textMuted, textAlign: 'center', lineHeight: 19 },
+    foot: { marginTop: SPACE.md, fontSize: TEXT.small, color: c.textFaint, textAlign: 'center', lineHeight: 18 },
   });
 }

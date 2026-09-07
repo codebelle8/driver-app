@@ -5,7 +5,7 @@ import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, Text, Vie
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { attachNoticeHost, type Notice } from '@/lib/notice';
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -133,7 +133,7 @@ function makeStyles(c: Palette) {
       boxShadow: '0 10px 30px rgba(0,0,0,0.28)',
     },
     text: { flex: 1, gap: 2 },
-    title: { fontSize: 14, fontWeight: '600', color: c.text },
-    body: { fontSize: 12, lineHeight: 17, color: c.textMuted },
+    title: { fontSize: TEXT.body, fontWeight: '600', color: c.text },
+    body: { fontSize: TEXT.sub, lineHeight: 18, color: c.textMuted },
   });
 }

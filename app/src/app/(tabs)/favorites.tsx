@@ -30,7 +30,7 @@ import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
 import { useSelection, type Selection } from '@/lib/selection';
 import { ensureSynced } from '@/lib/sync';
 import { describeWhen } from '@/lib/when';
-import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -386,12 +386,12 @@ function makeStyles(c: Palette) {
       paddingBottom: SPACE.sm,
     },
     headText: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.sm },
-    heading: { fontSize: 22, fontWeight: '800', color: c.accent },
-    count: { fontSize: 12, color: c.textMuted },
-    clearAll: { fontSize: 12, color: c.danger, fontWeight: '600' },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
+    count: { fontSize: TEXT.sub, color: c.textMuted },
+    clearAll: { fontSize: TEXT.sub, color: c.danger, fontWeight: '600' },
     headActions: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-    headAction: { fontSize: 12, color: c.accent, fontWeight: '600' },
-    headActionOff: { fontSize: 12, color: c.textFaint, fontWeight: '600' },
+    headAction: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
+    headActionOff: { fontSize: TEXT.sub, color: c.textFaint, fontWeight: '600' },
 
     /* 選ばれている行。縁と地の両方で示す。色だけだと見分けにくい方に伝わらない。 */
     rowPicked: {
@@ -447,11 +447,11 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
     rowBody: { flex: 1 },
-    rowName: { fontSize: 14, fontWeight: '700', color: c.text },
-    rowAddress: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+    rowName: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    rowAddress: { fontSize: TEXT.small, color: c.textMuted, marginTop: 1 },
     /* 消えた施設は、押せることだけ残して淡くする */
     rowGone: { color: c.textFaint, textDecorationLine: 'line-through' },
-    rowWhen: { fontSize: 10, color: c.textFaint, marginTop: 3 },
+    rowWhen: { fontSize: TEXT.small, color: c.textFaint, marginTop: 3 },
     remove: {
       width: 44,
       height: 44,
@@ -478,15 +478,15 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
       marginBottom: SPACE.sm,
     },
-    emptyTitle: { fontSize: 15, fontWeight: '700', color: c.text },
-    emptyBody: { fontSize: 12, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
+    emptyTitle: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
+    emptyBody: { fontSize: TEXT.sub, color: c.textMuted, textAlign: 'center', lineHeight: 19 },
 
     foot: {
       marginTop: SPACE.md,
-      fontSize: 11,
+      fontSize: TEXT.small,
       color: c.textFaint,
       textAlign: 'center',
-      lineHeight: 17,
+      lineHeight: 18,
     },
   });
 }

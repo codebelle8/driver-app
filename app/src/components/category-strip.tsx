@@ -11,7 +11,7 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 
-import { HIT, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 import { useT } from '@/lib/i18n/context';
 
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
   },
-  chipText: { fontSize: 15 },
+  chipText: { fontSize: TEXT.bodyStrong },
 
   row: { flexDirection: 'row', alignItems: 'center' },
   scroll: { flex: 1 },

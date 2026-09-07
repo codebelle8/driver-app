@@ -3,7 +3,7 @@ import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native
 
 import { attachConfirmHost, type ConfirmRequest } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
-import { HIT, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -192,18 +192,18 @@ function makeStyles(c: Palette) {
       boxShadow: '0 18px 48px rgba(0,0,0,0.35)',
     },
     title: {
-      fontSize: 18,
+      fontSize: TEXT.titleLarge,
       fontWeight: '700',
       color: c.text,
     },
     message: {
-      fontSize: 15,
+      fontSize: TEXT.bodyStrong,
       lineHeight: 22,
       color: c.text,
     },
     note: {
-      fontSize: 13,
-      lineHeight: 20,
+      fontSize: TEXT.body,
+      lineHeight: 21,
       color: c.danger,
       marginTop: -SPACE.xs,
     },
@@ -241,7 +241,7 @@ function makeStyles(c: Palette) {
       transform: [{ scale: 0.98 }],
     },
     buttonLabel: {
-      fontSize: 15,
+      fontSize: TEXT.bodyStrong,
       fontWeight: '600',
     },
     buttonLabelQuiet: { color: c.text },

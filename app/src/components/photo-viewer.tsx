@@ -11,7 +11,7 @@ import Animated, {
 import { IconButton } from '@/components/icon-button';
 import { photoUrl } from '@/lib/supabase';
 import type { Photo } from '@/lib/types';
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 import { useT } from '@/lib/i18n/context';
 
@@ -192,7 +192,7 @@ function makeStyles(c: Palette) {
       paddingHorizontal: SPACE.sm,
       paddingVertical: 4,
     },
-    kindTagText: { color: '#ffffff', fontSize: 12, fontWeight: '600' },
+    kindTagText: { color: '#ffffff', fontSize: TEXT.sub, fontWeight: '600' },
     close: {
       width: 40,
       height: 40,
@@ -210,7 +210,7 @@ function makeStyles(c: Palette) {
       paddingHorizontal: SPACE.lg,
       gap: 4,
     },
-    caption: { color: '#ffffff', fontSize: 14 },
-    hint: { color: 'rgba(255,255,255,0.6)', fontSize: 12 },
+    caption: { color: '#ffffff', fontSize: TEXT.body },
+    hint: { color: 'rgba(255,255,255,0.6)', fontSize: TEXT.sub },
   });
 }

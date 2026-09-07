@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 import { useT } from '@/lib/i18n/context';
 
@@ -45,7 +45,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     head: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, paddingBottom: SPACE.sm },
-    heading: { fontSize: 22, fontWeight: '800', color: c.accent },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
     center: {
       flex: 1,
       alignItems: 'center',
@@ -63,7 +63,7 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
       marginBottom: SPACE.sm,
     },
-    title: { fontSize: 15, fontWeight: '700', color: c.text },
-    body: { fontSize: 12, color: c.textMuted, textAlign: 'center', lineHeight: 18 },
+    title: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
+    body: { fontSize: TEXT.sub, color: c.textMuted, textAlign: 'center', lineHeight: 19 },
   });
 }

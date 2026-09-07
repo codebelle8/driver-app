@@ -40,7 +40,7 @@ import {
   type FacilityDetail,
   type Photo,
 } from '@/lib/types';
-import { HIT_SLOP, RADIUS, SPACE, type Palette } from '@/theme';
+import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -711,7 +711,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: SPACE.sm, paddingHorizontal: SPACE.xl },
-    errorText: { fontSize: 13, color: c.textMuted, textAlign: 'center' },
+    errorText: { fontSize: TEXT.body, color: c.textMuted, textAlign: 'center' },
     errorAction: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -725,7 +725,7 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     errorActionOn: { backgroundColor: c.surface2 },
-    errorActionText: { fontSize: 13, fontWeight: '700', color: c.accent },
+    errorActionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
     page: { paddingBottom: SPACE.lg },
 
     /*
@@ -773,7 +773,7 @@ function makeStyles(c: Palette) {
       paddingHorizontal: SPACE.lg,
       paddingVertical: SPACE.sm,
     },
-    topTitle: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '700', color: c.text },
+    topTitle: { flex: 1, textAlign: 'center', fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
     topRight: { flexDirection: 'row', gap: SPACE.md },
 
     // --- 地図の場所 ---
@@ -795,10 +795,10 @@ function makeStyles(c: Palette) {
       backgroundColor: c.border,
       marginBottom: SPACE.md,
     },
-    name: { fontSize: 20, fontWeight: '800', color: c.text },
+    name: { fontSize: TEXT.lead, fontWeight: '800', color: c.text },
     kindRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-    kindText: { fontSize: 12, color: c.textMuted },
-    address: { fontSize: 12, color: c.textMuted, marginTop: 4 },
+    kindText: { fontSize: TEXT.sub, color: c.textMuted },
+    address: { fontSize: TEXT.sub, color: c.textMuted, marginTop: 4 },
 
     actions: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.md },
     action: {
@@ -820,8 +820,8 @@ function makeStyles(c: Palette) {
     /* 留めてある状態 */
     actionOn: { backgroundColor: c.accentSoft, borderColor: c.accent },
     actionOff: { opacity: 0.4 },
-    actionText: { fontSize: 13, fontWeight: '700', color: c.accent },
-    actionMainText: { fontSize: 13, fontWeight: '700', color: c.accentText },
+    actionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    actionMainText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentText },
 
     // --- 中身の切り替え ---
     // 探す画面の下部タブと同じ見た目にそろえる
@@ -853,13 +853,13 @@ function makeStyles(c: Palette) {
       borderRadius: RADIUS.sm,
     },
     tabWideOn: { backgroundColor: c.surface },
-    tabWideText: { fontSize: 12, color: c.textFaint, fontWeight: '600' },
-    tabText: { fontSize: 11, color: c.textFaint, fontWeight: '600' },
+    tabWideText: { fontSize: TEXT.sub, color: c.textFaint, fontWeight: '600' },
+    tabText: { fontSize: TEXT.small, color: c.textFaint, fontWeight: '600' },
     tabTextOn: { color: c.accent },
 
     body: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md },
     stack: { gap: SPACE.sm },
-    emptyText: { fontSize: 12, color: c.textFaint, textAlign: 'center', paddingVertical: SPACE.xl },
+    emptyText: { fontSize: TEXT.sub, color: c.textFaint, textAlign: 'center', paddingVertical: SPACE.xl },
 
     card: {
       padding: SPACE.md,
@@ -877,9 +877,9 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    cardBadgeText: { fontSize: 12, fontWeight: '800', color: c.accentText },
-    cardTitle: { fontSize: 14, fontWeight: '700', color: c.text },
-    cardBody: { fontSize: 13, color: c.text, lineHeight: 20, marginTop: SPACE.sm },
+    cardBadgeText: { fontSize: TEXT.sub, fontWeight: '800', color: c.accentText },
+    cardTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    cardBody: { fontSize: TEXT.body, color: c.text, lineHeight: 21, marginTop: SPACE.sm },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: SPACE.sm },
     chip: {
       paddingHorizontal: SPACE.sm,
@@ -889,7 +889,7 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    chipText: { fontSize: 11, color: c.textMuted },
+    chipText: { fontSize: TEXT.small, color: c.textMuted },
 
     /* 座標の行。手入力する方のために、数字を選べる形で出す。 */
     coordRow: {
@@ -899,7 +899,7 @@ function makeStyles(c: Palette) {
       marginTop: SPACE.sm,
     },
     coordText: {
-      fontSize: 11,
+      fontSize: TEXT.small,
       color: c.textFaint,
       fontVariant: ['tabular-nums'],
     },
@@ -926,7 +926,7 @@ function makeStyles(c: Palette) {
       borderRadius: RADIUS.sm,
       backgroundColor: 'rgba(0,0,0,0.55)',
     },
-    photoTagText: { fontSize: 10, color: '#ffffff', fontWeight: '600' },
+    photoTagText: { fontSize: TEXT.small, color: '#ffffff', fontWeight: '600' },
     photoPlaceholder: {
       position: 'absolute',
       right: 6,
@@ -936,7 +936,7 @@ function makeStyles(c: Palette) {
       borderRadius: RADIUS.sm,
       backgroundColor: c.warnSoft,
     },
-    photoPlaceholderText: { fontSize: 10, color: c.warn, fontWeight: '700' },
+    photoPlaceholderText: { fontSize: TEXT.small, color: c.warn, fontWeight: '700' },
 
     cautionNow: {
       padding: SPACE.md,
@@ -945,8 +945,8 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.danger,
     },
-    cautionLabel: { fontSize: 11, fontWeight: '800', color: c.danger },
-    cautionBody: { fontSize: 13, color: c.text, lineHeight: 20, marginTop: 3 },
+    cautionLabel: { fontSize: TEXT.small, fontWeight: '800', color: c.danger },
+    cautionBody: { fontSize: TEXT.body, color: c.text, lineHeight: 21, marginTop: 3 },
     cautionOther: {
       padding: SPACE.md,
       borderRadius: RADIUS.md,
@@ -954,6 +954,6 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
-    cautionOtherText: { fontSize: 12, color: c.textMuted, lineHeight: 18 },
+    cautionOtherText: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 19 },
   });
 }

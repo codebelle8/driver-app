@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { RADIUS, SPACE, type Palette } from '@/theme';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 import { useT } from '@/lib/i18n/context';
 
@@ -175,7 +175,7 @@ function makeStyles(c: Palette) {
       paddingVertical: 2,
       borderRadius: RADIUS.sm,
       backgroundColor: c.surface,
-      fontSize: 11,
+      fontSize: TEXT.small,
       fontWeight: '700',
       color: c.text,
       overflow: 'hidden',
@@ -187,10 +187,10 @@ function makeStyles(c: Palette) {
       paddingHorizontal: 4,
       borderRadius: 3,
       backgroundColor: 'rgba(255,255,255,0.75)',
-      fontSize: 9,
+      fontSize: TEXT.micro,
       color: '#333333',
       overflow: 'hidden',
     },
-    none: { marginTop: SPACE.sm, fontSize: 12, color: c.textFaint },
+    none: { marginTop: SPACE.sm, fontSize: TEXT.sub, color: c.textFaint },
   });
 }
