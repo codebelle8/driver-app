@@ -23,7 +23,7 @@
  *   5. マイページに残り日数が出ること
  *   6. ログアウトできること
  *   7. ログインし直せること／誤ったパスワードは断ること
- *   8. 顔写真を選ぶと、置き場所と名簿と**画面**に載ること
+ *   8. 顔写真は、選んだだけでは変わらず、OK を押して初めて変わること
  *   9. 顔写真を押すと、プロフィール・設定・ログアウトが出ること
  *  10. 無料期間が切れると料金の案内が出て、1つ選んで申し込めること
  *  11. ログインしたままパスワードを変えられること（いまのを間違えたら断る）
@@ -291,6 +291,39 @@ try {
       await page.evaluate(() => window.dispatchEvent(new Event('focus')));
       await page.waitForTimeout(1200);
       await chooser.setFiles(TEST_IMAGE);
+      await page.waitForTimeout(5000);
+
+      /*
+        **選んだだけでは変えない。**
+
+        選んだ時点で変えてしまうと、間違えて選んだときに元へ戻せない
+        （前のものは消してある）。見てから決めていただく。
+      */
+      const beforeOk = await profileOf(userId);
+      check('選んだだけでは、まだ変わらない', !beforeOk?.avatar_path, String(beforeOk?.avatar_path));
+      check('OK が出ている', (await page.getByRole('button', { name: 'OK' }).count()) === 1);
+      check('やめるが出ている', (await page.getByRole('button', { name: 'やめる' }).count()) === 1);
+
+      // やめれば、何も起きない
+      await page.getByRole('button', { name: 'やめる' }).click();
+      await page.waitForTimeout(2000);
+      const afterCancel = await profileOf(userId);
+      check('やめると元のまま', !afterCancel?.avatar_path, String(afterCancel?.avatar_path));
+      check(
+        'やめると選び直せる',
+        (await page.getByRole('button', { name: '写真を選ぶ' }).count()) === 1,
+      );
+
+      // 選び直して、OK を押す
+      const [again] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        page.getByRole('button', { name: '写真を選ぶ' }).click(),
+      ]);
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await page.waitForTimeout(1200);
+      await again.setFiles(TEST_IMAGE);
+      await page.waitForTimeout(5000);
+      await page.getByRole('button', { name: 'OK' }).click();
       await page.waitForTimeout(6000);
 
       const withPhoto = userId ? await profileOf(userId) : null;
@@ -369,6 +402,27 @@ try {
 
     // --- 10. 料金の案内 --------------------------------------------------------
     console.log('\n--- 料金の案内 ---');
+
+    /*
+      置き場所はアカウントではなく設定。ご指示による。
+
+      アカウントは「その人が誰か」、お支払いは「いくら払うか」で、
+      見に行く理由が違う。
+    */
+    await goAccount();
+    check(
+      'アカウントの画面には料金を出さない',
+      (await page.getByRole('button', { name: '料金プランを見る' }).count()) === 0,
+    );
+    await page.goto(`${BASE}/mypage`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3000);
+    const settings = await page.locator('body').innerText();
+    check('設定に「お支払い」がある', settings.includes('お支払い'), settings.slice(0, 80));
+    check(
+      '設定から料金を開ける',
+      (await page.getByRole('button', { name: '料金プランを見る' }).count()) === 1,
+    );
+
     // 無料期間を切らせる（鍵で過去日にする）
     await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
       method: 'PATCH',

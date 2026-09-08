@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
+import { PlanPrompt } from '@/components/plan-prompt';
 import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
@@ -89,6 +90,20 @@ export default function MyPageScreen() {
           <Ionicons name="chevron-forward" size={17} color={c.textFaint} />
         </Pressable>
       </View>
+
+      {/*
+        お支払い。アカウントとは別の項目にしている。
+
+        アカウントは「その人が誰か」、こちらは「いくら払うか」で、
+        見に行く理由が違う。同じ画面へ混ぜると、名前や写真を直しに来た
+        方の目にも料金が入る。
+      */}
+      {!!account && (
+        <View style={styles.payment}>
+          <Text style={styles.sectionLabel}>{t.mypage.payment}</Text>
+          <PlanPrompt variant="panel" />
+        </View>
+      )}
 
       <View style={styles.box}>
         <Pressable onPress={toggle} style={styles.row} accessibilityRole="button">
@@ -213,6 +228,18 @@ function makeStyles(c: Palette) {
       overflow: 'hidden',
     },
     boxAccount: { marginBottom: SPACE.md },
+    /* お支払い。設定の並びとは分けて置く。 */
+    payment: {
+      marginHorizontal: SPACE.lg,
+      marginBottom: SPACE.md,
+      gap: SPACE.xs,
+    },
+    sectionLabel: {
+      fontSize: TEXT.small,
+      fontWeight: '700',
+      color: c.textMuted,
+      paddingHorizontal: SPACE.xs,
+    },
     /* 箱に1行しか無いときは、下の区切り線を出さない */
     rowLast: {
       flexDirection: 'row',

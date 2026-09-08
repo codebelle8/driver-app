@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
-import { PlanPrompt } from '@/components/plan-prompt';
 import {
   PASSWORD_MIN,
   changePassword,
@@ -355,6 +354,13 @@ function SignedIn({
 
   /* 顔写真 */
   const [photoBusy, setPhotoBusy] = useState(false);
+  /*
+    選んだが、まだ決めていない写真。
+
+    選んだ時点で変えてしまうと、間違えて選んだときに元へ戻せない
+    （前のものは消してある）。見てから決めていただく。
+  */
+  const [pending, setPending] = useState<{ blob: Blob; preview: string } | null>(null);
 
   /* パスワードの変更 */
   const [current, setCurrent] = useState('');
@@ -379,6 +385,14 @@ function SignedIn({
     }
   }
 
+  /** 見せていた仮の写真を捨てる。作った URL も返す。 */
+  function dropPending() {
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
+  }
+
   async function onPickPhoto() {
     if (!account || photoBusy) return;
 
@@ -389,10 +403,22 @@ function SignedIn({
       return;
     }
 
+    // ここでは送らない。丸に映して、OK を押されてから送る。
+    setPending((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return { blob: picked.blob, preview: URL.createObjectURL(picked.blob) };
+    });
+  }
+
+  /** OK。ここで初めてサーバーへ送る。 */
+  async function onApplyPhoto() {
+    if (!account || !pending || photoBusy) return;
+
     setPhotoBusy(true);
-    const r = await uploadAvatar(account.userId, picked.blob, account.avatarPath);
+    const r = await uploadAvatar(account.userId, pending.blob, account.avatarPath);
     setPhotoBusy(false);
     if (r.ok) {
+      dropPending();
       await refresh();
       notify(t.account.avatarSaved);
     } else {
@@ -438,14 +464,42 @@ function SignedIn({
         押せない釦を出すより、変えられる場所をお伝えする。
       */}
       <View style={styles.photoRow}>
+        {/* 選んだ写真があれば、それを映す。まだ変わってはいない。 */}
         <Avatar
-          url={account.avatarUrl}
+          url={pending?.preview ?? account.avatarUrl}
           name={account.displayName ?? account.email}
           size={72}
         />
         <View style={styles.photoSide}>
           <Text style={styles.label}>{t.account.avatar}</Text>
-          {canPickAvatar() ? (
+
+          {!canPickAvatar() ? (
+            <Text style={styles.hint}>{t.account.avatarOnlyWeb}</Text>
+          ) : pending ? (
+            <>
+              <Text style={styles.hint}>{t.account.avatarPending}</Text>
+              <View style={styles.photoButtons}>
+                <Pressable
+                  onPress={onApplyPhoto}
+                  disabled={photoBusy}
+                  accessibilityRole="button"
+                  style={[styles.small, photoBusy && styles.smallOff]}
+                >
+                  <Text style={styles.smallText}>
+                    {photoBusy ? t.account.working : t.account.avatarApply}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={dropPending}
+                  disabled={photoBusy}
+                  accessibilityRole="button"
+                  style={styles.smallGhost}
+                >
+                  <Text style={styles.smallGhostText}>{t.common.stop}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
             <View style={styles.photoButtons}>
               <Pressable
                 onPress={onPickPhoto}
@@ -466,8 +520,6 @@ function SignedIn({
                 </Pressable>
               )}
             </View>
-          ) : (
-            <Text style={styles.hint}>{t.account.avatarOnlyWeb}</Text>
           )}
         </View>
       </View>
@@ -494,14 +546,6 @@ function SignedIn({
           </Text>
         </View>
       </View>
-
-      {/*
-        料金のご案内。
-
-        探す画面と違い、切れる前から出しておく。ここは自分から
-        見に来る画面で、残り日数を確かめる場所にあたる。
-      */}
-      <PlanPrompt variant="panel" style={styles.planPanel} />
 
       <Text style={styles.label}>{t.account.displayName}</Text>
       <View style={styles.nameRow}>
@@ -868,7 +912,6 @@ function makeStyles(c: Palette) {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: c.border,
     },
-    planPanel: { marginTop: SPACE.md },
 
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
     nameInput: { flex: 1 },
