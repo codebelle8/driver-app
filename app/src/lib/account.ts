@@ -21,7 +21,11 @@
  */
 import { Platform } from 'react-native';
 
+import type { PlanId } from './plans';
 import { supabase } from './supabase';
+
+/** 顔写真の置き場所 */
+const AVATARS = 'avatars';
 
 export type MemberStatus = 'trial' | 'active' | 'expired' | 'blocked';
 
@@ -32,6 +36,13 @@ export interface Account {
   status: MemberStatus;
   /** 無料期間の終わり（ISO） */
   trialEndsAt: string;
+  /** 顔写真の置き場所。まだ無ければ null。 */
+  avatarPath: string | null;
+  /** 顔写真の URL。avatarPath から作る。 */
+  avatarUrl: string | null;
+  /** ご希望の料金。まだ選んでいなければ null。支払い済みの意味ではない。 */
+  plan: PlanId | null;
+  planChosenAt: string | null;
 }
 
 /**
@@ -47,6 +58,8 @@ export type Problem =
   | 'invalidEmail'
   | 'notConfirmed'
   | 'samePassword'
+  /* いまのパスワードが違う（変更のとき） */
+  | 'wrongCurrent'
   /* Supabase 側で新規登録を閉じている。運用の設定であって、利用者の落ち度ではない。 */
   | 'signupClosed'
   | 'rateLimited'
@@ -207,6 +220,25 @@ export async function sendReset(email: string): Promise<Result> {
   return good(undefined);
 }
 
+/**
+ * ログインしたまま、パスワードを変える。
+ *
+ * Supabase の updateUser は「いまのパスワード」を聞かない。席を離れた
+ * 隙に変えられてしまうため、こちらで一度確かめてから変える。
+ */
+export async function changePassword(
+  email: string,
+  current: string,
+  next: string,
+): Promise<Result> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password: current });
+  if (error) {
+    const problem = toProblem(error);
+    return bad(problem === 'invalidLogin' ? 'wrongCurrent' : problem);
+  }
+  return updatePassword(next);
+}
+
 /** 新しいパスワードを決める（再設定のリンクから戻ってきた後） */
 export async function updatePassword(next: string): Promise<Result> {
   const { error } = await supabase.auth.updateUser({ password: next });
@@ -231,6 +263,9 @@ interface ProfileRow {
   display_name: string | null;
   status: MemberStatus;
   trial_ends_at: string;
+  avatar_path: string | null;
+  plan: PlanId | null;
+  plan_chosen_at: string | null;
 }
 
 /**
@@ -264,7 +299,95 @@ export async function loadAccount(): Promise<Account | null> {
     displayName: row.display_name,
     status: row.status,
     trialEndsAt: row.trial_ends_at,
+    avatarPath: row.avatar_path,
+    avatarUrl: row.avatar_path ? avatarUrlOf(row.avatar_path) : null,
+    plan: row.plan,
+    planChosenAt: row.plan_chosen_at,
   };
+}
+
+// --- 顔写真 -------------------------------------------------------------------
+
+/** 置き場所から、表示に使う URL を作る */
+export function avatarUrlOf(path: string): string {
+  return supabase.storage.from(AVATARS).getPublicUrl(path).data.publicUrl;
+}
+
+/**
+ * 当てられない名前を作る。
+ *
+ * 顔写真は公開の置き場所にある（署名付きの URL は期限が切れ、電波の
+ * 届かない場所で持ち歩けないため）。道筋の先頭は利用者の id で、
+ * 書き込みはそこだけに絞ってある。読まれないようにするのは名前の側。
+ */
+function randomName(): string {
+  const c = globalThis.crypto;
+  if (c && typeof c.randomUUID === 'function') return c.randomUUID();
+  // 端末側では顔写真の変更を出していない。ここへは来ない想定の控え。
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/**
+ * 顔写真を差し替える。
+ *
+ * 先に置いてから名簿を書き換え、済んでから前のものを消す。
+ * 順を逆にすると、途中で失敗したときに「名簿は新しい道筋を指しているが
+ * 実体が無い」状態になり、顔写真が壊れて出る。
+ */
+export async function uploadAvatar(
+  userId: string,
+  blob: Blob,
+  oldPath: string | null,
+): Promise<Result<string>> {
+  const path = `${userId}/${randomName()}.jpg`;
+
+  const { error: putError } = await supabase.storage
+    .from(AVATARS)
+    .upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+  if (putError) return bad(toProblem(putError as RawError));
+
+  const { error: saveError } = await supabase
+    .from('driver_profiles')
+    .update({ avatar_path: path })
+    .eq('user_id', userId);
+  if (saveError) {
+    // 名簿に付けられないなら、置いたものは片付ける
+    await supabase.storage.from(AVATARS).remove([path]);
+    return bad(toProblem(saveError));
+  }
+
+  if (oldPath && oldPath !== path) {
+    await supabase.storage.from(AVATARS).remove([oldPath]);
+  }
+  return good(path);
+}
+
+/** 顔写真を外す */
+export async function clearAvatar(userId: string, path: string | null): Promise<Result> {
+  const { error } = await supabase
+    .from('driver_profiles')
+    .update({ avatar_path: null })
+    .eq('user_id', userId);
+  if (error) return bad(toProblem(error));
+  if (path) await supabase.storage.from(AVATARS).remove([path]);
+  return good(undefined);
+}
+
+// --- 料金 ---------------------------------------------------------------------
+
+/**
+ * ご希望の料金を控える。
+ *
+ * **支払い済みにはしない。** status は触らない。決済の仕組みが
+ * 決まるまで、ここに残るのは「どちらをご希望か」だけ。
+ */
+export async function choosePlan(userId: string, plan: PlanId): Promise<Result> {
+  const { error } = await supabase
+    .from('driver_profiles')
+    .update({ plan, plan_chosen_at: new Date().toISOString() })
+    .eq('user_id', userId);
+  if (error) return bad(toProblem(error));
+  return good(undefined);
 }
 
 /**

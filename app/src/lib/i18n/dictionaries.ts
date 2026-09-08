@@ -281,6 +281,24 @@ const ja = {
     save: '保存',
     saved: '保存しました',
 
+    /* アカウント管理 */
+    manage: 'アカウント管理',
+    avatar: '顔写真',
+    avatarChange: '写真を選ぶ',
+    avatarRemove: '外す',
+    avatarOnlyWeb: 'ブラウザからご変更いただけます',
+    avatarSaved: '顔写真を変えました',
+    avatarRemoved: '顔写真を外しました',
+    avatarTooBig: 'この写真は大きすぎます',
+    passwordChange: 'パスワードの変更',
+    passwordCurrent: 'いまのパスワード',
+    passwordChanged: 'パスワードを変えました',
+
+    /* 顔写真を押したときの行き先 */
+    menuOpen: 'アカウントのメニュー',
+    menuProfile: 'プロフィール',
+    menuSettings: '設定',
+
     error: {
       invalidLogin: 'メールアドレスかパスワードが違います',
       alreadyRegistered: 'このメールアドレスは登録済みです',
@@ -288,6 +306,7 @@ const ja = {
       invalidEmail: 'メールアドレスの形が正しくありません',
       notConfirmed: '確認メールのリンクをお開きください',
       samePassword: '前と同じパスワードです',
+      wrongCurrent: 'いまのパスワードが違います',
       signupClosed: 'いま新規登録を受け付けていません',
       rateLimited: '送信の上限に達しました。しばらくおいてからお試しください',
       network: '通信できませんでした。電波の届く場所でお試しください',
@@ -296,6 +315,33 @@ const ja = {
       emptyEmail: 'メールアドレスをご入力ください',
       short: 'パスワードは {n} 文字以上でお願いします',
     },
+  },
+
+  /*
+    料金。無料期間が終わったあとに出す。
+
+    **止めない。** お支払いの受け口がまだ無いため、切れても今までどおり
+    使えるままにしている。使えなくしてから「支払い方法は追ってご連絡」
+    では、ただ使えないだけになる。
+  */
+  plan: {
+    title: '無料期間が終了しました',
+    body: '引き続きお使いいただくため、料金プランをお選びください。',
+    bodyLeft: '無料期間はあと {n} 日です',
+    open: '料金プランを見る',
+    close: '閉じる',
+    monthly: '月額',
+    yearly: '年額',
+    priceMonth: '{yen} 円 / 月',
+    priceYear: '{yen} 円 / 年',
+    perMonth: '1か月あたり {yen} 円',
+    saved: '月額より {n} か月ぶんお得',
+    choose: 'この内容で申し込む',
+    chosen: 'ご希望を承りました',
+    chosenBody: 'お支払い方法が整い次第、ご案内いたします。それまでは引き続きお使いいただけます。',
+    current: 'ご希望: {name}',
+    change: '選び直す',
+    notYet: 'この画面ではまだお支払いは発生しません。',
   },
 
   notices: {
@@ -632,6 +678,22 @@ const en: Dictionary = {
     save: 'Save',
     saved: 'Saved',
 
+    manage: 'Account',
+    avatar: 'Photo',
+    avatarChange: 'Choose a photo',
+    avatarRemove: 'Remove',
+    avatarOnlyWeb: 'You can change this in a browser',
+    avatarSaved: 'Photo updated',
+    avatarRemoved: 'Photo removed',
+    avatarTooBig: 'That photo is too large',
+    passwordChange: 'Change password',
+    passwordCurrent: 'Current password',
+    passwordChanged: 'Password changed',
+
+    menuOpen: 'Account menu',
+    menuProfile: 'Profile',
+    menuSettings: 'Settings',
+
     error: {
       invalidLogin: 'That email or password is not right',
       alreadyRegistered: 'That email is already registered',
@@ -639,6 +701,7 @@ const en: Dictionary = {
       invalidEmail: 'That does not look like an email address',
       notConfirmed: 'Please open the link in the confirmation email',
       samePassword: 'That is the same as your current password',
+      wrongCurrent: 'That is not your current password',
       signupClosed: 'Sign-ups are closed at the moment',
       rateLimited: 'Too many attempts. Please try again later',
       network: 'Could not connect. Please try where there is a signal',
@@ -647,6 +710,26 @@ const en: Dictionary = {
       emptyEmail: 'Please enter your email address',
       short: 'Passwords need {n} characters or more',
     },
+  },
+
+  plan: {
+    title: 'Your free month has ended',
+    body: 'Choose a plan to carry on using the app.',
+    bodyLeft: '{n} days left in your free month',
+    open: 'See the plans',
+    close: 'Close',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+    priceMonth: '¥{yen} / month',
+    priceYear: '¥{yen} / year',
+    perMonth: '¥{yen} a month',
+    saved: '{n} months cheaper than paying monthly',
+    choose: 'Choose this plan',
+    chosen: 'Thank you',
+    chosenBody: 'We will be in touch once payment is set up. You can keep using the app until then.',
+    current: 'Chosen: {name}',
+    change: 'Change',
+    notYet: 'Nothing is charged on this screen.',
   },
 
   notices: {

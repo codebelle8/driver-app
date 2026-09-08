@@ -15,7 +15,7 @@
  *   その場合だけ鍵で相手を作り、ログインから先を通す。
  *   「登録が開いているか」は不合格のまま残す。ごまかさない。
  *
- * 見るのは8点。
+ * 見るのは12点。
  *   1. Supabase 側の設定（新規登録が開いているか、確認メールを求めるか）
  *   2. 画面から新規登録できること
  *   3. 名簿に行ができ、無料期間が「1か月後」になっていること
@@ -23,10 +23,17 @@
  *   5. マイページに残り日数が出ること
  *   6. ログアウトできること
  *   7. ログインし直せること／誤ったパスワードは断ること
- *   8. 消すと名簿からも消えること
+ *   8. 顔写真を選ぶと、置き場所と名簿の両方に載ること
+ *   9. 顔写真を押すと、プロフィール・設定・ログアウトが出ること
+ *  10. 無料期間が切れると料金の案内が出て、1つ選んで申し込めること
+ *  11. ログインしたままパスワードを変えられること（いまのを間違えたら断る）
+ *  12. 消すと名簿からも消えること
  */
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
 
@@ -87,6 +94,15 @@ const findUser = async (email) => {
   const j = await r.json();
   return (j.users ?? []).find((u) => u.email === email) ?? null;
 };
+
+/** 顔写真の検査に使う、その場で作った小さな画像 */
+const workDir = mkdtempSync(join(tmpdir(), 'kn-avatar-'));
+const TEST_IMAGE = join(workDir, 'face.jpg');
+await sharp({
+  create: { width: 240, height: 320, channels: 3, background: '#3b6ea5' },
+})
+  .jpeg()
+  .toFile(TEST_IMAGE);
 
 let browser = null;
 let userId = null;
@@ -247,6 +263,142 @@ try {
       alert || '何も出ない',
     );
     await other.close();
+
+    // --- 8. 顔写真 -------------------------------------------------------------
+    console.log('\n--- 顔写真 ---');
+    await goAccount();
+
+    const pickButton = page.getByRole('button', { name: '写真を選ぶ' });
+    if ((await pickButton.count()) === 0) {
+      check('顔写真の欄が出ている', false, 'ボタンが無い（列がまだ無い可能性）');
+    } else {
+      check('顔写真の欄が出ている', true);
+      const [chooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        pickButton.click(),
+      ]);
+      await chooser.setFiles(TEST_IMAGE);
+      await page.waitForTimeout(5000);
+
+      const withPhoto = userId ? await profileOf(userId) : null;
+      check(
+        '名簿に顔写真の置き場所が入る',
+        typeof withPhoto?.avatar_path === 'string' && withPhoto.avatar_path.startsWith(userId),
+        String(withPhoto?.avatar_path),
+      );
+
+      /*
+        置いた実体が読めるか。
+
+        名簿だけ書き換わって実体が無い、という壊れ方をここで捕まえる。
+      */
+      if (withPhoto?.avatar_path) {
+        const url = `${URL_}/storage/v1/object/public/avatars/${withPhoto.avatar_path}`;
+        const got = await fetch(url);
+        check('置いた顔写真が読み出せる', got.ok, `${got.status}`);
+      }
+
+      // 正方形へ縮めてから送っているか（元は 240x320）
+      if (withPhoto?.avatar_path) {
+        const url = `${URL_}/storage/v1/object/public/avatars/${withPhoto.avatar_path}`;
+        const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
+        const meta = await sharp(buf).metadata();
+        check(
+          '送る前に正方形へ縮めている',
+          meta.width === meta.height && meta.width <= 256,
+          `${meta.width}x${meta.height}`,
+        );
+      }
+    }
+
+    // --- 9. 顔写真の品書き -----------------------------------------------------
+    console.log('\n--- 顔写真の品書き ---');
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4000);
+    const menuButton = page.getByRole('button', { name: 'アカウントのメニュー' });
+    check('上部の帯に顔写真が出ている', (await menuButton.count()) === 1);
+    if ((await menuButton.count()) === 1) {
+      await menuButton.click();
+      await page.waitForTimeout(700);
+      for (const label of ['プロフィール', '設定', 'ログアウト']) {
+        check(`品書きに「${label}」がある`, (await page.getByText(label, { exact: true }).count()) > 0);
+      }
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(400);
+    }
+
+    // --- 10. 料金の案内 --------------------------------------------------------
+    console.log('\n--- 料金の案内 ---');
+    // 無料期間を切らせる（鍵で過去日にする）
+    await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: svc,
+      body: JSON.stringify({ trial_ends_at: '2026-01-01T00:00:00Z' }),
+    });
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(5000);
+
+    const banner = page.getByText('無料期間が終了しました');
+    check('切れると探す画面に案内が出る', (await banner.count()) > 0);
+
+    const openPlans = page.getByRole('button', { name: '料金プランを見る' });
+    if ((await openPlans.count()) > 0) {
+      await openPlans.first().click();
+      await page.waitForTimeout(600);
+      const body = await page.locator('body').innerText();
+      check('月額 800 円が出ている', body.includes('800 円 / 月'), body.slice(0, 80));
+      check('年額 8,000 円が出ている', body.includes('8,000 円 / 年'));
+
+      // 選ばないうちは申し込めない
+      const submit = page.getByRole('button', { name: 'この内容で申し込む' });
+      check('選ぶまで申し込めない', await submit.isDisabled());
+
+      await page.getByRole('radio', { name: '年額' }).click();
+      await page.waitForTimeout(400);
+      await submit.click();
+      await page.waitForTimeout(4000);
+
+      const chosen = await profileOf(userId);
+      check('選んだ料金が名簿に入る', chosen?.plan === 'yearly', String(chosen?.plan));
+      check(
+        '選んだだけでは有料の扱いにしない',
+        chosen?.status === 'trial',
+        String(chosen?.status),
+      );
+    } else {
+      check('料金プランを開ける', false, '釦が無い');
+    }
+
+    // --- 11. パスワードの変更 --------------------------------------------------
+    console.log('\n--- パスワードの変更 ---');
+    const NEXT_PASSWORD = 'kn-test-password-2027';
+    await goAccount();
+
+    const changeButton = page.getByRole('button', { name: 'パスワードを変える' });
+    check('変更の欄が出ている', (await changeButton.count()) > 0);
+
+    if ((await changeButton.count()) > 0) {
+      // いまのパスワードを間違えたら断ること
+      await page.getByLabel('いまのパスワード').fill('でたらめ');
+      await page.getByLabel('新しいパスワード').fill(NEXT_PASSWORD);
+      await changeButton.click();
+      await page.waitForTimeout(3500);
+      const said = (await page.locator('[role="alert"]').allInnerTexts()).join(' ');
+      check('いまのパスワードが違えば断る', said.includes('いまのパスワードが違います'), said);
+
+      // 正しく変えられること
+      await page.getByLabel('いまのパスワード').fill(PASSWORD);
+      await page.getByLabel('新しいパスワード').fill(NEXT_PASSWORD);
+      await changeButton.click();
+      await page.waitForTimeout(4500);
+
+      const signedIn = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: { apikey: ANON, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: EMAIL, password: NEXT_PASSWORD }),
+      });
+      check('新しいパスワードでログインできる', signedIn.ok, `${signedIn.status}`);
+    }
   }
 } finally {
   // --- 8. 後片付け -------------------------------------------------------------
@@ -263,6 +415,7 @@ try {
   }
 
   if (browser) await browser.close();
+  rmSync(workDir, { recursive: true, force: true });
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;

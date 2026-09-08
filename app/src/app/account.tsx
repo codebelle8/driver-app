@@ -4,10 +4,14 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
+import { PlanPrompt } from '@/components/plan-prompt';
 import {
   PASSWORD_MIN,
+  changePassword,
+  clearAvatar,
   daysLeft,
   isExpired,
   sendReset,
@@ -16,8 +20,10 @@ import {
   signUp,
   updateDisplayName,
   updatePassword,
+  uploadAvatar,
   type Problem,
 } from '@/lib/account';
+import { canPickAvatar, pickAvatar } from '@/lib/avatar';
 import { useAccount } from '@/lib/account-context';
 import { confirmDelete } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
@@ -347,6 +353,16 @@ function SignedIn({
   const [name, setName] = useState(account?.displayName ?? '');
   const [saving, setSaving] = useState(false);
 
+  /* 顔写真 */
+  const [photoBusy, setPhotoBusy] = useState(false);
+
+  /* パスワードの変更 */
+  const [current, setCurrent] = useState('');
+  const [next, setNext] = useState('');
+  const [reveal, setReveal] = useState(false);
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwTrouble, setPwTrouble] = useState<Trouble | null>(null);
+
   if (!account) return null;
 
   const end = new Date(account.trialEndsAt);
@@ -363,8 +379,94 @@ function SignedIn({
     }
   }
 
+  async function onPickPhoto() {
+    if (!account || photoBusy) return;
+    const blob = await pickAvatar();
+    if (!blob) return;
+
+    setPhotoBusy(true);
+    const r = await uploadAvatar(account.userId, blob, account.avatarPath);
+    setPhotoBusy(false);
+    if (r.ok) {
+      await refresh();
+      notify(t.account.avatarSaved);
+    } else {
+      notify(t.account.error[r.problem], undefined, 'error');
+    }
+  }
+
+  async function onRemovePhoto() {
+    if (!account || photoBusy) return;
+    setPhotoBusy(true);
+    const r = await clearAvatar(account.userId, account.avatarPath);
+    setPhotoBusy(false);
+    if (r.ok) {
+      await refresh();
+      notify(t.account.avatarRemoved);
+    }
+  }
+
+  async function onChangePassword() {
+    if (!account?.email || pwBusy) return;
+    setPwTrouble(null);
+
+    if (!current || !next) return setPwTrouble('empty');
+    if (next.length < PASSWORD_MIN) return setPwTrouble('short');
+
+    setPwBusy(true);
+    const r = await changePassword(account.email, current, next);
+    setPwBusy(false);
+    if (!r.ok) return setPwTrouble(r.problem);
+
+    setCurrent('');
+    setNext('');
+    notify(t.account.passwordChanged);
+  }
+
   return (
     <>
+      {/*
+        顔写真。
+
+        端末側（Expo Go・APK）では選べない。写真を選ぶ部品の追加と
+        作り直しが要るため、まずブラウザで動く形にしている。
+        押せない釦を出すより、変えられる場所をお伝えする。
+      */}
+      <View style={styles.photoRow}>
+        <Avatar
+          url={account.avatarUrl}
+          name={account.displayName ?? account.email}
+          size={72}
+        />
+        <View style={styles.photoSide}>
+          <Text style={styles.label}>{t.account.avatar}</Text>
+          {canPickAvatar() ? (
+            <View style={styles.photoButtons}>
+              <Pressable
+                onPress={onPickPhoto}
+                disabled={photoBusy}
+                accessibilityRole="button"
+                style={[styles.small, photoBusy && styles.smallOff]}
+              >
+                <Text style={styles.smallText}>{t.account.avatarChange}</Text>
+              </Pressable>
+              {!!account.avatarPath && (
+                <Pressable
+                  onPress={onRemovePhoto}
+                  disabled={photoBusy}
+                  accessibilityRole="button"
+                  style={styles.smallGhost}
+                >
+                  <Text style={styles.smallGhostText}>{t.account.avatarRemove}</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : (
+            <Text style={styles.hint}>{t.account.avatarOnlyWeb}</Text>
+          )}
+        </View>
+      </View>
+
       <View style={styles.card}>
         <View style={styles.cardRow}>
           <Text style={styles.cardLabel}>{t.account.email}</Text>
@@ -388,6 +490,14 @@ function SignedIn({
         </View>
       </View>
 
+      {/*
+        料金のご案内。
+
+        探す画面と違い、切れる前から出しておく。ここは自分から
+        見に来る画面で、残り日数を確かめる場所にあたる。
+      */}
+      <PlanPrompt variant="panel" style={styles.planPanel} />
+
       <Text style={styles.label}>{t.account.displayName}</Text>
       <View style={styles.nameRow}>
         <TextInput
@@ -405,6 +515,58 @@ function SignedIn({
           style={styles.saveButton}
         >
           <Text style={styles.saveText}>{t.account.save}</Text>
+        </Pressable>
+      </View>
+
+      {/*
+        パスワードの変更。
+
+        いまのパスワードを一度確かめてから変える。Supabase の側は
+        聞かないため、席を離れた隙に変えられてしまう。
+      */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.account.passwordChange}</Text>
+
+        <PasswordField
+          value={current}
+          onChange={(v) => {
+            setCurrent(v);
+            setPwTrouble(null);
+          }}
+          reveal={reveal}
+          onReveal={setReveal}
+          label={t.account.passwordCurrent}
+          styles={styles}
+          c={c}
+          t={t}
+        />
+        <PasswordField
+          value={next}
+          onChange={(v) => {
+            setNext(v);
+            setPwTrouble(null);
+          }}
+          reveal={reveal}
+          onReveal={setReveal}
+          label={t.account.passwordNew}
+          hint={fill(t.account.passwordHint, { n: PASSWORD_MIN })}
+          newPassword
+          styles={styles}
+          c={c}
+          t={t}
+        />
+
+        <Trouble trouble={pwTrouble} styles={styles} t={t} />
+
+        <Pressable
+          onPress={onChangePassword}
+          disabled={pwBusy}
+          accessibilityRole="button"
+          style={[styles.small, styles.smallWide, pwBusy && styles.smallOff]}
+        >
+          <Text style={styles.smallText}>
+            {pwBusy ? t.account.working : t.account.submitPassword}
+          </Text>
         </Pressable>
       </View>
 
@@ -658,6 +820,50 @@ function makeStyles(c: Palette) {
     cardLabel: { fontSize: TEXT.small, color: c.textMuted },
     cardValue: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
     cardValueWarn: { color: c.warn },
+
+    /* 顔写真 */
+    photoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.lg,
+      marginTop: SPACE.sm,
+    },
+    photoSide: { flex: 1, gap: SPACE.xs },
+    photoButtons: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.xs },
+    hint: { fontSize: TEXT.small, color: c.textMuted },
+
+    small: {
+      height: 40,
+      paddingHorizontal: SPACE.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.accentSoft,
+      borderWidth: 1,
+      borderColor: c.accent,
+    },
+    smallWide: { alignSelf: 'stretch', marginTop: SPACE.sm, height: 46 },
+    smallOff: { opacity: 0.5 },
+    smallText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    smallGhost: {
+      height: 40,
+      paddingHorizontal: SPACE.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    smallGhostText: { fontSize: TEXT.body, fontWeight: '700', color: c.textMuted },
+
+    /* 節。パスワードの変更など、まとまりを分ける。 */
+    section: {
+      marginTop: SPACE.xl,
+      paddingTop: SPACE.lg,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.border,
+    },
+    planPanel: { marginTop: SPACE.md },
 
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
     nameInput: { flex: 1 },

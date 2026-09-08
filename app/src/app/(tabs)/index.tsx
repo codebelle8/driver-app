@@ -30,6 +30,8 @@ import {
   type Pin,
 } from '@/lib/facilities';
 import { fetchHistory, type HistoryEntry } from '@/lib/history';
+import { AccountMenu } from '@/components/account-menu';
+import { PlanPrompt } from '@/components/plan-prompt';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
 import { describePlace } from '@/lib/place';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
@@ -516,8 +518,21 @@ export default function SearchScreen() {
         </View>
 
         <BellButton unseen={unseen} wide={isWide} styles={styles} c={c} />
+        {/*
+          顔写真は鐘の右端。ご指示による。
+          登録していない方には出ない（部品の側で何も描かない）。
+        */}
+        <AccountMenu compact={!isWide} />
         </View>
       </View>
+
+      {/*
+        無料期間が終わった方へのご案内。
+
+        終わっていなければ何も描かない。包む View をここに置かないのは、
+        出すものが無いときに余白だけが残るため。
+      */}
+      <PlanPrompt variant="banner" style={styles.planBanner} />
 
       {/* 狭い画面。ロゴ・呼びかけ・検索欄をまとめて上に置く。 */}
       {!isWide && (
@@ -1352,6 +1367,11 @@ function makeStyles(c: Palette) {
     safe: { flex: 1, backgroundColor: c.bg },
 
     // --- 上部 ---
+    /* 料金のご案内。上部の帯のすぐ下に敷く。 */
+    planBanner: {
+      marginHorizontal: SPACE.lg,
+      marginTop: SPACE.md,
+    },
     topBar: {
       paddingHorizontal: SPACE.lg,
       paddingTop: SPACE.sm,
