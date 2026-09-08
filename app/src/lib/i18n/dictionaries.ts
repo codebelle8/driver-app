@@ -216,7 +216,86 @@ const ja = {
     sync: '施設情報の取り込み',
     syncing: '取り込んでいます…',
     syncState: '{n} 件（{when}に取得）',
+    account: 'アカウント',
+    accountOut: '登録すると、機種変更しても引き継げます',
+    accountTrial: '無料期間 残り {n} 日',
+    accountEnded: '無料期間は終了しました',
+    accountChecking: '確認しています…',
     note: '施設情報は端末の中に保存され、電波の届かない場所でも表示できます。',
+  },
+
+  /*
+    会員登録。運用版で入れたもの。
+
+    走行前の車内で読む文言なので、敬体のまま短くしている。
+    「認証」「サブスクリプション」といった語は使わない。
+  */
+  account: {
+    title: 'アカウント',
+    lead: 'メールアドレスでご登録いただくと、お気に入りと閲覧履歴を機種変更後も引き継げます。',
+    leadTrial: 'ご登録から1か月は無料でお使いいただけます。',
+    modeIn: 'ログイン',
+    modeUp: '新規登録',
+
+    email: 'メールアドレス',
+    password: 'パスワード',
+    passwordNew: '新しいパスワード',
+    passwordHint: '{n} 文字以上',
+    show: 'パスワードを表示',
+    hide: 'パスワードを隠す',
+
+    submitIn: 'ログイン',
+    submitUp: '登録する',
+    submitReset: '再設定のメールを送る',
+    submitPassword: 'パスワードを変える',
+    working: '処理しています…',
+
+    forgot: 'パスワードをお忘れの方',
+    resetTitle: 'パスワードの再設定',
+    resetLead: 'ご登録のメールアドレスへ、再設定のご案内をお送りします。',
+    resetSent: '再設定のメールをお送りしました',
+    resetSentBody: '届いたメールのリンクをお開きください。',
+
+    recoveryTitle: '新しいパスワードを決める',
+    recoveryLead: '新しいパスワードをご入力ください。',
+    changed: 'パスワードを変えました',
+
+    confirmTitle: '確認のメールをお送りしました',
+    confirmBody: '{email} へお送りしました。リンクをお開きになると、ご登録が完了します。',
+
+    welcome: 'ご登録ありがとうございます',
+    signedIn: 'ログインしました',
+    signedOut: 'ログアウトしました',
+    signOut: 'ログアウト',
+    signOutConfirm: 'ログアウトしますか',
+    signOutBody: 'お気に入りと閲覧履歴は、この端末に残ります。',
+
+    trialTitle: '無料期間',
+    trialLeft: 'あと {n} 日（{date} まで）',
+    trialEnded: '{date} に終了しました',
+    statusPaid: 'ご利用中',
+    statusBlocked: 'ご利用を停止しています',
+
+    displayName: 'お名前',
+    displayNameHint: '未設定',
+    save: '保存',
+    saved: '保存しました',
+
+    error: {
+      invalidLogin: 'メールアドレスかパスワードが違います',
+      alreadyRegistered: 'このメールアドレスは登録済みです',
+      weakPassword: 'パスワードが短すぎます',
+      invalidEmail: 'メールアドレスの形が正しくありません',
+      notConfirmed: '確認メールのリンクをお開きください',
+      samePassword: '前と同じパスワードです',
+      signupClosed: 'いま新規登録を受け付けていません',
+      rateLimited: '送信の上限に達しました。しばらくおいてからお試しください',
+      network: '通信できませんでした。電波の届く場所でお試しください',
+      unknown: 'うまくいきませんでした',
+      empty: 'メールアドレスとパスワードをご入力ください',
+      emptyEmail: 'メールアドレスをご入力ください',
+      short: 'パスワードは {n} 文字以上でお願いします',
+    },
   },
 
   notices: {
@@ -494,7 +573,80 @@ const en: Dictionary = {
     sync: 'Facility data',
     syncing: 'Downloading…',
     syncState: '{n} (fetched {when})',
+    account: 'Account',
+    accountOut: 'Sign up to keep your data when you change phones',
+    accountTrial: '{n} days left in your free month',
+    accountEnded: 'Your free month has ended',
+    accountChecking: 'Checking…',
     note: 'Facility data is stored on this device, so it works where there is no signal.',
+  },
+
+  account: {
+    title: 'Account',
+    lead: 'Sign up with your email to keep your favourites and history when you change phones.',
+    leadTrial: 'The first month is free.',
+    modeIn: 'Sign in',
+    modeUp: 'Sign up',
+
+    email: 'Email address',
+    password: 'Password',
+    passwordNew: 'New password',
+    passwordHint: '{n} characters or more',
+    show: 'Show password',
+    hide: 'Hide password',
+
+    submitIn: 'Sign in',
+    submitUp: 'Create account',
+    submitReset: 'Send reset email',
+    submitPassword: 'Change password',
+    working: 'Working…',
+
+    forgot: 'Forgotten your password?',
+    resetTitle: 'Reset your password',
+    resetLead: 'We will email you a link to set a new password.',
+    resetSent: 'Reset email sent',
+    resetSentBody: 'Open the link in the email we sent you.',
+
+    recoveryTitle: 'Set a new password',
+    recoveryLead: 'Enter your new password.',
+    changed: 'Password changed',
+
+    confirmTitle: 'Confirmation email sent',
+    confirmBody: 'We sent it to {email}. Open the link to finish signing up.',
+
+    welcome: 'Welcome',
+    signedIn: 'Signed in',
+    signedOut: 'Signed out',
+    signOut: 'Sign out',
+    signOutConfirm: 'Sign out?',
+    signOutBody: 'Your favourites and history stay on this device.',
+
+    trialTitle: 'Free month',
+    trialLeft: '{n} days left (until {date})',
+    trialEnded: 'Ended on {date}',
+    statusPaid: 'Active',
+    statusBlocked: 'Suspended',
+
+    displayName: 'Name',
+    displayNameHint: 'Not set',
+    save: 'Save',
+    saved: 'Saved',
+
+    error: {
+      invalidLogin: 'That email or password is not right',
+      alreadyRegistered: 'That email is already registered',
+      weakPassword: 'That password is too short',
+      invalidEmail: 'That does not look like an email address',
+      notConfirmed: 'Please open the link in the confirmation email',
+      samePassword: 'That is the same as your current password',
+      signupClosed: 'Sign-ups are closed at the moment',
+      rateLimited: 'Too many attempts. Please try again later',
+      network: 'Could not connect. Please try where there is a signal',
+      unknown: 'That did not work',
+      empty: 'Please enter your email and password',
+      emptyEmail: 'Please enter your email address',
+      short: 'Passwords need {n} characters or more',
+    },
   },
 
   notices: {

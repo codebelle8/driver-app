@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
+import { daysLeft, isExpired } from '@/lib/account';
+import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { fill, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
 import { useTheme, useThemeControl } from '@/theme-context';
@@ -26,6 +29,8 @@ export default function MyPageScreen() {
   const { theme, toggle } = useThemeControl();
   const t = useT();
   const { locale, setLocale } = useLocale();
+  const { account, ready } = useAccount();
+  const router = useRouter();
   const styles = makeStyles(c);
   const [sync, setSync] = useState<SyncResult>({ ok: true, facilityCount: 0, syncedAt: null });
   const [busy, setBusy] = useState(false);
@@ -46,6 +51,43 @@ export default function MyPageScreen() {
       <PageWidth>
       <View style={styles.head}>
         <Text style={styles.heading}>{t.mypage.title}</Text>
+      </View>
+
+      {/*
+        アカウント。設定とは別の箱にしている。
+
+        明るさ・言語・取り込みは「この端末の設定」で、一度決めたら
+        変えない。アカウントはその人の持ち物にあたり、性質が違う。
+        同じ箱へ並べると、設定の一項目に見える。
+      */}
+      <View style={[styles.box, styles.boxAccount]}>
+        <Pressable
+          onPress={() => router.push('/account')}
+          style={styles.rowLast}
+          accessibilityRole="button"
+        >
+          <View style={styles.icon}>
+            <Ionicons name="person-circle-outline" size={17} color={c.accent} />
+          </View>
+          <View style={styles.body}>
+            <Text style={styles.name} numberOfLines={1}>
+              {account?.email ?? t.mypage.account}
+            </Text>
+            {/* 1行に収めない。320px の画面で「…」に切れる。 */}
+            <Text style={styles.hint}>
+              {!ready
+                ? t.mypage.accountChecking
+                : !account
+                  ? t.mypage.accountOut
+                  : account.status === 'active'
+                    ? t.account.statusPaid
+                    : isExpired(account)
+                      ? t.mypage.accountEnded
+                      : fill(t.mypage.accountTrial, { n: daysLeft(account.trialEndsAt) })}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color={c.textFaint} />
+        </Pressable>
       </View>
 
       <View style={styles.box}>
@@ -169,6 +211,15 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
       overflow: 'hidden',
+    },
+    boxAccount: { marginBottom: SPACE.md },
+    /* 箱に1行しか無いときは、下の区切り線を出さない */
+    rowLast: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.sm,
+      paddingHorizontal: SPACE.md,
+      paddingVertical: SPACE.md,
     },
     row: {
       flexDirection: 'row',

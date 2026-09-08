@@ -1,17 +1,20 @@
 /**
  * Supabase への接続。
  *
- * アプリは anon キーだけを使い、公開済みのデータのみを読む。
- * 書き込みは RLS が拒否するため、鍵が端末に入っていても危険はない。
+ * anon キーだけを使う。読めるのは公開済みのデータと、
+ * ログインしている場合は自分自身の会員情報だけで、
+ * 書き込みは RLS が拒否する。鍵が端末に入っていても危険はない。
  *
- * セッションを持たない理由:
- *   初期版は会員登録を伴わない。誰でも同じ公開データを見るだけなので
- *   認証の状態を保持する必要がなく、保存も自動更新も止めている。
- *   会員登録を導入する運用版でここを見直す。
+ * **セッションを保つ**
+ *   初期版は会員登録を伴わず、保存も自動更新も止めていた。
+ *   運用版でメールアドレスによる会員登録を入れたため、ここを開けている。
+ *   保たないと、画面を移るたびにログインし直すことになる。
  */
 import 'react-native-url-polyfill/auto';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -36,9 +39,38 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 export const supabase = createClient(url, anonKey, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
+    /*
+      ログインの状態を端末へ残す。
+
+      ブラウザでは localStorage、端末では端末の保存領域にあたる。
+      AsyncStorage は両方で同じ形で使えるため、分けずに済ませている。
+    */
+    storage: AsyncStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+
+    /*
+      メールのリンクから戻ってきたときに、URL に載っている鍵を拾う。
+
+      確認メールとパスワード再設定のリンクは、この画面へ戻してくる。
+      端末側（アプリ）にはその経路が無いため、ブラウザでだけ有効にする。
+    */
+    detectSessionInUrl: Platform.OS === 'web',
+
+    /*
+      **implicit を選んでいる。**
+
+      既定の pkce は、鍵と引き換える控えを「頼んだ側のブラウザ」に置く。
+      再設定を携帯のブラウザから頼み、届いたメールをメールアプリの中の
+      別のブラウザで開くと、その控えが無く引き換えに失敗する。
+      走行前のドライバーには、その理由を説明しても手の打ちようがない。
+
+      implicit は鍵を URL の断片（#）に載せるため、どのブラウザで開いても
+      通る。断片はサーバーへ送られず、拾ったあとは履歴から消している
+      （app/src/lib/account.ts）。この配布物は静的なページだけで、
+      受け取る側のサーバーを持たないため、pkce の利点が効かない。
+    */
+    flowType: 'implicit',
   },
   global: {
     fetch: (input, init) => {

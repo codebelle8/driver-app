@@ -10,6 +10,7 @@ import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { NoticeHost } from '@/components/notice-toast';
 import { SideRail } from '@/components/side-rail';
+import { AccountProvider } from '@/lib/account-context';
 import { LocaleProvider } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { ensureSynced } from '@/lib/sync';
@@ -60,6 +61,16 @@ export default function RootLayout() {
       画面の並びの内側に置くと、外側にあるそれらへ届かない。
     */
     <LocaleProvider>
+    {/*
+      会員の状態を保つ層。
+
+      マイページだけでなく、今後の課金の判定もここを見る。画面ごとに
+      読み直すと、同じ問い合わせが画面の数だけ走る。
+
+      ログインしていなくても待たせない。このアプリは登録せずに使えるため、
+      調べ終える前に一覧を出してよい。
+    */}
+    <AccountProvider>
     <ThemeProvider>
       <Shell />
       {/*
@@ -83,6 +94,7 @@ export default function RootLayout() {
       */}
       <NoticeHost />
     </ThemeProvider>
+    </AccountProvider>
     </LocaleProvider>
   );
 }
@@ -130,6 +142,7 @@ function Shell() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="facility/[id]" />
         <Stack.Screen name="notices" />
+        <Stack.Screen name="account" />
       </Stack>
       </View>
     </SafeAreaProvider>
