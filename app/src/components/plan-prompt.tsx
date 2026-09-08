@@ -27,15 +27,17 @@ import { useTheme } from '@/theme-context';
  *   ここで控えるのは「どちらをご希望か」だけ。画面にもそう書く。
  *   書かずに「申し込む」とだけ置くと、支払ったつもりの方が出る。
  *
- * 置き場所は2か所。
- *   banner … 探す画面の上。切れている方にだけ出る。
- *   panel  … アカウントの画面。残り日数のうちから出しておく。
+ * 置き場所は3つ。
+ *   banner … 探す画面の上。切れている方にだけ出る。たたんで出す。
+ *   panel  … 節の中へ差し込む。たたんで出す。
+ *   page   … お支払いの画面。最初から開いており、たたむ釦も出さない。
+ *            そこを見に来た方に、もう一手を求める理由がない。
  */
 export function PlanPrompt({
   variant = 'banner',
   style,
 }: {
-  variant?: 'banner' | 'panel';
+  variant?: 'banner' | 'panel' | 'page';
   /*
     外側の余白は呼ぶ側が決める。
 
@@ -49,7 +51,8 @@ export function PlanPrompt({
   const s = makeStyles(c);
   const { account, refresh } = useAccount();
 
-  const [open, setOpen] = useState(false);
+  const isPage = variant === 'page';
+  const [open, setOpen] = useState(isPage);
   const [picked, setPicked] = useState<PlanId | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -65,7 +68,11 @@ export function PlanPrompt({
     切れた日にも読み飛ばされる。
   */
   if (variant === 'banner' && !over) return null;
-  if (account.status === 'active') return null;
+  /*
+    お支払い済みの方には、催促を出さない。
+    ただしお支払いの画面では、選び直せるように出しておく。
+  */
+  if (account.status === 'active' && !isPage) return null;
 
   const chosen = account.plan;
 
@@ -84,7 +91,8 @@ export function PlanPrompt({
   const name = (id: PlanId) => (id === 'monthly' ? t.plan.monthly : t.plan.yearly);
 
   return (
-    <View style={[s.box, over ? s.boxOver : s.boxSoft, style]}>
+    <View style={[s.box, over ? s.boxOver : s.boxSoft, isPage && s.boxPage, style]}>
+      {!isPage && (
       <View style={s.head}>
         <Ionicons
           name={over ? 'alert-circle' : 'time-outline'}
@@ -100,6 +108,9 @@ export function PlanPrompt({
           )}
         </View>
       </View>
+      )}
+
+      {isPage && <Text style={s.title}>{t.plan.choiceTitle}</Text>}
 
       {!open && (
         <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={s.openButton}>
@@ -157,9 +168,11 @@ export function PlanPrompt({
             <Text style={s.submitText}>{t.plan.choose}</Text>
           </Pressable>
 
-          <Pressable onPress={() => setOpen(false)} accessibilityRole="button" style={s.closeRow}>
-            <Text style={s.closeText}>{t.plan.close}</Text>
-          </Pressable>
+          {!isPage && (
+            <Pressable onPress={() => setOpen(false)} accessibilityRole="button" style={s.closeRow}>
+              <Text style={s.closeText}>{t.plan.close}</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -175,6 +188,8 @@ const makeStyles = (c: Palette) =>
       gap: SPACE.sm,
     },
     boxOver: { backgroundColor: c.warnSoft, borderColor: c.warn },
+    /* お支払いの画面では、地の色に馴染ませる。催促の黄色は使わない。 */
+    boxPage: { backgroundColor: c.surface, borderColor: c.border },
     boxSoft: { backgroundColor: c.surface, borderColor: c.border },
 
     head: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm },

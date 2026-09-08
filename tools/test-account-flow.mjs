@@ -255,7 +255,19 @@ try {
     await other.waitForTimeout(600);
     await fillIn(other, 'まちがったぱすわーど');
     await other.getByRole('button', { name: 'ログイン' }).last().click();
-    await other.waitForTimeout(3500);
+
+    /*
+      時間ではなく、出るのを待つ。
+
+      3.5秒の決め打ちにしていたところ、手元の込み具合によって間に
+      合わず、ときどき落ちていた。落ちたり通ったりする検査は、
+      直すべきものが出たときに信じてもらえなくなる。
+    */
+    await other
+      .locator('[role="alert"]')
+      .first()
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .catch(() => {});
     const alert = (await other.locator('[role="alert"]').allInnerTexts()).join(' ');
     check(
       '誤ったパスワードは断り、理由を日本語で出す',
@@ -418,10 +430,18 @@ try {
     await page.waitForTimeout(3000);
     const settings = await page.locator('body').innerText();
     check('設定に「お支払い」がある', settings.includes('お支払い'), settings.slice(0, 80));
-    check(
-      '設定から料金を開ける',
-      (await page.getByRole('button', { name: '料金プランを見る' }).count()) === 1,
-    );
+
+    /* 設定では中身を広げない。押した方にだけ開く。ご指示による。 */
+    check('設定では料金の中身をまだ出さない', !settings.includes('円 / 月'), settings.slice(0, 80));
+
+    await page.getByRole('button', { name: 'お支払い' }).click();
+    await page.waitForTimeout(3500);
+    const paid = await page.locator('body').innerText();
+    check('押すとお支払いの画面が開く', paid.includes('いまのご利用状況'), paid.slice(0, 100));
+    check('その画面に月額 800 円がある', paid.includes('800 円 / 月'));
+    check('その画面に年額 8,000 円がある', paid.includes('8,000 円 / 年'));
+    check('請求が起きないことを書いてある', paid.includes('まだお支払いは発生しません'));
+    check('期間後どうなるかを書いてある', paid.includes('引き続きお使いいただけます'));
 
     // 無料期間を切らせる（鍵で過去日にする）
     await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {

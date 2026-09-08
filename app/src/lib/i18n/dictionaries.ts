@@ -347,6 +347,19 @@ const ja = {
     current: 'ご希望: {name}',
     change: '選び直す',
     notYet: 'この画面ではまだお支払いは発生しません。',
+
+    /* お支払いの画面 */
+    statusTitle: 'いまのご利用状況',
+    statusTrial: '無料期間中',
+    statusEndedShort: '無料期間は終了',
+    until: '{date} まで',
+    chosenAt: '{date} にお申し込み',
+    notChosen: 'まだお選びいただいていません',
+    chosenLabel: 'ご希望の料金',
+    choiceTitle: 'ご希望の料金をお選びください',
+    afterTrial:
+      '無料期間が終わっても、いまのところ引き続きお使いいただけます。お支払いの方法が整い次第、あらためてご案内いたします。',
+    contact: 'ご不明な点は、お手数ですが提供元へお問い合わせください。',
   },
 
   notices: {
@@ -740,6 +753,18 @@ const en: Dictionary = {
     current: 'Chosen: {name}',
     change: 'Change',
     notYet: 'Nothing is charged on this screen.',
+
+    statusTitle: 'Your plan',
+    statusTrial: 'Free month',
+    statusEndedShort: 'Free month ended',
+    until: 'until {date}',
+    chosenAt: 'Chosen on {date}',
+    notChosen: 'No plan chosen yet',
+    chosenLabel: 'Chosen plan',
+    choiceTitle: 'Choose a plan',
+    afterTrial:
+      'You can keep using the app for now, even after the free month ends. We will be in touch once payment is set up.',
+    contact: 'For anything else, please contact the provider.',
   },
 
   notices: {

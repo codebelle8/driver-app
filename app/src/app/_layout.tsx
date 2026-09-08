@@ -156,6 +156,7 @@ function Shell() {
         <Stack.Screen name="facility/[id]" />
         <Stack.Screen name="notices" />
         <Stack.Screen name="account" />
+        <Stack.Screen name="plan" />
       </Stack>
       </View>
       </View>

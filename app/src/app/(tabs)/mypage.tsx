@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
-import { PlanPrompt } from '@/components/plan-prompt';
 import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
@@ -99,9 +98,27 @@ export default function MyPageScreen() {
         方の目にも料金が入る。
       */}
       {!!account && (
-        <View style={styles.payment}>
-          <Text style={styles.sectionLabel}>{t.mypage.payment}</Text>
-          <PlanPrompt variant="panel" />
+        <View style={[styles.box, styles.boxAccount]}>
+          <Pressable
+            onPress={() => router.push('/plan')}
+            style={styles.rowLast}
+            accessibilityRole="button"
+          >
+            <View style={styles.icon}>
+              <Ionicons name="card-outline" size={17} color={c.accent} />
+            </View>
+            <View style={styles.body}>
+              <Text style={styles.name}>{t.mypage.payment}</Text>
+              <Text style={styles.hint}>
+                {account.status === 'active'
+                  ? t.account.statusPaid
+                  : isExpired(account)
+                    ? t.mypage.accountEnded
+                    : fill(t.mypage.accountTrial, { n: daysLeft(account.trialEndsAt) })}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={17} color={c.textFaint} />
+          </Pressable>
         </View>
       )}
 
@@ -228,18 +245,6 @@ function makeStyles(c: Palette) {
       overflow: 'hidden',
     },
     boxAccount: { marginBottom: SPACE.md },
-    /* お支払い。設定の並びとは分けて置く。 */
-    payment: {
-      marginHorizontal: SPACE.lg,
-      marginBottom: SPACE.md,
-      gap: SPACE.xs,
-    },
-    sectionLabel: {
-      fontSize: TEXT.small,
-      fontWeight: '700',
-      color: c.textMuted,
-      paddingHorizontal: SPACE.xs,
-    },
     /* 箱に1行しか無いときは、下の区切り線を出さない */
     rowLast: {
       flexDirection: 'row',
