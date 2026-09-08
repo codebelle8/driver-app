@@ -7,7 +7,7 @@ import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
-import { PLANS, monthsSaved, perMonth, yen, type PlanId } from '@/lib/plans';
+import { PLANS, yen, type PlanId } from '@/lib/plans';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -145,13 +145,6 @@ export function PlanPrompt({
                       ? fill(t.plan.priceMonth, { yen: yen(p.yen) })
                       : fill(t.plan.priceYear, { yen: yen(p.yen) })}
                   </Text>
-                  {p.id === 'yearly' && (
-                    <Text style={s.choiceNote}>
-                      {fill(t.plan.perMonth, { yen: yen(perMonth(p)) })}
-                      {'　'}
-                      {fill(t.plan.saved, { n: monthsSaved() })}
-                    </Text>
-                  )}
                 </View>
               </Pressable>
             );
@@ -225,7 +218,6 @@ const makeStyles = (c: Palette) =>
     choiceBody: { flex: 1, gap: 1 },
     choiceName: { fontSize: TEXT.sub, fontWeight: '700', color: c.textMuted },
     choicePrice: { fontSize: TEXT.titleLarge, fontWeight: '800', color: c.text },
-    choiceNote: { fontSize: TEXT.small, color: c.accent, fontWeight: '700' },
 
     notYet: { fontSize: TEXT.small, color: c.textMuted },
 

@@ -41,23 +41,7 @@ export function yen(n: number): string {
   return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-/**
- * 年額にすると1か月あたりいくらになるか。
- *
- * 切り捨てる。実際より安く見せない。
- */
-export function perMonth(plan: Plan): number {
-  return Math.floor(plan.yen / plan.months);
-}
-
-/**
- * 年額が、月額を12回払うのに比べて何か月ぶん安いか。
- *
- * 800 × 12 = 9,600 に対して 8,000 なので 1,600 円、月額の2か月ぶん。
- * 「20%off」より「2か月ぶん」のほうが、月額と並べたときに伝わる。
- */
-export function monthsSaved(): number {
-  const m = planOf('monthly');
-  const y = planOf('yearly');
-  return Math.floor((m.yen * y.months - y.yen) / m.yen);
-}
+/*
+  「1か月あたり◯円」「◯か月ぶんお得」を添えていたが、ご指示により外した。
+  金額そのものだけを出す。
+*/
