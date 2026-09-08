@@ -12,17 +12,25 @@
  *   表示するときに、そのつど端末の中から引き直す（history.ts と同じ）。
  *
  * **どこに残すか**
- *   端末の中だけ。サーバーへは送らない。
- *   どのドライバーがどの施設を留めたかは、送る必要のない情報にあたる。
+ *   端末の中が主。画面が読むのはここで、電波が届かなくても一覧が出る。
  *
- *   これは「この端末を使う人の持ち物」という意味でもある。
- *   端末を替えると引き継がれない。会員の仕組みを入れるまでは、
- *   持ち出せないほうが安全側に倒れる。
+ *   **ログインしている方のぶんだけ、サーバーへ後追いで写す。**
+ *   機種変更で失われないようにするため（運用版）。登録していない方は
+ *   これまでどおり端末の中だけで、外へは何も出ない。
+ *
+ *   写せなかったときは、そのままにして次に開いたときへ回す。
+ *   通信できないからといって、留められなかったことにはしない。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { fetchFacilitiesByIds } from './facilities';
 import { snapshotOf, type NameSnapshot } from './gone';
+import {
+  clearRemoteFavorites,
+  dropFavorites,
+  pushFavorites,
+  type RemoteRow,
+} from './remote-store';
 import type { Facility } from './types';
 
 const KEY = 'kn_favorites';
@@ -93,6 +101,7 @@ export async function toggleFavorite(id: string, facility?: Facility): Promise<b
   if (at >= 0) {
     list.splice(at, 1);
     await write(list);
+    void dropFavorites([id]);
     return false;
   }
 
@@ -102,23 +111,59 @@ export async function toggleFavorite(id: string, facility?: Facility): Promise<b
     表示には使わない（施設があるうちは取り込んだ内容から引く）。
     管理者に消されたあと、何が消えたのかを出すためだけのもの。
   */
-  list.unshift({
-    id,
-    at: new Date().toISOString(),
-    ...(facility ? snapshotOf(facility) : {}),
-  });
+  const now = new Date().toISOString();
+  list.unshift({ id, at: now, ...(facility ? snapshotOf(facility) : {}) });
   await write(list);
+  void pushFavorites([{ id, at: now }]);
   return true;
 }
 
 /** 1件だけ外す */
 export async function removeFavorite(id: string): Promise<void> {
   await write((await read()).filter((x) => x.id !== id));
+  void dropFavorites([id]);
 }
 
 /** すべて外す */
 export async function clearFavorites(): Promise<void> {
   await AsyncStorage.removeItem(KEY);
+  void clearRemoteFavorites();
+}
+
+/**
+ * サーバーにあるものと突き合わせる。
+ *
+ * **消えるより重複するほうがまし** という寄せ方にしている
+ * （docs/12-phase2-design.md 1-3）。両方を足し合わせ、同じ施設は
+ * 新しいほうの時刻を採る。片方に無いものを「外された」とは見なさない。
+ *
+ *   端末Aで外し、端末Bが圏外のまま残っていれば、次の突き合わせで
+ *   戻ってくる。消えたものを戻す手立ては利用者に無いが、
+ *   増えたものは押して外せる。
+ *
+ * 上限（50件）を超えたぶんは古いほうから落とし、サーバーからも消す。
+ * 落としたままサーバーに残すと、次の突き合わせで戻ってきて往復する。
+ */
+export async function mergeFavorites(
+  remote: RemoteRow[],
+): Promise<{ keep: RemoteRow[]; drop: string[] }> {
+  const local = await read();
+  const byId = new Map<string, Pinned>();
+
+  for (const x of local) byId.set(x.id, x);
+  for (const r of remote) {
+    const had = byId.get(r.id);
+    // 名前の控えは端末側にしかない。時刻だけを新しいほうへ寄せる。
+    if (!had) byId.set(r.id, { id: r.id, at: r.at });
+    else if (r.at > had.at) byId.set(r.id, { ...had, at: r.at });
+  }
+
+  const all = [...byId.values()].sort((a, b) => (a.at < b.at ? 1 : -1));
+  const keep = all.slice(0, FAVORITE_LIMIT);
+  const cut = all.slice(FAVORITE_LIMIT).map((x) => x.id);
+
+  await write(keep);
+  return { keep: keep.map((x) => ({ id: x.id, at: x.at })), drop: cut };
 }
 
 /**

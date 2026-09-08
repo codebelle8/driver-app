@@ -11,13 +11,20 @@
  *   表示するときに、そのつど端末のデータベースから引き直す。
  *
  * **どこに残すか**
- *   端末の中だけ。サーバーへは送らない。
- *   どのドライバーがどの施設を見たかは、送る必要のない情報にあたる。
+ *   端末の中が主。画面が読むのはここで、電波が届かなくても一覧が出る。
+ *
+ *   **ログインしている方のぶんだけ、サーバーへ後追いで写す。**
+ *   機種変更で失われないようにするため（運用版）。登録していない方は
+ *   これまでどおり端末の中だけで、外へは何も出ない。
+ *
+ *   預かるぶんは、管理画面からは読めないようにしてある
+ *   （supabase/migrations/20260908000002）。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { fetchFacilitiesByIds } from './facilities';
 import { snapshotOf, type NameSnapshot } from './gone';
+import { clearRemoteVisits, dropVisits, pushVisits, type RemoteRow } from './remote-store';
 import type { Facility } from './types';
 
 const KEY = 'kn_history';
@@ -81,10 +88,12 @@ export async function recordVisit(id: string, facility?: Facility): Promise<void
     名前も一緒に控える。表示には使わない。
     管理者に消されたあと、何が消えたのかを出すためだけのもの。
   */
+  const now = new Date().toISOString();
   await writeVisits([
-    { id, at: new Date().toISOString(), ...(facility ? snapshotOf(facility) : {}) },
+    { id, at: now, ...(facility ? snapshotOf(facility) : {}) },
     ...rest,
   ]);
+  void pushVisits([{ id, at: now }]);
 }
 
 /**
@@ -116,9 +125,39 @@ export async function countHistory(): Promise<number> {
 export async function removeVisit(id: string): Promise<void> {
   const list = await readVisits();
   await writeVisits(list.filter((v) => v.id !== id));
+  void dropVisits([id]);
 }
 
 /** すべて消す */
 export async function clearHistory(): Promise<void> {
   await AsyncStorage.removeItem(KEY);
+  void clearRemoteVisits();
+}
+
+/**
+ * サーバーにあるものと突き合わせる。
+ *
+ * 寄せ方はお気に入りと同じ（favorites.ts の mergeFavorites を参照）。
+ * 同じ施設は新しいほうの時刻を採る。上限（100件）を超えたぶんは
+ * 古いほうから落とし、サーバーからも消す。
+ */
+export async function mergeVisits(
+  remote: RemoteRow[],
+): Promise<{ keep: RemoteRow[]; drop: string[] }> {
+  const local = await readVisits();
+  const byId = new Map<string, Visit>();
+
+  for (const v of local) byId.set(v.id, v);
+  for (const r of remote) {
+    const had = byId.get(r.id);
+    if (!had) byId.set(r.id, { id: r.id, at: r.at });
+    else if (r.at > had.at) byId.set(r.id, { ...had, at: r.at });
+  }
+
+  const all = [...byId.values()].sort((a, b) => (a.at < b.at ? 1 : -1));
+  const keep = all.slice(0, HISTORY_LIMIT);
+  const cut = all.slice(HISTORY_LIMIT).map((v) => v.id);
+
+  await writeVisits(keep);
+  return { keep: keep.map((v) => ({ id: v.id, at: v.at })), drop: cut };
 }

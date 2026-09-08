@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { loadAccount, scrubUrlFragment, type Account } from './account';
+import { forgetSync, syncAccountData } from './sync-account';
 import { supabase } from './supabase';
 
 /**
@@ -57,6 +58,13 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       setAccount(found);
       setReady(true);
+      /*
+        お気に入りと閲覧履歴を、サーバーと突き合わせる。
+
+        待たない。画面はもう出してよい。突き合わせは端末の中身を
+        主にして足し合わせるだけなので、途中で見えていても中身は減らない。
+      */
+      if (found) void syncAccountData();
       // メールのリンクから戻ってきた場合、鍵が URL に残っている
       scrubUrlFragment();
     })();
@@ -65,6 +73,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
 
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      // ログアウトしたら、次に入ったときにまた突き合わせる
+      if (event === 'SIGNED_OUT') forgetSync();
 
       /*
         この中から supabase を直に呼ばない。
@@ -76,7 +86,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setTimeout(() => {
         if (!alive) return;
         void loadAccount().then((found) => {
-          if (alive) setAccount(found);
+          if (!alive) return;
+          setAccount(found);
+          if (found) void syncAccountData();
         });
         scrubUrlFragment();
       }, 0);
