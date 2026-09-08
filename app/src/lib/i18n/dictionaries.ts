@@ -358,6 +358,22 @@ const ja = {
     afterTrial:
       '無料期間が終わっても、いまのところ引き続きお使いいただけます。お支払いの方法が整い次第、あらためてご案内いたします。',
     contact: 'ご不明な点は、お手数ですが提供元へお問い合わせください。',
+
+    /* 銀行振込 */
+    transferTitle: 'お振込先',
+    transferLead: '下記へお振込みください。日本のどの銀行からでもお振込みいただけます。',
+    transferBank: '金融機関',
+    transferAccount: '口座',
+    transferHolder: '口座名義',
+    transferAmount: 'お振込金額',
+    transferName: 'お振込人のお名前',
+    transferNameHow: 'お名前の前に、この番号をお付けください。',
+    transferNameExample: '例: {code}ヤマダタロウ',
+    transferAfter: 'お振込を確認しましたら、ご利用開始のご連絡をいたします。',
+    transferNotReady: 'お振込先はただいま準備中です',
+    transferNotReadyBody: '整い次第、この画面でご案内いたします。お手数をおかけいたします。',
+    futsu: '普通',
+    touza: '当座',
   },
 
   notices: {
@@ -761,6 +777,21 @@ const en: Dictionary = {
     afterTrial:
       'You can keep using the app for now, even after the free month ends. We will be in touch once payment is set up.',
     contact: 'For anything else, please contact the provider.',
+
+    transferTitle: 'Where to pay',
+    transferLead: 'Please transfer to the account below. Any bank in Japan can send this transfer.',
+    transferBank: 'Bank',
+    transferAccount: 'Account',
+    transferHolder: 'Account name',
+    transferAmount: 'Amount',
+    transferName: 'Sender name',
+    transferNameHow: 'Please put this number before your name.',
+    transferNameExample: 'e.g. {code}YAMADA TARO',
+    transferAfter: 'We will confirm your transfer and let you know when your plan starts.',
+    transferNotReady: 'Payment details are being prepared',
+    transferNotReadyBody: 'We will show them here as soon as they are ready.',
+    futsu: 'Ordinary',
+    touza: 'Current',
   },
 
   notices: {

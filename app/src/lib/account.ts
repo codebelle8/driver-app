@@ -43,6 +43,13 @@ export interface Account {
   /** ご希望の料金。まだ選んでいなければ null。支払い済みの意味ではない。 */
   plan: PlanId | null;
   planChosenAt: string | null;
+  /**
+   * 会員番号。振込名義の前に付けていただく。
+   *
+   * 振込は名義しか届かない。同姓同名や法人名での振込があると
+   * 突き合わせられないため、短い番号を添えていただく。
+   */
+  memberNo: number;
 }
 
 /**
@@ -266,6 +273,7 @@ interface ProfileRow {
   avatar_path: string | null;
   plan: PlanId | null;
   plan_chosen_at: string | null;
+  member_no: number;
 }
 
 /**
@@ -303,6 +311,7 @@ export async function loadAccount(): Promise<Account | null> {
     avatarUrl: row.avatar_path ? avatarUrlOf(row.avatar_path) : null,
     plan: row.plan,
     planChosenAt: row.plan_chosen_at,
+    memberNo: row.member_no,
   };
 }
 
