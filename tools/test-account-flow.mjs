@@ -23,7 +23,7 @@
  *   5. マイページに残り日数が出ること
  *   6. ログアウトできること
  *   7. ログインし直せること／誤ったパスワードは断ること
- *   8. 顔写真を選ぶと、置き場所と名簿の両方に載ること
+ *   8. 顔写真を選ぶと、置き場所と名簿と**画面**に載ること
  *   9. 顔写真を押すと、プロフィール・設定・ログアウトが出ること
  *  10. 無料期間が切れると料金の案内が出て、1つ選んで申し込めること
  *  11. ログインしたままパスワードを変えられること（いまのを間違えたら断る）
@@ -277,8 +277,21 @@ try {
         page.waitForEvent('filechooser'),
         pickButton.click(),
       ]);
+
+      /*
+        本物の枠に近づける。
+
+        ブラウザは「窓へ戻る（focus）」を先に出し、「選ばれた（change）」を
+        後から出す。以前これを 500ms しか待たずに片付けており、
+        **写真を選んでも何も起きなかった。** 検査は setFiles で change を
+        すぐ起こしていたため、素通りしていた。
+
+        窓へ戻ったことを先に知らせ、少し置いてから選ぶ。
+      */
+      await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await page.waitForTimeout(1200);
       await chooser.setFiles(TEST_IMAGE);
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(6000);
 
       const withPhoto = userId ? await profileOf(userId) : null;
       check(
@@ -297,6 +310,33 @@ try {
         const got = await fetch(url);
         check('置いた顔写真が読み出せる', got.ok, `${got.status}`);
       }
+
+      /*
+        **画面に出ているか。**
+
+        名簿と置き場所だけを見ていたため、画面が変わらない不具合を
+        見逃していた。実際に「顔写真を変えても画面が変わらない」と
+        ご指摘をいただいた。画面まで見る。
+      */
+      const shownOnScreen = async () =>
+        page.evaluate(() => {
+          for (const el of document.querySelectorAll('img')) {
+            if ((el.getAttribute('src') ?? '').includes('/avatars/')) return true;
+          }
+          for (const el of document.querySelectorAll('*')) {
+            const bg = getComputedStyle(el).backgroundImage;
+            if (bg && bg.includes('/avatars/')) return true;
+          }
+          return false;
+        });
+
+      check('アカウントの画面に顔写真が出る', await shownOnScreen());
+
+      // 上部の帯にも出ているか
+      await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(4000);
+      check('上部の帯にも顔写真が出る', await shownOnScreen());
+      await goAccount();
 
       // 正方形へ縮めてから送っているか（元は 240x320）
       if (withPhoto?.avatar_path) {

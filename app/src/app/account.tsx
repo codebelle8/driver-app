@@ -381,11 +381,16 @@ function SignedIn({
 
   async function onPickPhoto() {
     if (!account || photoBusy) return;
-    const blob = await pickAvatar();
-    if (!blob) return;
+
+    const picked = await pickAvatar();
+    // 閉じただけなら黙って戻る。読めなかったのなら伝える。
+    if (!picked.ok) {
+      if (picked.reason === 'unreadable') notify(t.account.avatarUnreadable, undefined, 'error');
+      return;
+    }
 
     setPhotoBusy(true);
-    const r = await uploadAvatar(account.userId, blob, account.avatarPath);
+    const r = await uploadAvatar(account.userId, picked.blob, account.avatarPath);
     setPhotoBusy(false);
     if (r.ok) {
       await refresh();
