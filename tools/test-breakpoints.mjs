@@ -18,6 +18,8 @@
  */
 import { chromium } from 'playwright';
 
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
 
 let pass = 0;
@@ -44,18 +46,21 @@ const CASES = [
 ];
 
 let browser = null;
+/*
+  起動時にログインを求める作りになったため、検査も先に入る。
+  検査用の会員は最後に必ず消す。
+*/
+const conn = connect();
+let member = null;
 
 try {
   console.log(`画面幅ごとの作り分けの検査: ${BASE}\n`);
+  member = await createMember(conn, 'bp');
   browser = await chromium.launch();
 
   for (const { w, rail, split } of CASES) {
     const page = await browser.newPage({ viewport: { width: w, height: 820 } });
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(w === CASES[0].w ? 8000 : 3500);
-    const skip = page.getByRole('button', { name: /導入を飛ばす|Skip the intro/ });
-    if (await skip.count()) await skip.first().click().catch(() => {});
-    await page.waitForTimeout(900);
+    await signInOn(page, BASE, member);
 
     /*
       左メニューかどうかは、行が縦に積まれているかで見る。
@@ -131,11 +136,7 @@ try {
     ['タブレット（768 → 1024）', { width: 768, height: 1024 }],
   ]) {
     const page = await browser.newPage({ viewport: from });
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(4000);
-    const skip = page.getByRole('button', { name: /導入を飛ばす|Skip the intro/ });
-    if (await skip.count()) await skip.first().click().catch(() => {});
-    await page.waitForTimeout(700);
+    await signInOn(page, BASE, member);
 
     await page.getByPlaceholder(/施設名|Name, reading/).fill('ホテル');
     await page.waitForTimeout(2200);
@@ -216,6 +217,7 @@ try {
   }
 } finally {
   if (browser) await browser.close();
+  check('検査で作った会員を消した', await removeMember(conn, member));
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;

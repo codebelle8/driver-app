@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AuthForm, PasswordField, TroubleLine, type Trouble } from '@/components/auth-form';
 import { Avatar } from '@/components/avatar';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
@@ -12,338 +13,66 @@ import {
   changePassword,
   clearAvatar,
   daysLeft,
+  deleteMyAccount,
   isExpired,
-  sendReset,
-  signIn,
   signOut,
-  signUp,
+  signOutEverywhere,
   updateDisplayName,
-  updatePassword,
   uploadAvatar,
-  type Problem,
 } from '@/lib/account';
-import { canPickAvatar, pickAvatar } from '@/lib/avatar';
 import { useAccount } from '@/lib/account-context';
+import { canPickAvatar, pickAvatar } from '@/lib/avatar';
 import { confirmDelete } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatDate } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
-import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
+import { forgetRemembered } from '@/lib/remember';
+import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
- * アカウント。登録・ログイン・再設定と、登録後の内容。
+ * アカウント。お名前・顔写真・パスワードと、退会。
  *
- * **1枚にまとめている**
- *   登録・ログイン・再設定を別々の画面にすると、行き来のたびに
- *   打った文字が消える。走行前に片手で打つ場面で、それは重い。
- *   同じ枠のまま、押す先だけが入れ替わる形にしている。
+ * **入力そのものは共通の部品に任せる**
+ *   登録・ログイン・再設定は起動時の入口と同じものを使う
+ *   （components/auth-form.tsx）。二か所に書くと片方だけ直る。
  *
  * **ブラウザの alert は使わない**
- *   失敗は欄のすぐ下に出す。うまくいったことは下の帯（notice）で伝える。
- *   どちらもアプリの配色と書体に従う。
+ *   失敗は欄のすぐ下に出す。うまくいったことは下の帯で伝える。
  *
- * **英語の文面をそのまま出さない**
- *   Supabase が返すのは英語で、版によって言い回しも変わる。
- *   種類だけを受け取り（lib/account.ts）、文言はこちらの辞書から出す。
- *
- * **登録していなくても使える**
- *   この画面へ来なければ、今までどおり193件を読める。
- *   ここは「引き継ぎたい方のための入口」で、関所ではない。
+ * **取り消せない操作は、下にまとめて置く**
+ *   退会と、すべての端末からのログアウト。押し間違いを避けるため、
+ *   お名前や写真を直す欄からは離す。
  */
-
-/** いま何を尋ねているか */
-type Mode = 'in' | 'up' | 'reset';
-
-/** 欄のすぐ下に出す言い分。Problem に、こちらで見つけるぶんを足す。 */
-type Trouble = Problem | 'empty' | 'emptyEmail' | 'short';
-
 export default function AccountScreen() {
   const c = useTheme();
   const t = useT();
   const router = useRouter();
   const styles = makeStyles(c);
-
-  const { account, ready, recovering, doneRecovering } = useAccount();
-
-  const [mode, setMode] = useState<Mode>('in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [reveal, setReveal] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [trouble, setTrouble] = useState<Trouble | null>(null);
-  /** 確認メール・再設定メールを送った先。送った後の案内に使う。 */
-  const [sentTo, setSentTo] = useState<string | null>(null);
-
-  const clear = () => {
-    setTrouble(null);
-    setSentTo(null);
-  };
-
-  // --- 送る ------------------------------------------------------------------
-
-  async function onSubmit() {
-    if (busy) return;
-    clear();
-
-    if (mode === 'reset') {
-      if (!email.trim()) return setTrouble('emptyEmail');
-    } else {
-      if (!email.trim() || !password) return setTrouble('empty');
-      if (password.length < PASSWORD_MIN) return setTrouble('short');
-    }
-
-    setBusy(true);
-    try {
-      if (mode === 'reset') {
-        const r = await sendReset(email);
-        if (!r.ok) return setTrouble(r.problem);
-        setSentTo(email.trim());
-        notify(t.account.resetSent, t.account.resetSentBody);
-        return;
-      }
-
-      if (mode === 'up') {
-        const r = await signUp(email, password);
-        if (!r.ok) return setTrouble(r.problem);
-        setPassword('');
-        if (r.value.needsConfirm) {
-          setSentTo(email.trim());
-          notify(t.account.confirmTitle, t.account.resetSentBody);
-        } else {
-          notify(t.account.welcome);
-        }
-        return;
-      }
-
-      const r = await signIn(email, password);
-      if (!r.ok) return setTrouble(r.problem);
-      setPassword('');
-      notify(t.account.signedIn);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  /** 再設定のリンクから戻ってきた後、新しいパスワードを決める */
-  async function onNewPassword() {
-    if (busy) return;
-    clear();
-    if (password.length < PASSWORD_MIN) return setTrouble('short');
-
-    setBusy(true);
-    try {
-      const r = await updatePassword(password);
-      if (!r.ok) return setTrouble(r.problem);
-      setPassword('');
-      doneRecovering();
-      notify(t.account.changed);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function onSignOut() {
-    confirmDelete({
-      title: t.account.signOutConfirm,
-      message: t.account.signOutBody,
-      note: ' ',
-      yes: t.account.signOut,
-      onYes: () => {
-        void signOut().then(() => notify(t.account.signedOut));
-      },
-    });
-  }
-
-  // --- 描く ------------------------------------------------------------------
-
-  const head = (
-    <View style={styles.head}>
-      <IconButton icon="chevron-back" label={t.common.back} onPress={() => router.back()} />
-      <Text style={styles.heading}>{t.account.title}</Text>
-    </View>
-  );
-
-  /*
-    再設定の途中を最優先で出す。
-
-    リンクから戻ると、Supabase はログイン済みの状態にする。そのまま
-    「ログイン中の画面」を出すと、新しいパスワードを決める場所へ
-    たどり着けない。
-  */
-  if (recovering) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <PageWidth>
-          {head}
-          <ScrollView contentContainerStyle={styles.body}>
-            <Text style={styles.sectionTitle}>{t.account.recoveryTitle}</Text>
-            <Text style={styles.lead}>{t.account.recoveryLead}</Text>
-
-            <PasswordField
-              value={password}
-              onChange={setPassword}
-              reveal={reveal}
-              onReveal={setReveal}
-              label={t.account.passwordNew}
-              hint={fill(t.account.passwordHint, { n: PASSWORD_MIN })}
-              styles={styles}
-              c={c}
-              t={t}
-            />
-            <Trouble trouble={trouble} styles={styles} t={t} />
-
-            <Submit
-              label={busy ? t.account.working : t.account.submitPassword}
-              disabled={busy}
-              onPress={onNewPassword}
-              styles={styles}
-            />
-          </ScrollView>
-        </PageWidth>
-      </SafeAreaView>
-    );
-  }
-
-  if (account) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['bottom']}>
-        <PageWidth>
-          {head}
-          <ScrollView contentContainerStyle={styles.body}>
-            <SignedIn onSignOut={onSignOut} styles={styles} c={c} t={t} />
-          </ScrollView>
-        </PageWidth>
-      </SafeAreaView>
-    );
-  }
+  const { account, recovering } = useAccount();
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <PageWidth>
-        {head}
+        <View style={styles.head}>
+          <IconButton icon="chevron-back" label={t.common.back} onPress={() => router.back()} />
+          <Text style={styles.heading}>{t.account.title}</Text>
+        </View>
+
         <ScrollView contentContainerStyle={styles.body}>
-          {mode === 'reset' ? (
-            <>
-              <Text style={styles.sectionTitle}>{t.account.resetTitle}</Text>
-              <Text style={styles.lead}>{t.account.resetLead}</Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.lead}>{t.account.lead}</Text>
-              <Text style={styles.leadStrong}>{t.account.leadTrial}</Text>
-
-              {/* ログインと新規登録の切り替え。枠は同じまま中身だけ変える。 */}
-              <View style={styles.tabs}>
-                {(['in', 'up'] as const).map((m) => (
-                  <Pressable
-                    key={m}
-                    onPress={() => {
-                      setMode(m);
-                      clear();
-                    }}
-                    accessibilityRole="tab"
-                    aria-selected={mode === m}
-                    style={[styles.tab, mode === m && styles.tabOn]}
-                  >
-                    <Text style={[styles.tabText, mode === m && styles.tabTextOn]}>
-                      {m === 'in' ? t.account.modeIn : t.account.modeUp}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
-
-          <Text style={styles.label}>{t.account.email}</Text>
-          <TextInput
-            value={email}
-            onChangeText={(v) => {
-              setEmail(v);
-              setTrouble(null);
-            }}
-            style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor={c.textFaint}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            inputMode="email"
-            accessibilityLabel={t.account.email}
-          />
-
-          {mode !== 'reset' && (
-            <PasswordField
-              value={password}
-              onChange={setPassword}
-              reveal={reveal}
-              onReveal={setReveal}
-              label={t.account.password}
-              hint={mode === 'up' ? fill(t.account.passwordHint, { n: PASSWORD_MIN }) : undefined}
-              newPassword={mode === 'up'}
-              styles={styles}
-              c={c}
-              t={t}
-            />
-          )}
-
-          <Trouble trouble={trouble} styles={styles} t={t} />
-
-          {/* 送った後の案内。押す先が無いので、帯ではなく画面に残す。 */}
-          {sentTo && (
-            <View style={styles.sent}>
-              <Ionicons name="mail-outline" size={18} color={c.accent} />
-              <Text style={styles.sentText}>
-                {mode === 'reset'
-                  ? t.account.resetSentBody
-                  : fill(t.account.confirmBody, { email: sentTo })}
-              </Text>
-            </View>
-          )}
-
-          <Submit
-            label={
-              busy
-                ? t.account.working
-                : mode === 'reset'
-                  ? t.account.submitReset
-                  : mode === 'up'
-                    ? t.account.submitUp
-                    : t.account.submitIn
-            }
-            disabled={busy || !ready}
-            onPress={onSubmit}
-            styles={styles}
-          />
-
-          <Pressable
-            onPress={() => {
-              setMode(mode === 'reset' ? 'in' : 'reset');
-              clear();
-            }}
-            hitSlop={HIT_SLOP}
-            accessibilityRole="button"
-            style={styles.linkRow}
-          >
-            <Text style={styles.link}>
-              {mode === 'reset' ? t.common.back : t.account.forgot}
-            </Text>
-          </Pressable>
+          {account && !recovering ? <SignedIn styles={styles} c={c} t={t} /> : <AuthForm />}
         </ScrollView>
       </PageWidth>
     </SafeAreaView>
   );
 }
 
-/** ログイン済みの内容。メール・無料期間・お名前・ログアウト。 */
+/** ログイン済みの内容。 */
 function SignedIn({
-  onSignOut,
   styles,
   c,
   t,
 }: {
-  onSignOut: () => void;
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
   t: ReturnType<typeof useT>;
@@ -454,6 +183,48 @@ function SignedIn({
     notify(t.account.passwordChanged);
   }
 
+  function onSignOut() {
+    confirmDelete({
+      title: t.account.signOutConfirm,
+      message: t.account.signOutBody,
+      // 「元には戻せません。」は当てはまらない。空白1つで既定を打ち消す。
+      note: ' ',
+      yes: t.account.signOut,
+      onYes: () => {
+        void signOut().then(() => notify(t.account.signedOut));
+      },
+    });
+  }
+
+  function onSignOutAll() {
+    confirmDelete({
+      title: t.account.signOutAll,
+      message: t.account.signOutAllBody,
+      note: ' ',
+      yes: t.account.signOutAll,
+      onYes: () => {
+        void signOutEverywhere().then(() => notify(t.account.signedOutAll));
+      },
+    });
+  }
+
+  function onLeave() {
+    confirmDelete({
+      title: t.account.leaveConfirm,
+      message: t.account.leaveBody,
+      note: t.account.leaveNote,
+      yes: t.account.leaveYes,
+      onYes: () => {
+        void deleteMyAccount().then(async (r) => {
+          if (!r.ok) return notify(t.account.error[r.problem], undefined, 'error');
+          // 端末に控えたログインも消す。消えたアカウントでは、もう入れない。
+          await forgetRemembered();
+          notify(t.account.leaveDone);
+        });
+      },
+    });
+  }
+
   return (
     <>
       {/*
@@ -461,7 +232,6 @@ function SignedIn({
 
         端末側（Expo Go・APK）では選べない。写真を選ぶ部品の追加と
         作り直しが要るため、まずブラウザで動く形にしている。
-        押せない釦を出すより、変えられる場所をお伝えする。
       */}
       <View style={styles.photoRow}>
         {/* 選んだ写真があれば、それを映す。まだ変わってはいない。 */}
@@ -585,9 +355,6 @@ function SignedIn({
           reveal={reveal}
           onReveal={setReveal}
           label={t.account.passwordCurrent}
-          styles={styles}
-          c={c}
-          t={t}
         />
         <PasswordField
           value={next}
@@ -600,12 +367,9 @@ function SignedIn({
           label={t.account.passwordNew}
           hint={fill(t.account.passwordHint, { n: PASSWORD_MIN })}
           newPassword
-          styles={styles}
-          c={c}
-          t={t}
         />
 
-        <Trouble trouble={pwTrouble} styles={styles} t={t} />
+        <TroubleLine trouble={pwTrouble} />
 
         <Pressable
           onPress={onChangePassword}
@@ -619,118 +383,52 @@ function SignedIn({
         </Pressable>
       </View>
 
-      <Pressable onPress={onSignOut} accessibilityRole="button" style={styles.signOut}>
+      <Pressable
+        onPress={onSignOut}
+        accessibilityRole="button"
+        /* 記号の字が読み上げ名に混ざるため、名前を明示する。 */
+        accessibilityLabel={t.account.signOut}
+        style={styles.signOut}
+      >
         <Ionicons name="log-out-outline" size={18} color={c.danger} />
         <Text style={styles.signOutText}>{t.account.signOut}</Text>
       </Pressable>
-    </>
-  );
-}
 
-/** パスワードの欄。見せる・隠すを添える。 */
-function PasswordField({
-  value,
-  onChange,
-  reveal,
-  onReveal,
-  label,
-  hint,
-  newPassword = false,
-  styles,
-  c,
-  t,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  reveal: boolean;
-  onReveal: (v: boolean) => void;
-  label: string;
-  hint?: string;
-  newPassword?: boolean;
-  styles: ReturnType<typeof makeStyles>;
-  c: Palette;
-  t: ReturnType<typeof useT>;
-}) {
-  return (
-    <>
-      <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
-        {hint && <Text style={styles.labelHint}>{hint}</Text>}
-      </View>
-      <View style={styles.inputRow}>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          style={[styles.input, styles.inputFlex]}
-          secureTextEntry={!reveal}
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete={newPassword ? 'new-password' : 'current-password'}
-          accessibilityLabel={label}
-        />
-        {/*
-          見せる・隠す。
+      {/*
+        取り消せない操作。
 
-          走行前に片手で打つと打ち間違いが起きる。見られて困る場所でも
-          ないため、確かめられるようにしておく。
-        */}
+        押し間違いを避けるため、お名前や写真を直す欄からは離して置く。
+      */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t.account.danger}</Text>
+
         <Pressable
-          onPress={() => onReveal(!reveal)}
-          hitSlop={HIT_SLOP}
+          onPress={onSignOutAll}
           accessibilityRole="button"
-          accessibilityLabel={reveal ? t.account.hide : t.account.show}
-          style={styles.reveal}
+          accessibilityLabel={t.account.signOutAll}
+          style={styles.dangerRow}
         >
-          <Ionicons name={reveal ? 'eye-off-outline' : 'eye-outline'} size={18} color={c.textMuted} />
+          <Ionicons name="phone-portrait-outline" size={18} color={c.textMuted} />
+          <View style={styles.dangerBody}>
+            <Text style={styles.dangerName}>{t.account.signOutAll}</Text>
+            <Text style={styles.hint}>{t.account.signOutAllBody}</Text>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onLeave}
+          accessibilityRole="button"
+          accessibilityLabel={t.account.leave}
+          style={styles.dangerRow}
+        >
+          <Ionicons name="trash-outline" size={18} color={c.danger} />
+          <View style={styles.dangerBody}>
+            <Text style={[styles.dangerName, { color: c.danger }]}>{t.account.leave}</Text>
+            <Text style={styles.hint}>{t.account.leaveBody}</Text>
+          </View>
         </Pressable>
       </View>
     </>
-  );
-}
-
-/** うまくいかなかった理由。欄のすぐ下に出す。 */
-function Trouble({
-  trouble,
-  styles,
-  t,
-}: {
-  trouble: Trouble | null;
-  styles: ReturnType<typeof makeStyles>;
-  t: ReturnType<typeof useT>;
-}) {
-  if (!trouble) return null;
-  const text =
-    trouble === 'short'
-      ? fill(t.account.error.short, { n: PASSWORD_MIN })
-      : t.account.error[trouble];
-  return (
-    <View style={styles.trouble} accessibilityRole="alert">
-      <Ionicons name="alert-circle-outline" size={16} color={styles.troubleText.color as string} />
-      <Text style={styles.troubleText}>{text}</Text>
-    </View>
-  );
-}
-
-function Submit({
-  label,
-  disabled,
-  onPress,
-  styles,
-}: {
-  label: string;
-  disabled: boolean;
-  onPress: () => void;
-  styles: ReturnType<typeof makeStyles>;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      style={[styles.submit, disabled && styles.submitOff]}
-    >
-      <Text style={styles.submitText}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -760,42 +458,8 @@ function makeStyles(c: Palette) {
       gap: SPACE.sm,
     },
 
-    sectionTitle: { fontSize: TEXT.title, fontWeight: '800', color: c.text },
-    lead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20 },
-    leadStrong: { fontSize: TEXT.sub, color: c.accent, fontWeight: '700' },
-
-    tabs: {
-      flexDirection: 'row',
-      gap: SPACE.xs,
-      marginTop: SPACE.sm,
-      padding: 3,
-      borderRadius: RADIUS.md,
-      backgroundColor: c.surface2,
-      borderWidth: 1,
-      borderColor: c.border,
-    },
-    tab: {
-      flex: 1,
-      height: 38,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: RADIUS.sm,
-    },
-    tabOn: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.accent },
-    tabText: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.textMuted },
-    tabTextOn: { color: c.accent },
-
-    labelRow: {
-      flexDirection: 'row',
-      alignItems: 'baseline',
-      justifyContent: 'space-between',
-      marginTop: SPACE.sm,
-    },
     label: { fontSize: TEXT.sub, fontWeight: '700', color: c.text, marginTop: SPACE.sm },
-    labelHint: { fontSize: TEXT.small, color: c.textFaint },
-
-    inputRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
-    inputFlex: { flex: 1 },
+    hint: { fontSize: TEXT.small, color: c.textMuted, lineHeight: 17 },
     input: {
       height: 48,
       paddingHorizontal: SPACE.md,
@@ -806,69 +470,6 @@ function makeStyles(c: Palette) {
       color: c.text,
       fontSize: TEXT.bodyStrong,
     },
-    reveal: {
-      width: 44,
-      height: 44,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: RADIUS.sm,
-    },
-
-    trouble: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACE.xs,
-      marginTop: SPACE.sm,
-      paddingHorizontal: SPACE.md,
-      paddingVertical: SPACE.sm,
-      borderRadius: RADIUS.sm,
-      backgroundColor: c.dangerSoft,
-    },
-    troubleText: { flex: 1, fontSize: TEXT.sub, color: c.danger, lineHeight: 19 },
-
-    sent: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: SPACE.sm,
-      marginTop: SPACE.sm,
-      padding: SPACE.md,
-      borderRadius: RADIUS.sm,
-      backgroundColor: c.accentSoft,
-    },
-    sentText: { flex: 1, fontSize: TEXT.sub, color: c.text, lineHeight: 20 },
-
-    submit: {
-      marginTop: SPACE.lg,
-      height: 52,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: RADIUS.md,
-      backgroundColor: c.accent,
-    },
-    submitOff: { opacity: 0.5 },
-    submitText: { fontSize: TEXT.title, fontWeight: '800', color: c.accentText },
-
-    linkRow: { marginTop: SPACE.md, alignItems: 'center', paddingVertical: SPACE.sm },
-    link: { fontSize: TEXT.sub, fontWeight: '700', color: c.accent },
-
-    card: {
-      marginTop: SPACE.sm,
-      borderRadius: RADIUS.md,
-      backgroundColor: c.surface,
-      borderWidth: 1,
-      borderColor: c.border,
-      overflow: 'hidden',
-    },
-    cardRow: {
-      paddingHorizontal: SPACE.md,
-      paddingVertical: SPACE.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: c.border,
-      gap: 2,
-    },
-    cardLabel: { fontSize: TEXT.small, color: c.textMuted },
-    cardValue: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
-    cardValueWarn: { color: c.warn },
 
     /* 顔写真 */
     photoRow: {
@@ -879,7 +480,6 @@ function makeStyles(c: Palette) {
     },
     photoSide: { flex: 1, gap: SPACE.xs },
     photoButtons: { flexDirection: 'row', gap: SPACE.sm, marginTop: SPACE.xs },
-    hint: { fontSize: TEXT.small, color: c.textMuted },
 
     small: {
       height: 40,
@@ -912,6 +512,26 @@ function makeStyles(c: Palette) {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: c.border,
     },
+    sectionTitle: { fontSize: TEXT.title, fontWeight: '800', color: c.text },
+
+    card: {
+      marginTop: SPACE.sm,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+      overflow: 'hidden',
+    },
+    cardRow: {
+      paddingHorizontal: SPACE.md,
+      paddingVertical: SPACE.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+      gap: 2,
+    },
+    cardLabel: { fontSize: TEXT.small, color: c.textMuted },
+    cardValue: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
+    cardValueWarn: { color: c.warn },
 
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
     nameInput: { flex: 1 },
@@ -940,5 +560,19 @@ function makeStyles(c: Palette) {
       backgroundColor: c.surface,
     },
     signOutText: { fontSize: TEXT.body, fontWeight: '700', color: c.danger },
+
+    dangerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: SPACE.sm,
+      marginTop: SPACE.md,
+      padding: SPACE.md,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.surface,
+    },
+    dangerBody: { flex: 1, gap: 2 },
+    dangerName: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
   });
 }

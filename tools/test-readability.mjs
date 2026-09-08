@@ -15,6 +15,8 @@
  */
 import { chromium } from 'playwright';
 
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
 
 /** これを下回る文字は画面に出さない（theme.ts の TEXT.micro） */
@@ -74,19 +76,19 @@ const overflow = (page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
 let browser = null;
+/* 起動時にログインを求める作りになったため、検査も先に入る。 */
+const conn = connect();
+let member = null;
 
 try {
   console.log(`文字の読みやすさの検査: ${BASE}\n`);
+  member = await createMember(conn, 'rd');
   browser = await chromium.launch();
 
   // いちばん狭い端末から、PC まで
   for (const w of [320, 375, 768, 1280]) {
     const page = await browser.newPage({ viewport: { width: w, height: 820 } });
-    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(w === 320 ? 8000 : 3500);
-    const skip = page.getByRole('button', { name: /導入を飛ばす|Skip the intro/ });
-    if (await skip.count()) await skip.first().click().catch(() => {});
-    await page.waitForTimeout(1000);
+    await signInOn(page, BASE, member);
 
     // 履歴とお気に入りに中身を入れておく（空の画面だけでは補足が出ない）
     const ids = await page.evaluate(() => {
@@ -126,6 +128,7 @@ try {
   }
 } finally {
   if (browser) await browser.close();
+  check('検査で作った会員を消した', await removeMember(conn, member));
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;

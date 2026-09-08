@@ -109,13 +109,33 @@ export async function savePaymentSettings(
  * ずれる。人が通帳を見て決める。ここはその結果を書き留めるだけ。
  */
 export async function setMemberActive(formData: FormData): Promise<void> {
+  await setStatus(formData, (active) => (active ? 'active' : 'trial'));
+}
+
+/**
+ * ご利用を停止する（または戻す）。
+ *
+ * 停止すると、その方はログインできなくなる。既に入っている端末も、
+ * 次に開いたときに入口で止まる。
+ *
+ * 戻す先は「無料期間」。停止の前が有料だったかどうかは、ここでは
+ * 判じない。入金の確認は人が見て決めるものなので、戻したうえで
+ * あらためて「入金を確認した」を押していただく。
+ */
+export async function setMemberBlocked(formData: FormData): Promise<void> {
+  await setStatus(formData, (blocked) => (blocked ? 'blocked' : 'trial'));
+}
+
+async function setStatus(
+  formData: FormData,
+  decide: (on: boolean) => 'active' | 'trial' | 'blocked',
+): Promise<void> {
   const me = await requireAdmin();
 
   const userId = String(formData.get('user_id') ?? '');
   if (!/^[0-9a-f-]{36}$/i.test(userId)) return;
 
-  const active = formData.get('active') === 'true';
-  const next = active ? 'active' : 'trial';
+  const next = decide(formData.get('active') === 'true');
 
   const admin = createAdminClient();
   const { data: before } = await admin

@@ -131,17 +131,42 @@ try {
 
   const goAccount = async () => {
     await page.goto(`${BASE}/account`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(3500);
     const skip = page.getByRole('button', { name: /導入を飛ばす|Skip the intro/ });
     if (await skip.count()) await skip.first().click().catch(() => {});
-    await page.waitForTimeout(800);
+    /*
+      入口（AuthGate）を通ってから画面が出る。時間の決め打ちだと、
+      込み具合によって間に合わない。出るのを待つ。
+    */
+    await page
+      .getByRole('button', { name: /ログアウト|新規登録/ })
+      .first()
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .catch(() => {});
+    await page.waitForTimeout(600);
   };
 
-  const signedInNow = async () => (await page.getByText('無料期間').count()) > 0;
+  /*
+    入れたかどうかは、時間ではなく表示で見る。
+
+    入口（AuthGate）を挟むぶん、入るまでの時間が延びた。決め打ちだと
+    込み具合によって落ちたり通ったりする。
+  */
+  const signedInNow = async () => {
+    await page
+      .getByText('無料期間')
+      .first()
+      .waitFor({ state: 'visible', timeout: 20000 })
+      .catch(() => {});
+    return (await page.getByText('無料期間').count()) > 0;
+  };
 
   const fillIn = async (p, pass_) => {
     await p.getByLabel('メールアドレス').fill(EMAIL);
     await p.getByLabel('パスワード', { exact: true }).fill(pass_);
+    /* 登録のときだけ出る確認の欄。出ていれば同じものを入れる。 */
+    const again = p.getByLabel('パスワード（確認）');
+    if (await again.count()) await again.fill(pass_);
   };
 
   // --- 2. 画面から新規登録 -----------------------------------------------------
@@ -230,7 +255,7 @@ try {
     // --- 6. ログアウト ---------------------------------------------------------
     console.log('\n--- ログアウト ---');
     await goAccount();
-    await page.getByRole('button', { name: 'ログアウト' }).click();
+    await page.getByRole('button', { name: 'ログアウト', exact: true }).click();
     await page.waitForTimeout(800);
     await page.getByTestId('confirm-accept').click();
     await page.waitForTimeout(3000);
@@ -243,7 +268,16 @@ try {
     console.log('\n--- ログインし直す ---');
     await fillIn(page, PASSWORD);
     await page.getByRole('button', { name: 'ログイン' }).last().click();
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(6000);
+    /*
+      入り直すと、探す画面から始まる。
+
+      入口は、ログインしていないあいだ画面の並びごと外している。
+      入ると並びが作り直されるため、開いていた画面には戻らない。
+      毎日の使い方（開いて施設を探す）には、むしろ素直な始まり方。
+    */
+    check('入り直すと探す画面から始まる', (await page.locator('body').innerText()).includes('カテゴリから探す'));
+    await goAccount();
     check('同じ相手でログインし直せる', await signedInNow());
 
     console.log('\n--- 誤ったパスワード ---');

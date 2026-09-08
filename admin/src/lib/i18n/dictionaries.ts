@@ -103,6 +103,9 @@ const ja = {
     planYearly: '年額',
     markPaid: '入金を確認した',
     undoPaid: '無料期間へ戻す',
+    stateBlocked: '停止中',
+    block: '利用を停止',
+    unblock: '停止を解く',
   },
 
   accounts: {
@@ -559,6 +562,9 @@ const en: Dictionary = {
     planYearly: 'Yearly',
     markPaid: 'Payment received',
     undoPaid: 'Back to free month',
+    stateBlocked: 'Suspended',
+    block: 'Suspend',
+    unblock: 'Unsuspend',
   },
 
   accounts: {

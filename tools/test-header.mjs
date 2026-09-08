@@ -11,9 +11,12 @@
  *   （その画面を開いたときだけ消えている）。全画面を回って確かめる。
  *
  * 見るのは3点。
- *   1. どの画面にも現在地（または案内できる範囲）が出ていること
- *   2. どの画面にもお知らせの鐘が出ていること
- *   3. ログインしていれば、どの画面にも顔写真が出ていること
+ *   1. ログインしていなければ、画面の代わりに入口が出ること
+ *   2. ログインしたら、どの画面にも場所と鐘が出ていること
+ *   3. どの画面にも顔写真が出ていること
+ *
+ * 起動時にログインを求める作りへ変えたため、未ログインで各画面を
+ * 回る検査は成り立たなくなった。入口が出ることだけを見る。
  */
 import { readFileSync } from 'node:fs';
 import { chromium } from 'playwright';
@@ -98,24 +101,23 @@ try {
 
     // --- ログインしていないとき ------------------------------------------------
     console.log(`--- ${w}px・ログインしていないとき ---`);
+    /*
+      どの道筋から開いても、入口が出る。
+
+      画面ごとの見出しや一覧は出ない。会員制の製品として、入口を
+      ひとつにしている（ご指示による）。
+    */
     for (const [name, path] of screens) {
       await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(2500);
       await skip();
 
       const body = await page.locator('body').innerText();
+      check(`${w}px ${name}: 入口が出る`, body.includes('ようこそ'), body.slice(0, 60).replace(/\n/g, ' / '));
       check(
-        `${w}px ${name}: 場所が出ている`,
-        /案内できる範囲|現在地/.test(body),
+        `${w}px ${name}: 中身は出さない`,
+        !/案内できる範囲|現在地/.test(body),
         body.slice(0, 60).replace(/\n/g, ' / '),
-      );
-      check(
-        `${w}px ${name}: 鐘が出ている`,
-        (await page.getByRole('link', { name: /お知らせ/ }).count()) > 0,
-      );
-      check(
-        `${w}px ${name}: 顔写真は出ていない`,
-        (await page.getByRole('button', { name: 'アカウントのメニュー' }).count()) === 0,
       );
     }
 
@@ -134,6 +136,13 @@ try {
         await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
         await page.waitForTimeout(2500);
         await skip();
+
+        const body = await page.locator('body').innerText();
+        check(`${w}px ${name}: 場所が出ている`, /案内できる範囲|現在地/.test(body));
+        check(
+          `${w}px ${name}: 鐘が出ている`,
+          (await page.getByRole('link', { name: /お知らせ/ }).count()) > 0,
+        );
         check(
           `${w}px ${name}: 顔写真が出ている`,
           (await page.getByRole('button', { name: 'アカウントのメニュー' }).count()) === 1,

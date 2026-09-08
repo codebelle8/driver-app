@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { NoticeHost } from '@/components/notice-toast';
+import { AuthGate } from '@/components/auth-gate';
 import { SideRail } from '@/components/side-rail';
 import { TopBar } from '@/components/top-bar';
 import { AccountProvider } from '@/lib/account-context';
@@ -112,6 +113,11 @@ function Shell() {
     */
     <GestureHandlerRootView style={styles.root}>
     <SafeAreaProvider>
+    {/*
+      起動したときの入口。ログインしていなければ、まずここが出る。
+      ご指示による。会員制の製品として、入口をひとつにする。
+    */}
+    <AuthGate>
       {/*
         時刻や電池の表示色。
         端末の設定 (useColorScheme) ではなく、利用者が選んだ表示に従う。
@@ -160,6 +166,7 @@ function Shell() {
       </Stack>
       </View>
       </View>
+    </AuthGate>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );

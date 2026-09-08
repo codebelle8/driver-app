@@ -1,4 +1,4 @@
-import { savePaymentSettings, setMemberActive } from '@/app/actions/members';
+import { savePaymentSettings, setMemberActive, setMemberBlocked } from '@/app/actions/members';
 import { PaymentSettingsForm } from '@/components/payment-settings-form';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { requireAdmin } from '@/lib/auth';
@@ -91,6 +91,7 @@ export default async function MembersPage() {
               <tbody className="divide-y divide-border">
                 {(members ?? []).map((p) => {
                   const paid = p.status === 'active';
+                  const blocked = p.status === 'blocked';
                   return (
                     <tr key={p.user_id}>
                       {/*
@@ -104,8 +105,8 @@ export default async function MembersPage() {
                         {emailById.get(p.user_id) ?? '—'}
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={paid ? 'accent' : 'default'}>
-                          {paid ? m.statePaid : m.stateTrial}
+                        <Badge tone={blocked ? 'warn' : paid ? 'accent' : 'default'}>
+                          {blocked ? m.stateBlocked : paid ? m.statePaid : m.stateTrial}
                         </Badge>
                       </td>
                       <td className="px-5 py-3 tabular text-text-muted">
@@ -119,14 +120,29 @@ export default async function MembersPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-right">
-                        <form action={setMemberActive}>
-                          <input type="hidden" name="user_id" value={p.user_id} />
-                          <input type="hidden" name="active" value={paid ? 'false' : 'true'} />
-                          <Button type="submit" variant={paid ? 'ghost' : 'primary'}>
-                            {paid ? m.undoPaid : m.markPaid}
-                          </Button>
-                        </form>
+                      <td className="px-5 py-3">
+                        <div className="flex justify-end gap-2">
+                          {/*
+                            停止中の方に入金の操作は出さない。
+                            先に停止を解いてから、あらためて判断していただく。
+                          */}
+                          {!blocked && (
+                            <form action={setMemberActive}>
+                              <input type="hidden" name="user_id" value={p.user_id} />
+                              <input type="hidden" name="active" value={paid ? 'false' : 'true'} />
+                              <Button type="submit" variant={paid ? 'ghost' : 'primary'}>
+                                {paid ? m.undoPaid : m.markPaid}
+                              </Button>
+                            </form>
+                          )}
+                          <form action={setMemberBlocked}>
+                            <input type="hidden" name="user_id" value={p.user_id} />
+                            <input type="hidden" name="active" value={blocked ? 'false' : 'true'} />
+                            <Button type="submit" variant="ghost">
+                              {blocked ? m.unblock : m.block}
+                            </Button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   );

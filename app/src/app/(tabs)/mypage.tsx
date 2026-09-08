@@ -70,7 +70,11 @@ export default function MyPageScreen() {
             <Ionicons name="person-circle-outline" size={17} color={c.accent} />
           </View>
           <View style={styles.body}>
-            <Text style={styles.name} numberOfLines={1}>
+            {/*
+              1行に収めない。長いメールアドレスが「…」で切れると、
+              どのアカウントで入っているのかが読めなくなる。
+            */}
+            <Text style={styles.name} numberOfLines={2}>
               {account?.email ?? t.mypage.account}
             </Text>
             {/* 1行に収めない。320px の画面で「…」に切れる。 */}

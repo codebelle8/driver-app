@@ -67,6 +67,10 @@ export type Problem =
   | 'samePassword'
   /* いまのパスワードが違う（変更のとき） */
   | 'wrongCurrent'
+  /* 新しいパスワードと確認が食い違う */
+  | 'mismatch'
+  /* こちらでご利用を停止している */
+  | 'blocked'
   /* Supabase 側で新規登録を閉じている。運用の設定であって、利用者の落ち度ではない。 */
   | 'signupClosed'
   | 'rateLimited'
@@ -201,6 +205,17 @@ export async function signIn(email: string, password: string): Promise<Result> {
     password,
   });
   if (error) return bad(toProblem(error));
+
+  /*
+    ご利用の停止は、入口（components/auth-gate.tsx）で止める。
+
+    ここでログアウトさせて欄の下に理由を出す作りも試したが、
+    出す前に入口が「停止中」の画面へ切り替わり、理由が消えていた。
+    **止める場所は1か所にする。** 入口なら、入ったままの端末が
+    次に開いたときも同じように止まる。
+
+    名簿の行だけは作っておく（初回ログインのため）。
+  */
   await ensureProfile();
   return good(undefined);
 }
@@ -215,6 +230,32 @@ export async function signIn(email: string, password: string): Promise<Result> {
 export async function signOut(): Promise<Result> {
   const { error } = await supabase.auth.signOut();
   if (error) return bad(toProblem(error));
+  return good(undefined);
+}
+
+/**
+ * この端末以外も含めて、すべてログアウトする。
+ *
+ * 社用の端末を使い回す現場では、前の方のログインが残る。
+ * 心当たりのあるときに、まとめて切れるようにしておく。
+ */
+export async function signOutEverywhere(): Promise<Result> {
+  const { error } = await supabase.auth.signOut({ scope: 'global' });
+  if (error) return bad(toProblem(error));
+  return good(undefined);
+}
+
+/**
+ * 退会する。
+ *
+ * お預かりしているもの（メールアドレス・顔写真・お気に入り・履歴）を
+ * まとめて消す。取り消せない。
+ */
+export async function deleteMyAccount(): Promise<Result> {
+  const { error } = await supabase.rpc('delete_my_account');
+  if (error) return bad(toProblem(error));
+  // 消えた利用者のセッションは、もう使えない。手元も片付ける。
+  await supabase.auth.signOut().catch(() => undefined);
   return good(undefined);
 }
 

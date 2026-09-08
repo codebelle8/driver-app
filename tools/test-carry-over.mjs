@@ -15,7 +15,7 @@
  *   2. 施設を開くと、履歴がサーバーにも入ること
  *   3. 端末B（空の入れ物）でログインすると、両方が出ること
  *   4. 端末Bで外すと、サーバーからも消えること
- *   5. ログインしていない人のぶんは、外へ出ないこと
+ *   5. ログインしていない人は、そもそも中へ入れないこと
  *   6. 後片付け（検査で作った会員を消す）
  */
 import { readFileSync } from 'node:fs';
@@ -166,22 +166,26 @@ try {
 
   // --- ログインしていない人 ---------------------------------------------------
   console.log('\n--- ログインしていない人 ---');
+  /*
+    起動時にログインを求める作りへ変えたため、未ログインでは施設の
+    画面まで到達しない。入口で止まることを確かめる。
+
+    以前はここで「端末の中には残るが、外へは出ない」を見ていた。
+    その道筋そのものが無くなった。
+  */
   const guest = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await guest.goto(`${BASE}/facility/${ids[1]}`, { waitUntil: 'networkidle' });
-  await guest.waitForTimeout(4000);
+  await guest.waitForTimeout(5000);
   const sk = guest.getByRole('button', { name: /導入を飛ばす/ });
   if (await sk.count()) await sk.first().click().catch(() => {});
   await guest.waitForTimeout(1500);
-  const gSave = guest.getByRole('button', { name: /^(保存|お気に入りに入れる)$/ });
-  if (await gSave.count()) await gSave.first().click();
-  await guest.waitForTimeout(2500);
 
-  const local = await guest.evaluate(() => (localStorage.getItem('kn_favorites') ?? '').length);
-  check('登録していなくても端末の中には残る', local > 2, `${local} 文字`);
+  const seen = await guest.locator('body').innerText();
+  check('登録していない人は入口で止まる', seen.includes('ようこそ'), seen.slice(0, 70));
 
   const favGuest = await rowsOf('driver_favorites', userId);
   check(
-    '登録していない人のぶんは外へ出ない',
+    '他の方の預かりぶんに手が届かない',
     favGuest.length === 1,
     `${favGuest.length} 件（増えていたら漏れている）`,
   );
