@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { BuildingIcon, GaugeIcon, TagIcon, UsersIcon, HistoryIcon } from '@/components/icons';
+import {
+  BuildingIcon,
+  GaugeIcon,
+  TagIcon,
+  UsersIcon,
+  HistoryIcon,
+  CardIcon,
+} from '@/components/icons';
 
 /**
  * ヘッダーのナビゲーション。
@@ -20,6 +27,7 @@ export function NavLinks({
     dashboard: string;
     facilities: string;
     categories: string;
+    members: string;
     accounts: string;
     history: string;
   };
@@ -34,6 +42,7 @@ export function NavLinks({
     { href: '/categories', label: labels.categories, Icon: TagIcon },
     ...(isAdmin
       ? [
+          { href: '/members', label: labels.members, Icon: CardIcon },
           { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
           { href: '/history', label: labels.history, Icon: HistoryIcon },
         ]

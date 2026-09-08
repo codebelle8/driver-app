@@ -107,6 +107,17 @@ export function PlusIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** カード — 会員とお支払い */
+export function CardIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+      <path d="M2.5 9.5h19" />
+      <path d="M6 14.5h4" />
+    </svg>
+  );
+}
+
 /** 複数人 — アカウント管理 */
 export function UsersIcon(props: SVGProps<SVGSVGElement>) {
   return (

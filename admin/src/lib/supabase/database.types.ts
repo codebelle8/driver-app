@@ -129,6 +129,41 @@ export type Photo = {
   updated_at: string;
 }
 
+/**
+ * 会員（アプリをお使いのドライバー）。
+ *
+ * 管理画面を操作する AdminProfile とは別物。同じ auth.users に
+ * ぶら下がるが、名簿を分けてある（supabase/migrations/20260908000001）。
+ */
+export type DriverProfile = {
+  user_id: string;
+  display_name: string | null;
+  status: 'trial' | 'active' | 'expired' | 'blocked';
+  /** 無料期間の終わり。サーバー側で決める。 */
+  trial_ends_at: string;
+  avatar_path: string | null;
+  /** ご希望の料金。支払い済みの意味ではない。 */
+  plan: 'monthly' | 'yearly' | null;
+  plan_chosen_at: string | null;
+  /** 振込名義の前に付けていただく番号 */
+  member_no: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** お支払いの受取口座。1行しか持たない。 */
+export type PaymentSettings = {
+  id: number;
+  bank_name: string | null;
+  branch_name: string | null;
+  account_type: 'futsu' | 'touza' | null;
+  account_number: string | null;
+  account_holder: string | null;
+  account_holder_kana: string | null;
+  note: string | null;
+  updated_at: string;
+}
+
 export type AdminProfile = {
   user_id: string;
   display_name: string;
@@ -222,6 +257,15 @@ export interface Database {
         AdminProfile,
         Insert<AdminProfile, 'role' | 'is_active' | 'created_at' | 'updated_at'>
       >;
+      driver_profiles: Table<
+        DriverProfile,
+        Insert<
+          DriverProfile,
+          | 'display_name' | 'status' | 'avatar_path' | 'plan' | 'plan_chosen_at'
+          | 'member_no' | 'created_at' | 'updated_at'
+        >
+      >;
+      payment_settings: Table<PaymentSettings, Insert<PaymentSettings, keyof PaymentSettings>>;
       audit_logs: Table<
         AuditLog,
         Insert<AuditLog, 'id' | 'actor_id' | 'record_id' | 'diff' | 'created_at'>

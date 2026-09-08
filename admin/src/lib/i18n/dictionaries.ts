@@ -24,6 +24,7 @@ const ja = {
     dashboard: 'ダッシュボード',
     facilities: '施設一覧',
     categories: 'カテゴリ',
+    members: '会員・お支払い',
     accounts: 'アカウント',
     history: '操作履歴',
     scrollTop: '先頭へ戻る',
@@ -57,6 +58,51 @@ const ja = {
     photos: '写真',
     categories: 'カテゴリ',
     admin_profiles: 'アカウント',
+  },
+
+  /*
+    会員（ドライバー）とお支払い。
+
+    「アカウント」は管理画面を操作する人、こちらはアプリを使う人。
+    名前が似ているため、画面の説明で違いを言い切る。
+  */
+  members: {
+    title: '会員・お支払い',
+    description: 'アプリをお使いのドライバーと、銀行振込の受取口座を管理します。',
+
+    transferTitle: 'お振込先（受取口座）',
+    transferHint:
+      'ここに入れたものが、そのままドライバーの画面に出ます。空のあいだは「準備中」と出ます。',
+    bankName: '金融機関名',
+    branchName: '支店名',
+    accountType: '種別',
+    futsu: '普通',
+    touza: '当座',
+    accountNumber: '口座番号',
+    accountNumberHint: '数字のみ',
+    accountHolder: '口座名義',
+    accountHolderKana: '口座名義（カナ）',
+    accountHolderKanaHint: '通帳の表記に合わせてください',
+    note: '添える一言',
+    noteHint: '振込手数料の扱いなど。空欄で構いません',
+    notePlaceholder: '振込手数料はお客様のご負担でお願いいたします。',
+    save: '保存する',
+    saving: '保存しています...',
+
+    listTitle: 'ご登録のドライバー',
+    empty: 'まだご登録がありません',
+    emptyBody: 'アプリからご登録いただくと、ここに並びます。',
+    colNo: '会員番号',
+    colEmail: 'メールアドレス',
+    colState: '状態',
+    colTrial: '無料期間の終わり',
+    colPlan: 'ご希望の料金',
+    statePaid: 'ご利用中',
+    stateTrial: '無料期間',
+    planMonthly: '月額',
+    planYearly: '年額',
+    markPaid: '入金を確認した',
+    undoPaid: '無料期間へ戻す',
   },
 
   accounts: {
@@ -439,6 +485,7 @@ const en: Dictionary = {
     dashboard: 'Dashboard',
     facilities: 'Facilities',
     categories: 'Categories',
+    members: 'Members',
     accounts: 'Accounts',
     history: 'History',
     scrollTop: 'Back to top',
@@ -473,6 +520,45 @@ const en: Dictionary = {
     photos: 'Photo',
     categories: 'Category',
     admin_profiles: 'Account',
+  },
+
+  members: {
+    title: 'Members and payment',
+    description: 'Drivers using the app, and the bank account that receives their payments.',
+
+    transferTitle: 'Bank account for payments',
+    transferHint:
+      'What you enter here is shown to drivers as-is. While it is empty, the app says it is being prepared.',
+    bankName: 'Bank',
+    branchName: 'Branch',
+    accountType: 'Type',
+    futsu: 'Ordinary',
+    touza: 'Current',
+    accountNumber: 'Account number',
+    accountNumberHint: 'Digits only',
+    accountHolder: 'Account name',
+    accountHolderKana: 'Account name (kana)',
+    accountHolderKanaHint: 'Match the passbook',
+    note: 'Extra note',
+    noteHint: 'Who pays the transfer fee, and so on. May be left blank',
+    notePlaceholder: 'Transfer fees are paid by the sender.',
+    save: 'Save',
+    saving: 'Saving…',
+
+    listTitle: 'Registered drivers',
+    empty: 'No drivers yet',
+    emptyBody: 'They will appear here once they sign up in the app.',
+    colNo: 'No.',
+    colEmail: 'Email',
+    colState: 'Status',
+    colTrial: 'Free month ends',
+    colPlan: 'Chosen plan',
+    statePaid: 'Active',
+    stateTrial: 'Free month',
+    planMonthly: 'Monthly',
+    planYearly: 'Yearly',
+    markPaid: 'Payment received',
+    undoPaid: 'Back to free month',
   },
 
   accounts: {
