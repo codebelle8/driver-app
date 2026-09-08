@@ -10,6 +10,7 @@ import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { NoticeHost } from '@/components/notice-toast';
 import { SideRail } from '@/components/side-rail';
+import { TopBar } from '@/components/top-bar';
 import { AccountProvider } from '@/lib/account-context';
 import { LocaleProvider } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
@@ -132,6 +133,18 @@ function Shell() {
       */}
       <View style={[styles.root, styles.shell, { backgroundColor: c.bg }, isWide && styles.shellWide]}>
       {isWide && <SideRail />}
+      {/*
+        上部の帯（現在地・お知らせ・顔写真）。
+
+        画面の並びの外に置く。ご指示により、どの機能を開いていても
+        出したままにする。画面ごとに置くと、置き忘れた画面だけ帯が
+        消え、そこだけ知らせに気づけない。
+
+        切り欠き（ノッチ）の下へ逃がすのは帯の役目になった。
+        各画面の SafeAreaView からは top を外してある。
+      */}
+      <View style={styles.column}>
+      <TopBar />
       <Stack
         screenOptions={{
           // 画面ごとに見出しを持つため、共通の見出しは出さない
@@ -145,6 +158,7 @@ function Shell() {
         <Stack.Screen name="account" />
       </Stack>
       </View>
+      </View>
     </SafeAreaProvider>
     </GestureHandlerRootView>
   );
@@ -154,4 +168,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   shell: { flexDirection: 'column' },
   shellWide: { flexDirection: 'row' },
+  /* 帯と画面を縦に積む列。広い画面では左メニューの右側にあたる。 */
+  column: { flex: 1 },
 });

@@ -75,7 +75,7 @@ export default function NoticesScreen() {
   const added = (notices ?? []).filter((n) => n.kind === 'added');
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
       <PageWidth>
       <Stack.Screen options={{ headerShown: false }} />

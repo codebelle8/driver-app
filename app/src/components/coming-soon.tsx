@@ -26,7 +26,7 @@ export function ComingSoon({
   const styles = makeStyles(c);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.head}>
         <Text style={styles.heading}>{title}</Text>
       </View>

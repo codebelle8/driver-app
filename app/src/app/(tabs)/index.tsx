@@ -19,7 +19,7 @@ import { BrandLogo } from '@/components/brand';
 import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
 import { IconButton } from '@/components/icon-button';
-import { HEADER_HEIGHT, RAIL_WIDTH } from '@/components/side-rail';
+import { RAIL_WIDTH } from '@/components/side-rail';
 import { ScrollTopButton } from '@/components/scroll-top-button';
 import {
   fetchCategories,
@@ -32,13 +32,11 @@ import {
 import { fetchHistory, type HistoryEntry } from '@/lib/history';
 import { AccountMenu } from '@/components/account-menu';
 import { PlanPrompt } from '@/components/plan-prompt';
-import { countUnread, fetchNotices, getRead } from '@/lib/notices';
-import { describePlace } from '@/lib/place';
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { categoryName, facilityAddress, facilityName } from '@/lib/localized';
 import { fill } from '@/lib/i18n/dictionaries';
-import { useLayout } from '@/lib/layout';
+import { PAGE_MAX, PAGE_PAD, useLayout } from '@/lib/layout';
 import { describeWhen } from '@/lib/when';
 import type { Category, Facility } from '@/lib/types';
 import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
@@ -78,24 +76,6 @@ const WIDE_PAGE_SIZE = 60;
  */
 const SPLIT_LIST_WIDTH = 420;
 
-/**
- * 広い画面の左右の余白。
- *
- * ご提示の画面図の見え方（左メニューの右端から48px）に合わせている。
- */
-const PAGE_PAD = 48;
-
-/**
- * 本文の最大幅。
- *
- * 1536px の画面では余白を引いた全幅（1184px）がそのまま入り、
- * 画面図と同じ見え方になる。それより広い画面では、1行が長くなりすぎて
- * 目が行末から次の行頭へ戻れなくなるため、ここで止める。
- *
- * 2560px の画面で試したところ 1240px では余白が勝ちすぎ、中身が画面の
- * 半分に満たなかった。1440px まで許して釣り合いを取る。
- */
-const PAGE_MAX = 1440;
 
 /**
  * 上部の帯の高さ。
@@ -211,12 +191,6 @@ export default function SearchScreen() {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   /** 直近に見た施設。履歴の先頭ぶん。 */
   const [recent, setRecent] = useState<HistoryEntry[]>([]);
-  /** 案内できる範囲（都道府県と、その中の市区町村の数） */
-  const [coverage, setCoverage] = useState<{
-    prefectures: string[];
-    cities: number;
-    total: number;
-  }>({ prefectures: [], cities: 0, total: 0 });
   /** 履歴の総数。「すべて見る」に添える。 */
   const [historyCount, setHistoryCount] = useState(0);
   /** 絞り込まずに全件を並べているか */
@@ -234,7 +208,6 @@ export default function SearchScreen() {
     syncedAt: null,
   });
   const [atTop, setAtTop] = useState(true);
-  const [unseen, setUnseen] = useState(0);
 
   const listRef = useRef<FlatList<Facility>>(null);
   const isFiltered = Boolean(query.trim() || categoryId || showAll);
@@ -264,12 +237,8 @@ export default function SearchScreen() {
       const { cats, area } = await readLocal();
       if (!alive) return;
       setCategories(cats);
-      setCoverage(area);
       setSync((prev) => ({ ...prev, facilityCount: area.total }));
       setLoading(false);
-
-      const [notices, read] = await Promise.all([fetchNotices(locale), getRead()]);
-      if (alive) setUnseen(countUnread(notices, read));
     })();
 
     (async () => {
@@ -279,13 +248,9 @@ export default function SearchScreen() {
       setSync(result);
       setSyncing(false);
 
-      const { cats, area } = await readLocal();
+      const { cats } = await readLocal();
       if (!alive) return;
       setCategories(cats);
-      setCoverage(area);
-
-      const [notices, read] = await Promise.all([fetchNotices(locale), getRead()]);
-      if (alive) setUnseen(countUnread(notices, read));
     })();
 
     return () => {
@@ -314,13 +279,8 @@ export default function SearchScreen() {
           ここは画面を出したあとの更新なので、待っても画面は止まらない。
         */
         await ensureSynced();
-        const [notices, read, history] = await Promise.all([
-          fetchNotices(locale),
-          getRead(),
-          fetchHistory(),
-        ]);
+        const history = await fetchHistory();
         if (!alive) return;
-        setUnseen(countUnread(notices, read));
         setRecent(history.slice(0, RECENT_COUNT));
         setHistoryCount(history.length);
       })();
@@ -342,10 +302,9 @@ export default function SearchScreen() {
     setSync(result);
     setSyncing(false);
 
-    const { cats, area } = await readLocal();
+    const { cats } = await readLocal();
     setCategories(cats);
-    setCoverage(area);
-  }, [readLocal, locale]);
+  }, [readLocal]);
 
   /*
     一度に読む件数。
@@ -432,99 +391,8 @@ export default function SearchScreen() {
     [categories],
   );
 
-  /**
-   * 案内できる範囲。登録されている施設の所在地から求める。
-   *
-   * 都道府県が1つなら県名、複数なら件数で示す。
-   * 決め打ちの地名を出すと、対応していない場所でも案内できるように見える。
-   */
-  const area = useMemo(() => {
-    if (sync.facilityCount === 0) return t.search.waiting;
-    const { prefectures, cities } = coverage;
-    if (prefectures.length === 1) {
-      const name = prefectures[0];
-      return cities > 1
-        ? fill(t.search.areaOne, { name, n: sync.facilityCount })
-        : name;
-    }
-    if (prefectures.length > 1) {
-      return fill(t.search.areaMore, { name: prefectures[0], n: sync.facilityCount });
-    }
-    return fill(t.search.registered, { n: sync.facilityCount });
-  }, [coverage, sync.facilityCount, t]);
-
-  /*
-    端末の現在地。
-
-    許可されなければ、案内できる範囲の表示のままにする。
-    位置を断ったからといって、施設を探せなくなる理由はない。
-  */
-  const [place, setPlace] = useState<string | null>(null);
-
-  useEffect(() => {
-    let alive = true;
-    describePlace().then((name) => {
-      if (alive && name) setPlace(name);
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/*
-        上部の帯。現在地と知らせ。
-
-        広い画面では、左メニューのロゴ帯と同じ高さの帯にして横一直線に
-        区切る。ご提示の画面図の作りに合わせている。
-      */}
-      <View style={[styles.topBar, isWide && styles.topBarWide]}>
-        {/*
-          中身は本文と同じ列に収める。
-
-          帯そのものは横一杯に伸ばし、区切りの線を画面の端まで引く。
-          中身まで一緒に広げると、2560px の画面で現在地が左端、鐘が
-          右端へ離れ、下の本文とどこにも揃わなくなる。
-        */}
-        <View style={isWide ? styles.topBarInner : styles.topBarRow}>
-        {/*
-          広い画面では出さない。左メニューが常に見えており、
-          畳んで開くための記号は要らない。
-        */}
-        {!isWide && (
-          <Pressable hitSlop={HIT_SLOP} accessibilityLabel={t.common.menu} style={styles.topIcon}>
-            <Ionicons name="menu" size={22} color={c.text} />
-          </Pressable>
-        )}
-
-        {/*
-          端末の位置が取れたらその地名を、取れなければ案内できる範囲を出す。
-          位置が取れないことを咎める表示はしない。断るのも選択のうち。
-        */}
-        <View style={styles.place}>
-          <Ionicons name="location" size={isWide ? 18 : 13} color={c.accent} />
-          <View style={styles.placeText}>
-            <Text style={isWide ? styles.placeLabelWide : styles.placeLabel}>
-              {place ? t.search.here : t.search.area}
-            </Text>
-            <Text
-              style={isWide ? styles.placeValueWide : styles.placeValue}
-              numberOfLines={1}
-            >
-              {place ?? area}
-            </Text>
-          </View>
-        </View>
-
-        <BellButton unseen={unseen} wide={isWide} styles={styles} c={c} />
-        {/*
-          顔写真は鐘の右端。ご指示による。
-          登録していない方には出ない（部品の側で何も描かない）。
-        */}
-        <AccountMenu compact={!isWide} />
-        </View>
-      </View>
+    <SafeAreaView style={styles.safe} edges={[]}>
 
       {/*
         無料期間が終わった方へのご案内。
@@ -957,80 +825,6 @@ function SearchField({
   );
 }
 
-/**
- * お知らせの鐘。
- *
- * **押せることが分かるようにする**
- *   記号を置いただけで、マウスを乗せても押しても見た目が変わらなかった。
- *   マウスで使う画面では、触れる画面と違って「押せる」手がかりが
- *   見た目にしか無い。乗せたら下地を敷き、押したら濃くする。
- *
- * **未読があるときは塗りつぶす**
- *   数の札だけだと、札が小さく見落とされる。鐘そのものの形を変える。
- *
- * **見た目は内側の View に持たせる**
- *   Link の asChild は中身を <a> に差し替えるため、Pressable 向けの
- *   関数形式や配列の style は届かない（配列は画面ごと落ちる）。
- *   状態は Pressable で受け、描くのは内側に任せる。
- */
-function BellButton({
-  unseen,
-  wide,
-  styles,
-  c,
-}: {
-  unseen: number;
-  wide?: boolean;
-  styles: ReturnType<typeof makeStyles>;
-  c: Palette;
-}) {
-  const t = useT();
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
-  const on = unseen > 0;
-
-  return (
-    <Link href="/notices" asChild>
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={on ? fill(t.search.noticesCount, { n: unseen }) : t.search.notices}
-        onHoverIn={() => setHovered(true)}
-        onHoverOut={() => {
-          setHovered(false);
-          setPressed(false);
-        }}
-        onPressIn={() => setPressed(true)}
-        onPressOut={() => setPressed(false)}
-        style={styles.bellHit}
-      >
-        <View
-          style={StyleSheet.flatten([
-            styles.bell,
-            hovered && styles.bellHover,
-            pressed && styles.bellPressed,
-          ])}
-        >
-          <Ionicons
-            name={on ? 'notifications' : 'notifications-outline'}
-            size={wide ? 23 : 21}
-            color={on || hovered || pressed ? c.accent : c.text}
-          />
-          {/*
-            実際の件数を出す。9+ で丸めていたが、1件読んでも表示が
-            変わらず、読んだことが伝わらなかった。
-            三桁になると札に収まらないため、そこだけ 99+ とする。
-          */}
-          {on && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unseen > 99 ? '99+' : unseen}</Text>
-            </View>
-          )}
-        </View>
-      </Pressable>
-    </Link>
-  );
-}
-
 /** カテゴリの札 */
 function CategoryCard({
   category,
@@ -1372,88 +1166,6 @@ function makeStyles(c: Palette) {
       marginHorizontal: SPACE.lg,
       marginTop: SPACE.md,
     },
-    topBar: {
-      paddingHorizontal: SPACE.lg,
-      paddingTop: SPACE.sm,
-      paddingBottom: SPACE.md,
-    },
-    /* 帯の中身。狭い画面ではこれが帯そのものの並びにあたる。 */
-    topBarRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACE.sm,
-    },
-    /* 広い画面。中身を本文と同じ列に収める。 */
-    /*
-      余白は列の内側で取る。
-
-      外側で取ると、列を中央へ寄せる計算がその内側で行われ、
-      中身の左端が本文より余白1つぶん外へ出る。2560px の画面で
-      現在地だけが 48px 左へずれていた。
-    */
-    topBarInner: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: SPACE.md,
-      width: '100%',
-      maxWidth: PAGE_MAX,
-      alignSelf: 'center',
-      paddingHorizontal: PAGE_PAD,
-    },
-    topIcon: { width: 28, alignItems: 'center' },
-
-    /*
-      鐘。当たり判定は広く、下地は記号のまわりだけ。
-
-      当たり判定まで丸く塗ると、上部の帯の中で大きすぎる丸になる。
-      押せる範囲は広く保ちつつ、色が付くのは記号のまわりに留める。
-    */
-    bellHit: { padding: 4 },
-    bell: {
-      width: 38,
-      height: 38,
-      borderRadius: 19,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    bellHover: { backgroundColor: c.surface2 },
-    bellPressed: { backgroundColor: c.accentSoft },
-
-    /*
-      広い画面の上部の帯。
-
-      左メニューのロゴ帯と同じ高さにして、画面を横一直線に区切る。
-      ご提示の画面図の作りに合わせている。
-    */
-    topBarWide: {
-      height: HEADER_HEIGHT,
-      paddingTop: 0,
-      paddingBottom: 0,
-      paddingHorizontal: 0,
-      backgroundColor: c.surface,
-      borderBottomWidth: 1,
-      borderBottomColor: c.border,
-    },
-    placeLabelWide: { fontSize: TEXT.sub, color: c.textFaint },
-    placeValueWide: { fontSize: TEXT.title, color: c.text, fontWeight: '700' },
-    badge: {
-      position: 'absolute',
-      top: -4,
-      right: -2,
-      minWidth: 16,
-      height: 16,
-      borderRadius: 8,
-      paddingHorizontal: 3,
-      backgroundColor: c.danger,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    badgeText: { fontSize: TEXT.small, fontWeight: '800', color: '#ffffff' },
-    place: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    placeText: { flex: 1 },
-    placeLabel: { fontSize: TEXT.small, color: c.textFaint },
-    placeValue: { fontSize: TEXT.sub, color: c.text, fontWeight: '600' },
 
     // --- 見出しと検索欄 ---
     head: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.md },

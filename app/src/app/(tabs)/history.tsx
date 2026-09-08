@@ -144,7 +144,7 @@ export default function HistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
       <PageWidth>
       <View style={styles.head}>

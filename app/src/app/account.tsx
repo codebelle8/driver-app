@@ -174,7 +174,7 @@ export default function AccountScreen() {
   */
   if (recovering) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <PageWidth>
           {head}
           <ScrollView contentContainerStyle={styles.body}>
@@ -208,7 +208,7 @@ export default function AccountScreen() {
 
   if (account) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <PageWidth>
           {head}
           <ScrollView contentContainerStyle={styles.body}>
@@ -220,7 +220,7 @@ export default function AccountScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <PageWidth>
         {head}
         <ScrollView contentContainerStyle={styles.body}>
