@@ -95,7 +95,7 @@ export function PaymentSettingsForm({
               name="account_holder"
               defaultValue={initial.account_holder ?? ''}
               className={inputClass}
-              placeholder="上野 修"
+              placeholder="佐藤 太郎"
             />
           </Field>
 
@@ -104,7 +104,7 @@ export function PaymentSettingsForm({
               name="account_holder_kana"
               defaultValue={initial.account_holder_kana ?? ''}
               className={inputClass}
-              placeholder="ウエノ オサム"
+              placeholder="サトウ タロウ"
             />
           </Field>
         </div>
