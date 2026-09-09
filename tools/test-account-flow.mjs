@@ -472,8 +472,8 @@ try {
     await page.waitForTimeout(3500);
     const paid = await page.locator('body').innerText();
     check('押すとお支払いの画面が開く', paid.includes('いまのご利用状況'), paid.slice(0, 100));
-    check('その画面に月額 800 円がある', paid.includes('800 円 / 月'));
-    check('その画面に年額 8,000 円がある', paid.includes('8,000 円 / 年'));
+    check('その画面に月額 4,000 円がある', paid.includes('4,000 円 / 月'));
+    check('その画面に年額 40,000 円がある', paid.includes('40,000 円 / 年'));
     check('請求が起きないことを書いてある', paid.includes('まだお支払いは発生しません'));
     check('期間後どうなるかを書いてある', paid.includes('引き続きお使いいただけます'));
 
@@ -511,8 +511,8 @@ try {
       await openPlans.first().click();
       await page.waitForTimeout(600);
       const body = await page.locator('body').innerText();
-      check('月額 800 円が出ている', body.includes('800 円 / 月'), body.slice(0, 80));
-      check('年額 8,000 円が出ている', body.includes('8,000 円 / 年'));
+      check('月額 4,000 円が出ている', body.includes('4,000 円 / 月'), body.slice(0, 80));
+      check('年額 40,000 円が出ている', body.includes('40,000 円 / 年'));
 
       // 選ばないうちは申し込めない
       const submit = page.getByRole('button', { name: 'この内容で申し込む' });

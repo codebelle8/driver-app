@@ -173,7 +173,7 @@ try {
     shown.includes(now.account_holder_kana ?? now.account_holder ?? ''),
     String(now.account_holder_kana ?? now.account_holder),
   );
-  check('お振込金額が出る', shown.includes('800 円 / 月'), '');
+  check('お振込金額が出る', shown.includes('4,000 円 / 月'), '');
   check(
     'どの銀行からでも振り込める旨がある',
     shown.includes('どの銀行からでも'),
