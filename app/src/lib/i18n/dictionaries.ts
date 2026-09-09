@@ -303,7 +303,6 @@ const ja = {
     /* 登録・ログインの画面 */
     passwordAgain: 'パスワード（確認）',
     remember: 'この端末に記憶する',
-    rememberHint: '次から、押すだけでログインできます。共用の端末では入れないでください。',
     welcomeTitle: 'ようこそ',
     welcomeBody: 'ご登録のメールアドレスでログインしてください。',
 
@@ -752,7 +751,6 @@ const en: Dictionary = {
 
     passwordAgain: 'Password (again)',
     remember: 'Remember on this device',
-    rememberHint: 'Next time you can sign in with one tap. Do not use this on a shared device.',
     welcomeTitle: 'Welcome',
     welcomeBody: 'Sign in with your registered email address.',
 

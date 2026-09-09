@@ -197,7 +197,10 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
         </>
       ) : (
         <>
-          <Text style={s.lead}>{t.account.lead}</Text>
+          {/*
+            引き継ぎの説明は出さない（ご指示による）。
+            残すのは無料期間の一言だけ。
+          */}
           <Text style={s.leadStrong}>{t.account.leadTrial}</Text>
 
           {/* ログインと新規登録の切り替え。枠は同じまま中身だけ変える。 */}
@@ -291,9 +294,9 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
             <View style={[s.box, keep && s.boxOn]}>
               {keep && <Ionicons name="checkmark" size={15} color={c.accentText} />}
             </View>
+            {/* 添えの一文は出さない（ご指示による）。 */}
             <View style={s.checkBody}>
               <Text style={s.checkText}>{t.account.remember}</Text>
-              <Text style={s.checkHint}>{t.account.rememberHint}</Text>
             </View>
           </Pressable>
         </>
@@ -522,7 +525,6 @@ const makeStyles = (c: Palette) =>
     boxOn: { backgroundColor: c.accent, borderColor: c.accent },
     checkBody: { flex: 1, gap: 2 },
     checkText: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
-    checkHint: { fontSize: TEXT.small, color: c.textMuted, lineHeight: 17 },
 
     trouble: {
       flexDirection: 'row',
