@@ -21,6 +21,7 @@
  */
 import { Platform } from 'react-native';
 
+import { deviceId } from './device';
 import type { PlanId } from './plans';
 import { supabase } from './supabase';
 
@@ -207,6 +208,23 @@ export async function signIn(email: string, password: string): Promise<Result> {
   if (error) return bad(toProblem(error));
 
   /*
+    1つのアカウントは1台まで（ご指示）。
+
+    **後勝ちにする。** 先に入っている端末を優先して2台目を断ると、
+    機種変更・紛失・故障のたびに入れなくなり、こちらへ連絡して
+    外してもらうまで使えない。走行前の車内で起こると、その日は
+    仕事にならない。
+
+    ここでは2つのことをする。
+      1. 名簿へ「いまの1台」を控える（前の端末は次に開いた時点で出る）
+      2. Supabase 側の鍵も落とす（scope: 'others'）
+
+    2 だけでは、前の端末の手元の鍵が切れるまで最大1時間効かない。
+    1 と併せて、すぐ効かせる。
+  */
+  await claimDevice();
+
+  /*
     ご利用の停止は、入口（components/auth-gate.tsx）で止める。
 
     ここでログアウトさせて欄の下に理由を出す作りも試したが、
@@ -218,6 +236,26 @@ export async function signIn(email: string, password: string): Promise<Result> {
   */
   await ensureProfile();
   return good(undefined);
+}
+
+/**
+ * この端末を「いまの1台」にする。ほかの端末の鍵は落とす。
+ *
+ * 落とせなくても、名簿の控えが入っていれば目的は果たせる。止めない。
+ */
+async function claimDevice(): Promise<void> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const userId = data.session?.user.id;
+    if (!userId) return;
+
+    await ensureProfile();
+    await supabase.from('driver_profiles').update({ device_id: await deviceId() }).eq('user_id', userId);
+    // 自分は残し、ほかの端末だけ落とす
+    await supabase.auth.signOut({ scope: 'others' });
+  } catch {
+    // ここで失敗しても、ログインそのものは済んでいる。
+  }
 }
 
 /**
@@ -337,6 +375,21 @@ interface ProfileRow {
   plan: PlanId | null;
   plan_chosen_at: string | null;
   member_no: number;
+  /** いま使っている1台。ここと違う端末は自分から出ていく。 */
+  device_id: string | null;
+}
+
+/**
+ * ほかの端末で入られたために、この端末が出されたか。
+ *
+ * 画面へ知らせるための合図。読んだら消す（同じ知らせを二度出さない）。
+ */
+let takenOver = false;
+
+export function tookOver(): boolean {
+  const was = takenOver;
+  takenOver = false;
+  return was;
 }
 
 /**
@@ -363,6 +416,20 @@ export async function loadAccount(): Promise<Account | null> {
 
   const row = await ensureProfile();
   if (!row) return null;
+
+  /*
+    控えと違う端末なら、ここで出ていく。
+
+    ほかの端末で入り直された、ということ。**空のときは通す**
+    （この仕組みより前から入っている方を、いきなり締め出さない）。
+    次に入り直した時点で控えが入る。
+  */
+  const mine = await deviceId();
+  if (row.device_id && row.device_id !== mine) {
+    takenOver = true;
+    await supabase.auth.signOut().catch(() => undefined);
+    return null;
+  }
 
   return {
     userId: row.user_id,
