@@ -28,6 +28,7 @@ const ja = {
     push: '通知',
     accounts: 'アカウント',
     history: '操作履歴',
+    site: 'サイト設定',
     menu: 'メニュー',
     closeMenu: 'メニューを閉じる',
     scrollTop: '先頭へ戻る',
@@ -97,6 +98,30 @@ const ja = {
     noTargets: '届く先がありません',
     noTargetsBody:
       'ドライバーがマイページで「お知らせの通知」を入れると、ここに数が出ます。iPhone はホーム画面へ追加した場合のみ受け取れます。',
+  },
+
+  site: {
+    title: 'サイト設定',
+    description: 'アプリの「このアプリについて」に出す、掲載先と連絡先です。',
+
+    linksTitle: '規約類の掲載先',
+    linksHint:
+      '入れた項目だけがアプリに出ます。空のままの項目は出ません。ホームページなどに掲載し、そのURLを貼り付けてください。',
+
+    operatorName: '運営者名',
+    operatorNameHint: '特定商取引法に基づく表記に使うお名前（社名・屋号）です。',
+    contactEmail: 'お問い合わせ先（メール）',
+    contactEmailHint: 'ドライバーが押すと、この宛先へのメールが開きます。',
+    termsUrl: '利用規約のURL',
+    privacyUrl: 'プライバシーポリシーのURL',
+    lawUrl: '特定商取引法に基づく表記のURL',
+
+    whyTitle: 'お金を受け取る前に、この3つが要ります',
+    whyBody:
+      '継続してお金をいただくには、販売者名・連絡先・金額・支払いの時期・解約の条件を書いた「特定商取引法に基づく表記」が要ります。メールアドレスや顔写真をお預かりするため、プライバシーポリシーも要ります。文面はこちらでお作りできます。',
+
+    save: '保存',
+    saving: '保存しています…',
   },
 
   members: {
@@ -533,6 +558,7 @@ const en: Dictionary = {
     push: 'Notifications',
     accounts: 'Accounts',
     history: 'History',
+    site: 'Site settings',
     menu: 'Menu',
     closeMenu: 'Close the menu',
     scrollTop: 'Back to top',
@@ -596,6 +622,30 @@ const en: Dictionary = {
     noTargets: 'No devices yet',
     noTargetsBody:
       'Drivers turn this on under Settings. On iPhone it works only when the app is added to the home screen.',
+  },
+
+  site: {
+    title: 'Site settings',
+    description: 'The links and contact address shown under "About this app".',
+
+    linksTitle: 'Where the documents are published',
+    linksHint:
+      'Only the fields you fill in appear in the app. Publish each document on your website and paste its URL here.',
+
+    operatorName: 'Operator name',
+    operatorNameHint: 'The company or trade name used in the Japanese legal notice.',
+    contactEmail: 'Contact email',
+    contactEmailHint: 'Tapping it in the app opens a new mail to this address.',
+    termsUrl: 'Terms of use URL',
+    privacyUrl: 'Privacy policy URL',
+    lawUrl: 'Legal notice (Japan) URL',
+
+    whyTitle: 'These three are required before charging',
+    whyBody:
+      'Japanese law requires a notice stating the seller, contact details, price, when payment is taken and how to cancel. A privacy policy is required because email addresses and photos are stored. We can draft all of them.',
+
+    save: 'Save',
+    saving: 'Saving...',
   },
 
   members: {

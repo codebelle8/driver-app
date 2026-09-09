@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
@@ -13,6 +13,7 @@ import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
 import { askToInstall, installState, type InstallState } from '@/lib/install';
+import { appVersion, hasAny, loadSite, type Site } from '@/lib/site';
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
 import { fill, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
 import { useTheme, useThemeControl } from '@/theme-context';
@@ -47,6 +48,21 @@ export default function MyPageScreen() {
 
     追加済みの方には出さない。出しても押す先が無い。
   */
+  /*
+    規約類の掲載先。まだ入っていない項目は出さない。
+    押しても何も無いリンクは、壊れているのと同じ。
+  */
+  const [site, setSite] = useState<Site | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadSite().then((v) => {
+      if (alive) setSite(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const [install, setInstall] = useState<InstallState>('none');
   useEffect(() => {
     /*
@@ -311,6 +327,49 @@ export default function MyPageScreen() {
         </View>
       )}
 
+      {/*
+        このアプリについて。
+
+        画面仕様（docs/03-screen-spec.md S-05）にある規約類と
+        問い合わせ先、版。掲載先は管理画面から入れる。
+      */}
+      <Text style={styles.sectionLabel}>{t.mypage.about}</Text>
+      <View style={styles.box}>
+        {hasAny(site) && (
+          <>
+            {!!site.termsUrl && (
+              <AboutRow label={t.mypage.terms} url={site.termsUrl} styles={styles} c={c} />
+            )}
+            {!!site.privacyUrl && (
+              <AboutRow label={t.mypage.privacy} url={site.privacyUrl} styles={styles} c={c} />
+            )}
+            {!!site.lawUrl && (
+              <AboutRow label={t.mypage.law} url={site.lawUrl} styles={styles} c={c} />
+            )}
+            {!!site.contactEmail && (
+              <AboutRow
+                label={t.mypage.contact}
+                url={`mailto:${site.contactEmail}`}
+                hint={site.contactEmail}
+                styles={styles}
+                c={c}
+              />
+            )}
+          </>
+        )}
+
+        {/* 版だけは、いつでも出す。不具合のご連絡で必ず要る。 */}
+        <View style={styles.rowLast}>
+          <View style={styles.icon}>
+            <Ionicons name="information-circle-outline" size={17} color={c.accent} />
+          </View>
+          <View style={styles.body}>
+            <Text style={styles.name}>{t.mypage.version}</Text>
+            <Text style={styles.hint}>{appVersion()}</Text>
+          </View>
+        </View>
+      </View>
+
       <Text style={styles.note}>{t.mypage.note}</Text>
       </PageWidth>
     </SafeAreaView>
@@ -360,6 +419,48 @@ function LocaleChoice({
   );
 }
 
+/**
+ * 外へ出る1行。
+ *
+ * 新しい窓で開く。アプリの中で開くと、戻る道が無い画面へ迷い込む
+ * （規約の頁には、こちらの「戻る」が無い）。
+ */
+function AboutRow({
+  label,
+  url,
+  hint,
+  styles,
+  c,
+}: {
+  label: string;
+  url: string;
+  hint?: string;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+}) {
+  return (
+    <Pressable
+      onPress={() => void Linking.openURL(url)}
+      accessibilityRole="link"
+      accessibilityLabel={label}
+      style={styles.row}
+    >
+      <View style={styles.icon}>
+        <Ionicons name="document-text-outline" size={17} color={c.accent} />
+      </View>
+      <View style={styles.body}>
+        <Text style={styles.name}>{label}</Text>
+        {!!hint && (
+          <Text style={styles.hint} numberOfLines={1}>
+            {hint}
+          </Text>
+        )}
+      </View>
+      <Ionicons name="open-outline" size={16} color={c.textFaint} />
+    </Pressable>
+  );
+}
+
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
@@ -374,6 +475,15 @@ function makeStyles(c: Palette) {
       overflow: 'hidden',
     },
     boxAccount: { marginBottom: SPACE.md },
+    /* 節の見出し。箱の上に小さく置く。 */
+    sectionLabel: {
+      marginTop: SPACE.lg,
+      marginBottom: SPACE.xs,
+      paddingHorizontal: SPACE.lg + SPACE.xs,
+      fontSize: TEXT.small,
+      fontWeight: '700',
+      color: c.textMuted,
+    },
     /* 箱に1行しか無いときは、下の区切り線を出さない */
     rowLast: {
       flexDirection: 'row',

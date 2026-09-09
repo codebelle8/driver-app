@@ -145,6 +145,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 push: t.nav.push,
                 accounts: t.nav.accounts,
                 history: t.nav.history,
+                site: t.nav.site,
               }}
               isAdmin={staff.profile.role === 'admin'}
             />

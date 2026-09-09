@@ -11,6 +11,7 @@ import {
   HistoryIcon,
   CardIcon,
   BellIcon,
+  DocumentIcon,
 } from '@/components/icons';
 import { useCloseSideNav } from '@/components/side-nav';
 
@@ -41,6 +42,7 @@ export function NavLinks({
     push: string;
     accounts: string;
     history: string;
+    site: string;
   };
   /** アカウント管理と操作履歴は管理者しか開けない。開けない項目は出さない。 */
   isAdmin?: boolean;
@@ -58,6 +60,8 @@ export function NavLinks({
           { href: '/push', label: labels.push, Icon: BellIcon },
           { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
           { href: '/history', label: labels.history, Icon: HistoryIcon },
+          /* 規約類の掲載先。開くのは決めるときだけなので、いちばん下。 */
+          { href: '/site', label: labels.site, Icon: DocumentIcon },
         ]
       : []),
   ];

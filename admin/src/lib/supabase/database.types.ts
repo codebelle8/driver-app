@@ -166,6 +166,22 @@ export type PushSettings = {
   updated_at: string;
 }
 
+/**
+ * 運営者の情報と、規約類の掲載先。
+ *
+ * 文面は持たない。掲載先の URL だけを持つ。空欄は null で、
+ * アプリはその行を出さない。
+ */
+export type SiteSettings = {
+  id: number;
+  operator_name: string | null;
+  contact_email: string | null;
+  terms_url: string | null;
+  privacy_url: string | null;
+  law_url: string | null;
+  updated_at: string;
+}
+
 /** どの端末へ送るか。1つのブラウザにつき1件。 */
 export type PushSubscription = {
   id: string;
@@ -295,6 +311,7 @@ export interface Database {
       >;
       payment_settings: Table<PaymentSettings, Insert<PaymentSettings, keyof PaymentSettings>>;
       push_settings: Table<PushSettings, Insert<PushSettings, keyof PushSettings>>;
+      site_settings: Table<SiteSettings, Insert<SiteSettings, keyof SiteSettings>>;
       push_subscriptions: Table<
         PushSubscription,
         Insert<PushSubscription, 'id' | 'user_agent' | 'created_at' | 'last_seen_at'>
