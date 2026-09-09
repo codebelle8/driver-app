@@ -60,6 +60,14 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             <SideNavTrigger label={t.nav.menu} />
 
             {/*
+              三本線とロゴのあいだの区切り。
+
+              並べただけでは、ロゴの一部に見えて押せると分からない。
+              三本線が出ない広い画面では、線も出さない。
+            */}
+            <span aria-hidden className="h-7 w-px shrink-0 bg-border md:hidden" />
+
+            {/*
               ロゴ。
 
               濃紺版と白抜き版の両方を描画し、CSS で表示を切り替える。

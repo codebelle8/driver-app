@@ -48,7 +48,14 @@ export function SideNavTrigger({ label }: { label: string }) {
       title={label}
       aria-label={label}
       aria-expanded={open}
-      className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:border-border hover:text-accent md:hidden"
+      /*
+        枠を常に出す。
+
+        枠なしでロゴの隣に置くと、ロゴの一部に見えて押せると分からない。
+        右側の明るさ・言語・ログアウトとは違い、これは「開く」ための
+        入口なので、押せることが分かるほうが優先する。
+      */
+      className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition-colors hover:border-accent hover:text-accent md:hidden"
     >
       <MenuIcon />
     </button>
