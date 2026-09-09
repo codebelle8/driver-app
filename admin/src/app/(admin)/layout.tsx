@@ -157,7 +157,14 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               <div className="mx-auto w-full max-w-6xl px-6 py-8">{children}</div>
             </main>
 
-            <footer className="shrink-0 border-t border-border px-6 py-5">
+            {/*
+              高さは柱の下（誰で入っているか）と揃える。
+
+              min- にしているのは、狭い画面で文言が2行になったときに
+              切らないため。柱が並ぶのは 768px 以上で、そこでは1行に
+              収まるので、実際には同じ高さになる。
+            */}
+            <footer className="flex min-h-14 shrink-0 items-center border-t border-border px-6">
               <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
                 <span className="text-sm tracking-widest text-text-muted">
                   {t.brand.footerName}

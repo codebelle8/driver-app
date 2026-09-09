@@ -136,7 +136,13 @@ export function SideNavPanel({
           以前はヘッダーの右にあり、広い画面でしか出していなかった
           （横に入りきらないため）。柱なら、どの幅でも置ける。
         */}
-        <div className="shrink-0 border-t border-border p-3">
+        {/*
+          高さは下のフッターと揃える（h-14）。
+
+          柱とフッターは画面の下端で横に並ぶ。高さが違うと、区切りの線が
+          段違いになって目につく。
+        */}
+        <div className="flex h-14 shrink-0 items-center border-t border-border px-3">
           <div className="flex items-center gap-2 text-xs text-text-muted">
             <UserIcon width={15} height={15} />
             {user}
