@@ -1,8 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { loadAccount, scrubUrlFragment, tookOver, type Account } from './account';
-import { dictionaries } from './i18n/dictionaries';
-import { notify } from './notice';
 import { forgetSync, syncAccountData } from './sync-account';
 import { supabase } from './supabase';
 
@@ -31,6 +29,13 @@ interface AccountContextValue {
   ready: boolean;
   /** 再設定のリンクから戻ってきた直後か */
   recovering: boolean;
+  /**
+   * ほかの端末で入られて、この端末が出されたか。
+   *
+   * 一瞬で消える帯では、戻ってきた画面を見た方に理由が伝わらない。
+   * 入口へ出したままにして、次に入るまで残す。
+   */
+  takenOver: boolean;
   doneRecovering: () => void;
   refresh: () => Promise<void>;
 }
@@ -39,6 +44,7 @@ const AccountContext = createContext<AccountContextValue>({
   account: null,
   ready: false,
   recovering: false,
+  takenOver: false,
   doneRecovering: () => {},
   refresh: async () => {},
 });
@@ -47,6 +53,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [takenOver, setTakenOver] = useState(false);
 
   const refresh = useCallback(async () => {
     setAccount(await loadAccount());
@@ -60,7 +67,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       setAccount(found);
       setReady(true);
-      tellIfTakenOver();
+      if (tookOver()) setTakenOver(true);
+      else if (found) setTakenOver(false);
       /*
         お気に入りと閲覧履歴を、サーバーと突き合わせる。
 
@@ -91,8 +99,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         void loadAccount().then((found) => {
           if (!alive) return;
           setAccount(found);
-          tellIfTakenOver();
-          if (found) void syncAccountData();
+          if (tookOver()) setTakenOver(true);
+          else if (found) {
+            setTakenOver(false);
+            void syncAccountData();
+          }
         });
         scrubUrlFragment();
       }, 0);
@@ -107,26 +118,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const doneRecovering = useCallback(() => setRecovering(false), []);
 
   return (
-    <AccountContext.Provider value={{ account, ready, recovering, doneRecovering, refresh }}>
+    <AccountContext.Provider
+      value={{ account, ready, recovering, takenOver, doneRecovering, refresh }}
+    >
       {children}
     </AccountContext.Provider>
   );
-}
-
-/**
- * ほかの端末で入られて出された場合に、その旨を知らせる。
- *
- * 黙って入口へ戻すと、ログインが切れたのか、締め出されたのかが
- * 分からない。**理由を出す。**
- *
- * ここは画面の外なので、いま選ばれている言語を持っていない。
- * 出す言葉は日本語の辞書から引く（この知らせは一瞬で消える帯で、
- * 言語を取り違えても操作を妨げない）。
- */
-function tellIfTakenOver(): void {
-  if (!tookOver()) return;
-  const t = dictionaries.ja.account;
-  notify(t.takenOver, t.takenOverBody, 'error');
 }
 
 export function useAccount(): AccountContextValue {

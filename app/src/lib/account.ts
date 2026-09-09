@@ -244,6 +244,7 @@ export async function signIn(email: string, password: string): Promise<Result> {
  * 落とせなくても、名簿の控えが入っていれば目的は果たせる。止めない。
  */
 async function claimDevice(): Promise<void> {
+  claiming++;
   try {
     const { data } = await supabase.auth.getSession();
     const userId = data.session?.user.id;
@@ -255,6 +256,8 @@ async function claimDevice(): Promise<void> {
     await supabase.auth.signOut({ scope: 'others' });
   } catch {
     // ここで失敗しても、ログインそのものは済んでいる。
+  } finally {
+    claiming--;
   }
 }
 
@@ -386,6 +389,16 @@ interface ProfileRow {
  */
 let takenOver = false;
 
+/**
+ * いま「この端末を1台目にする」最中か。
+ *
+ * ログインすると、控えを書き終える前に画面側が読みに来る
+ * （onAuthStateChange → loadAccount）。そのとき控えはまだ前の端末の
+ * ままなので、**入ったばかりの端末が自分を締め出していた。**
+ * 書き終えるまでのあいだ、突き合わせを止める。
+ */
+let claiming = 0;
+
 export function tookOver(): boolean {
   const was = takenOver;
   takenOver = false;
@@ -425,7 +438,7 @@ export async function loadAccount(): Promise<Account | null> {
     次に入り直した時点で控えが入る。
   */
   const mine = await deviceId();
-  if (row.device_id && row.device_id !== mine) {
+  if (claiming === 0 && row.device_id && row.device_id !== mine) {
     takenOver = true;
     await supabase.auth.signOut().catch(() => undefined);
     return null;

@@ -34,7 +34,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const c = useTheme();
   const t = useT();
   const s = makeStyles(c);
-  const { account, ready, recovering } = useAccount();
+  const { account, ready, recovering, takenOver } = useAccount();
 
   // 調べ終えるまでは、地の色だけ出しておく
   if (!ready && !recovering) return <View style={s.blank} />;
@@ -71,6 +71,22 @@ export function AuthGate({ children }: { children: ReactNode }) {
           <Text style={s.lead}>{t.account.welcomeBody}</Text>
         </View>
 
+        {/*
+          ほかの端末で入られて出された場合。
+
+          一瞬で消える帯では、戻ってきた画面を見た方に理由が伝わらない。
+          ここへ出したままにする。次に入れば消える。
+        */}
+        {takenOver && (
+          <View style={s.notice} accessibilityRole="alert">
+            <Ionicons name="phone-portrait-outline" size={18} color={c.warn} />
+            <View style={s.noticeBody}>
+              <Text style={s.noticeTitle}>{t.account.takenOver}</Text>
+              <Text style={s.noticeText}>{t.account.takenOverBody}</Text>
+            </View>
+          </View>
+        )}
+
         <AuthForm />
       </ScrollView>
     </SafeAreaView>
@@ -95,6 +111,20 @@ const makeStyles = (c: Palette) =>
     head: { alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.sm },
     welcome: { fontSize: TEXT.heading, fontWeight: '800', color: c.text, marginTop: SPACE.sm },
     lead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20, textAlign: 'center' },
+
+    notice: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: SPACE.sm,
+      padding: SPACE.md,
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.warnSoft,
+      borderWidth: 1,
+      borderColor: c.warn,
+    },
+    noticeBody: { flex: 1, gap: 2 },
+    noticeTitle: { fontSize: TEXT.body, fontWeight: '800', color: c.text },
+    noticeText: { fontSize: TEXT.sub, color: c.text, lineHeight: 19 },
 
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.lg },
     card: {
