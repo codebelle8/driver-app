@@ -35,10 +35,7 @@ export default async function MembersPage() {
     .eq('id', 1)
     .maybeSingle();
 
-  const { data: members } = await admin
-    .from('driver_profiles')
-    .select('*')
-    .order('member_no');
+  const { data: rows } = await admin.from('driver_profiles').select('*');
 
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? null]));
@@ -47,6 +44,44 @@ export default async function MembersPage() {
     iso ? new Date(iso).toLocaleDateString('ja-JP', { dateStyle: 'medium' }) : '—';
 
   const code = (n: number) => (n < 10000 ? String(n).padStart(4, '0') : String(n));
+
+  /* 文言の {n} を差し替える。この画面でしか使わないので、ここに置く。 */
+  const fill = (template: string, n: number) => template.replace('{n}', String(n));
+
+  /*
+    残り日数。切り上げる。
+
+    あと数時間でも「あと1日」と出したい。「あと0日」では、今日中に
+    切れるのか既に切れているのかが読み取れない。
+  */
+  const now = Date.now();
+  const daysTo = (iso: string) => Math.ceil((new Date(iso).getTime() - now) / 86_400_000);
+
+  /*
+    並びは「手を打つ必要がある順」。
+
+    会員番号順だと、期限切れの方が下に埋もれる。番号は振込の
+    突き合わせに使うもので、眺める順ではない。
+
+      1. 期限切れ（放っておくと未収になる）
+      2. 無料期間（期限の近い順）
+      3. ご利用中
+      4. 停止中
+  */
+  const rank = (p: { status: string; trial_ends_at: string }) => {
+    if (p.status === 'blocked') return 3;
+    if (p.status === 'active') return 2;
+    return daysTo(p.trial_ends_at) <= 0 ? 0 : 1;
+  };
+
+  const members = [...(rows ?? [])].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      new Date(a.trial_ends_at).getTime() - new Date(b.trial_ends_at).getTime() ||
+      a.member_no - b.member_no,
+  );
+
+  const count = (want: number) => members.filter((p) => rank(p) === want).length;
 
   return (
     <div className="space-y-6">
@@ -67,11 +102,26 @@ export default async function MembersPage() {
       />
 
       <Card className="!p-0">
-        <h2 className="border-b border-border px-5 py-3 text-sm font-semibold text-text-muted">
-          {m.listTitle}
-        </h2>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-5 py-3">
+          <h2 className="text-sm font-semibold text-text-muted">{m.listTitle}</h2>
+          {/*
+            内訳。表を数えなくても、手を打つ相手が何人いるか分かるように。
+          */}
+          {members.length > 0 && (
+            <span className="text-xs text-text-faint">
+              {[
+                count(0) > 0 && fill(m.countExpired, count(0)),
+                count(1) > 0 && fill(m.countTrial, count(1)),
+                count(2) > 0 && fill(m.countPaid, count(2)),
+                count(3) > 0 && fill(m.countBlocked, count(3)),
+              ]
+                .filter(Boolean)
+                .join('　')}
+            </span>
+          )}
+        </div>
 
-        {(members ?? []).length === 0 ? (
+        {members.length === 0 ? (
           <div className="p-5">
             <EmptyState title={m.empty} description={m.emptyBody} />
           </div>
@@ -89,9 +139,11 @@ export default async function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(members ?? []).map((p) => {
+                {members.map((p) => {
                   const paid = p.status === 'active';
                   const blocked = p.status === 'blocked';
+                  const left = daysTo(p.trial_ends_at);
+                  const expired = !paid && !blocked && left <= 0;
                   return (
                     <tr key={p.user_id}>
                       {/*
@@ -102,15 +154,40 @@ export default async function MembersPage() {
                         <code className="tabular font-semibold">{code(p.member_no)}</code>
                       </td>
                       <td className="px-5 py-3 text-text-muted">
-                        {emailById.get(p.user_id) ?? '—'}
+                        {/*
+                          そのまま連絡できるようにする。入金の催促も、
+                          停止のお知らせも、ここから始まる。
+                        */}
+                        {emailById.get(p.user_id) ? (
+                          <a
+                            href={`mailto:${emailById.get(p.user_id)}`}
+                            title={m.mailTo}
+                            className="underline decoration-border underline-offset-2 hover:text-text"
+                          >
+                            {emailById.get(p.user_id)}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={blocked ? 'warn' : paid ? 'accent' : 'default'}>
-                          {blocked ? m.stateBlocked : paid ? m.statePaid : m.stateTrial}
+                        <Badge tone={blocked || expired ? 'warn' : paid ? 'accent' : 'default'}>
+                          {blocked
+                            ? m.stateBlocked
+                            : paid
+                              ? m.statePaid
+                              : expired
+                                ? m.stateExpired
+                                : m.stateTrial}
                         </Badge>
                       </td>
                       <td className="px-5 py-3 tabular text-text-muted">
                         {day(p.trial_ends_at)}
+                        {!paid && !blocked && (
+                          <span className={`ml-2 text-xs ${expired ? 'text-warn' : 'text-text-faint'}`}>
+                            {expired ? fill(m.overdue, -left) : fill(m.daysLeft, left)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3">
                         {p.plan ? (p.plan === 'monthly' ? m.planMonthly : m.planYearly) : '—'}

@@ -14,7 +14,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -82,6 +82,31 @@ export const supabase = createClient(url, anonKey, {
     },
   },
 });
+
+/*
+  端末側では、表に出ているあいだだけ鍵を更新する。
+
+  **なぜ要るか**
+    ログインの鍵には期限があり、切れる前に取り替え続ける必要がある。
+    ブラウザはこれを自前で回すが、端末側（Expo Go・APK）は
+    アプリが裏へ回ると止まる。止まったまま期限が切れると、
+    次に開いたときにログインが切れている。
+
+    起動時にログインを求める作りにしたので、これは「久しぶりに
+    開いたら入口に戻された」という形で出る。毎回打ち直しになる。
+
+  **裏へ回ったら止める**
+    見られていないアプリのために鍵を取り替え続けるのは、電池を使う
+    だけになる。表に戻った時点で再開すれば間に合う。
+
+  ブラウザでは何もしない（自前で回っているところへ二重に掛けない）。
+*/
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') void supabase.auth.startAutoRefresh();
+    else void supabase.auth.stopAutoRefresh();
+  });
+}
 
 /** Storage 上のパスから、写真の公開URLを作る */
 export function photoUrl(storagePath: string): string {
