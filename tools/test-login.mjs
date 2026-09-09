@@ -18,7 +18,7 @@
  *   5. 登録のとき、確認が食い違えば断る
  *   6. 停止した方は、ログインしても中へ通さない
  *   7. 停止を解けば、そのまま使える
- *   8. 退会するとアカウントが消える
+ *   8. 退会するとアカウントも顔写真も消える
  */
 import { chromium } from 'playwright';
 
@@ -201,6 +201,30 @@ try {
 
   // --- 8. 退会 -----------------------------------------------------------------
   console.log('\n--- 退会 ---');
+
+  /*
+    顔写真を1枚置いておく。
+
+    置き場所の表を直に消すことは Supabase が禁じており、データベース側の
+    関数からは触れない。アプリ側が先に消す作りになっているかを見る。
+    ここを取りこぼすと、持ち主の分からない画像が溜まり続ける。
+  */
+  await fetch(`${conn.url}/storage/v1/object/avatars/${member.userId}/probe.jpg`, {
+    method: 'POST',
+    headers: { ...conn.svc, 'Content-Type': 'image/jpeg' },
+    body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+  });
+  const listAvatars = async () => {
+    const r = await fetch(`${conn.url}/storage/v1/object/list/avatars`, {
+      method: 'POST',
+      headers: conn.svc,
+      body: JSON.stringify({ prefix: `${member.userId}/`, limit: 50 }),
+    });
+    const j = await r.json();
+    return Array.isArray(j) ? j.length : 0;
+  };
+  check('顔写真を置けた', (await listAvatars()) > 0);
+
   await open('/account');
   const leave = page.getByRole('button', { name: '退会する' }).first();
   check('退会の入口がある', (await leave.count()) === 1);
@@ -210,6 +234,7 @@ try {
     await page.getByTestId('confirm-accept').click();
     await page.waitForTimeout(6000);
     check('退会するとアカウントが消える', !(await stillThere(member.email)));
+    check('顔写真も一緒に消える', (await listAvatars()) === 0, `${await listAvatars()} 枚残っている`);
   }
 } finally {
   console.log('\n--- 後片付け ---');

@@ -250,8 +250,30 @@ export async function signOutEverywhere(): Promise<Result> {
  *
  * お預かりしているもの（メールアドレス・顔写真・お気に入り・履歴）を
  * まとめて消す。取り消せない。
+ *
+ * **顔写真だけは先に、こちらから消す。**
+ *   置き場所の表を直に消すことは Supabase が禁じており、データベース側の
+ *   関数からは触れない（42501）。Storage API を通す必要がある。
+ *   先に消してから、本体を消す。逆にすると、消えた利用者の鍵では
+ *   もう消せなくなる。
  */
-export async function deleteMyAccount(): Promise<Result> {
+export async function deleteMyAccount(userId: string): Promise<Result> {
+  /*
+    その人の場所ごと片付ける。
+
+    いま名簿に載っている1枚だけでなく、差し替えの途中で残ったものも
+    まとめて消す。消せなくても退会は止めない（残るのは持ち主の
+    分からない画像1枚で、他人から辿れる道は無い）。
+  */
+  try {
+    const { data: files } = await supabase.storage.from(AVATARS).list(userId);
+    if (files && files.length > 0) {
+      await supabase.storage.from(AVATARS).remove(files.map((f) => `${userId}/${f.name}`));
+    }
+  } catch {
+    // 置き場所を片付けられなくても、アカウントは消す。
+  }
+
   const { error } = await supabase.rpc('delete_my_account');
   if (error) return bad(toProblem(error));
   // 消えた利用者のセッションは、もう使えない。手元も片付ける。

@@ -209,13 +209,17 @@ function SignedIn({
   }
 
   function onLeave() {
+    // 呼ばれる時点で必ずログイン済みだが、閉じ込めの中では型が緩む。
+    const userId = account?.userId;
+    if (!userId) return;
+
     confirmDelete({
       title: t.account.leaveConfirm,
       message: t.account.leaveBody,
       note: t.account.leaveNote,
       yes: t.account.leaveYes,
       onYes: () => {
-        void deleteMyAccount().then(async (r) => {
+        void deleteMyAccount(userId).then(async (r) => {
           if (!r.ok) return notify(t.account.error[r.problem], undefined, 'error');
           // 端末に控えたログインも消す。消えたアカウントでは、もう入れない。
           await forgetRemembered();
