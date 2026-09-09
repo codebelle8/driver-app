@@ -151,6 +151,34 @@ export type DriverProfile = {
   updated_at: string;
 }
 
+/**
+ * プッシュ通知の配信の鍵（VAPID）。1行しか持たない。
+ *
+ * private_key は会員に渡していない（列ごとの権限で公開鍵だけを渡す）。
+ * 管理画面は service_role で読むため、ここでは両方を持つ。
+ */
+export type PushSettings = {
+  id: number;
+  public_key: string | null;
+  private_key: string | null;
+  /** 配信元の連絡先（mailto:…）。決まりで必須。 */
+  subject: string | null;
+  updated_at: string;
+}
+
+/** どの端末へ送るか。1つのブラウザにつき1件。 */
+export type PushSubscription = {
+  id: string;
+  user_id: string;
+  /** 配信元の宛先。ブラウザが決める。 */
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  last_seen_at: string;
+}
+
 /** お支払いの受取口座。1行しか持たない。 */
 export type PaymentSettings = {
   id: number;
@@ -266,6 +294,11 @@ export interface Database {
         >
       >;
       payment_settings: Table<PaymentSettings, Insert<PaymentSettings, keyof PaymentSettings>>;
+      push_settings: Table<PushSettings, Insert<PushSettings, keyof PushSettings>>;
+      push_subscriptions: Table<
+        PushSubscription,
+        Insert<PushSubscription, 'id' | 'user_agent' | 'created_at' | 'last_seen_at'>
+      >;
       audit_logs: Table<
         AuditLog,
         Insert<AuditLog, 'id' | 'actor_id' | 'record_id' | 'diff' | 'created_at'>

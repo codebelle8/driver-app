@@ -25,6 +25,7 @@ const ja = {
     facilities: '施設一覧',
     categories: 'カテゴリ',
     members: '会員・お支払い',
+    push: '通知',
     accounts: 'アカウント',
     history: '操作履歴',
     scrollTop: '先頭へ戻る',
@@ -66,6 +67,36 @@ const ja = {
     「アカウント」は管理画面を操作する人、こちらはアプリを使う人。
     名前が似ているため、画面の説明で違いを言い切る。
   */
+  push: {
+    title: 'プッシュ通知',
+    description: 'ドライバーの端末へ、アプリを開いていなくても届く知らせを送ります。',
+
+    keysTitle: '配信の鍵',
+    keysBody:
+      '通知を送るには、配信の鍵をひとつ作ります。作るのは一度だけです。作り直すと、いま受け取っている端末がすべて受け取れなくなります。',
+    keysMake: '配信の鍵を作る',
+    keysReady: '鍵は用意できています。',
+    keysWarn: '作り直しはできません。いま受け取っている端末が、すべて受け取れなくなるためです。',
+
+    sendTitle: '知らせを送る',
+    sendHint:
+      'いま {n} 台へ届きます。押した時点で鳴ります。取り消しはできません。',
+    subject: '件名',
+    subjectPlaceholder: '例: 帝国ホテル東京の進入口が変わりました',
+    body: '本文',
+    bodyHint: '120文字以内。端末側で切り詰められるため、短く。',
+    openAt: '押したときに開く画面',
+    openAtHint: '空欄なら「お知らせ」を開きます',
+    send: '送る',
+    sending: '送っています...',
+
+    targetsTitle: '届く先',
+    targetsCount: '受け取る設定にしている端末が {n} 台あります。',
+    noTargets: '届く先がありません',
+    noTargetsBody:
+      'ドライバーがマイページで「お知らせの通知」を入れると、ここに数が出ます。iPhone はホーム画面へ追加した場合のみ受け取れます。',
+  },
+
   members: {
     title: '会員・お支払い',
     description: 'アプリをお使いのドライバーと、銀行振込の受取口座を管理します。',
@@ -497,6 +528,7 @@ const en: Dictionary = {
     facilities: 'Facilities',
     categories: 'Categories',
     members: 'Members',
+    push: 'Notifications',
     accounts: 'Accounts',
     history: 'History',
     scrollTop: 'Back to top',
@@ -531,6 +563,35 @@ const en: Dictionary = {
     photos: 'Photo',
     categories: 'Category',
     admin_profiles: 'Account',
+  },
+
+  push: {
+    title: 'Push notifications',
+    description: 'Send a message that reaches drivers even when the app is closed.',
+
+    keysTitle: 'Sending key',
+    keysBody:
+      'To send notifications, create one sending key. You only do this once. Creating a new one stops every device that is currently subscribed.',
+    keysMake: 'Create the key',
+    keysReady: 'The key is ready.',
+    keysWarn: 'It cannot be recreated: every subscribed device would stop receiving.',
+
+    sendTitle: 'Send a message',
+    sendHint: 'This reaches {n} devices. They ring as soon as you press. It cannot be undone.',
+    subject: 'Subject',
+    subjectPlaceholder: 'e.g. The entrance at Imperial Hotel Tokyo has changed',
+    body: 'Message',
+    bodyHint: 'Up to 120 characters. Devices truncate long text.',
+    openAt: 'Screen to open',
+    openAtHint: 'Leave blank to open Notices',
+    send: 'Send',
+    sending: 'Sending…',
+
+    targetsTitle: 'Who receives this',
+    targetsCount: '{n} devices are subscribed.',
+    noTargets: 'No devices yet',
+    noTargetsBody:
+      'Drivers turn this on under Settings. On iPhone it works only when the app is added to the home screen.',
   },
 
   members: {

@@ -88,6 +88,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               facilities: t.nav.facilities,
               categories: t.nav.categories,
               members: t.nav.members,
+              push: t.nav.push,
               accounts: t.nav.accounts,
               history: t.nav.history,
             }}

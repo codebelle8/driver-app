@@ -19,9 +19,13 @@
     施設の内容は変わる。古い内容を返すと、閉鎖された入口へ
     案内してしまう。通信できないときは、端末のデータベースの
     内容で動く作りになっている。
+
+  **プッシュ通知もここで受ける**
+    アプリが閉じていても動くのは、この常駐処理だけ。届いた知らせを
+    出し、押されたら該当の画面を開く（末尾）。
 */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `kurumayose-shell-${VERSION}`;
 const TILES = `kurumayose-tiles-${VERSION}`;
 const RUNTIME = `kurumayose-runtime-${VERSION}`;
@@ -193,4 +197,70 @@ self.addEventListener('fetch', (event) => {
       }),
     );
   }
+});
+
+/*
+  プッシュ通知を受ける。
+
+  **必ず何かを出す**
+    受け取っておきながら何も出さないと、ブラウザは「黙って使われた」
+    と見なし、次からの配信を止める。中身が読めなかったときも、
+    せめて既定の文言で出す。
+
+  **中身は送る側が決める**
+    { title, body, url } を想定している。url があれば、押したときに
+    その画面を開く。
+*/
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    // 文字列で来た場合も拾う
+    try {
+      payload = { body: event.data ? event.data.text() : '' };
+    } catch {
+      payload = {};
+    }
+  }
+
+  const title = payload.title || '車寄せナビ';
+  const options = {
+    body: payload.body || '',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    /*
+      同じ知らせを重ねない。
+
+      取り込みのたびに同じ内容が届くと、通知が積み上がる。
+      tag が同じものは差し替わる。
+    */
+    tag: payload.tag || 'kurumayose',
+    data: { url: payload.url || '/notices' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+/*
+  知らせを押されたとき。
+
+  既に開いている窓があれば、そこを使う。新しく開くと、同じアプリが
+  いくつも並ぶことになる。
+*/
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/notices';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ('focus' in client) {
+          if ('navigate' in client) void client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    }),
+  );
 });

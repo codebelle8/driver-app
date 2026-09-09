@@ -11,6 +11,8 @@ import { PageWidth } from '@/components/page-width';
 import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
+import { notify } from '@/lib/notice';
+import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
 import { fill, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
 import { useTheme, useThemeControl } from '@/theme-context';
 
@@ -34,6 +36,30 @@ export default function MyPageScreen() {
   const styles = makeStyles(c);
   const [sync, setSync] = useState<SyncResult>({ ok: true, facilityCount: 0, syncedAt: null });
   const [busy, setBusy] = useState(false);
+
+  /* 通知。端末とブラウザによって、できることが違う。 */
+  const [push, setPush] = useState<PushState>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    pushState().then((v) => {
+      if (alive) setPush(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function togglePush() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    const next = push === 'on' ? await disablePush() : await enablePush();
+    setPushBusy(false);
+    setPush(next);
+    if (next === 'on') notify(t.mypage.pushEnabled);
+    else if (push === 'on' && next === 'off') notify(t.mypage.pushDisabled);
+  }
 
   useEffect(() => {
     ensureSynced().then(setSync);
@@ -166,6 +192,53 @@ export default function MyPageScreen() {
             ))}
           </View>
         </View>
+
+        {/*
+          通知。押せるのは「受け取れる状態」のときだけ。
+
+          押せないときも行は出す。消してしまうと、なぜ受け取れないのかを
+          伝える場所が無くなる（iPhone はホーム画面へ追加すれば受け取れる）。
+        */}
+        <Pressable
+          onPress={togglePush}
+          disabled={pushBusy || (push !== 'on' && push !== 'off')}
+          style={styles.row}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: push === 'on' }}
+          aria-checked={push === 'on'}
+          accessibilityLabel={t.mypage.push}
+        >
+          <View style={styles.icon}>
+            <Ionicons
+              name={push === 'on' ? 'notifications' : 'notifications-outline'}
+              size={17}
+              color={c.accent}
+            />
+          </View>
+          <View style={styles.body}>
+            <Text style={styles.name}>{t.mypage.push}</Text>
+            <Text style={styles.hint}>
+              {push === 'on'
+                ? t.mypage.pushOn
+                : push === 'off'
+                  ? t.mypage.pushOff
+                  : push === 'needsHomeScreen'
+                    ? t.mypage.pushHomeScreen
+                    : push === 'denied'
+                      ? t.mypage.pushDenied
+                      : push === 'notReady'
+                        ? t.mypage.pushNotReady
+                        : t.mypage.pushUnsupported}
+            </Text>
+          </View>
+          {(push === 'on' || push === 'off') && (
+            <Ionicons
+              name={push === 'on' ? 'toggle' : 'toggle-outline'}
+              size={22}
+              color={push === 'on' ? c.accent : c.textFaint}
+            />
+          )}
+        </Pressable>
 
         <Pressable onPress={reload} disabled={busy} style={styles.row} accessibilityRole="button">
           <View style={styles.icon}>

@@ -10,6 +10,7 @@ import {
   UsersIcon,
   HistoryIcon,
   CardIcon,
+  BellIcon,
 } from '@/components/icons';
 
 /**
@@ -28,6 +29,7 @@ export function NavLinks({
     facilities: string;
     categories: string;
     members: string;
+    push: string;
     accounts: string;
     history: string;
   };
@@ -43,6 +45,7 @@ export function NavLinks({
     ...(isAdmin
       ? [
           { href: '/members', label: labels.members, Icon: CardIcon },
+          { href: '/push', label: labels.push, Icon: BellIcon },
           { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
           { href: '/history', label: labels.history, Icon: HistoryIcon },
         ]
