@@ -12,6 +12,7 @@ import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
+import { askToInstall, installState, type InstallState } from '@/lib/install';
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
 import { fill, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
 import { useTheme, useThemeControl } from '@/theme-context';
@@ -40,6 +41,21 @@ export default function MyPageScreen() {
   /* 通知。端末とブラウザによって、できることが違う。 */
   const [push, setPush] = useState<PushState>('unsupported');
   const [pushBusy, setPushBusy] = useState(false);
+
+  /*
+    ホーム画面への追加。
+
+    追加済みの方には出さない。出しても押す先が無い。
+  */
+  const [install, setInstall] = useState<InstallState>('none');
+  useEffect(() => {
+    /*
+      ブラウザからの「入れますか」の申し出は、開いた直後に飛んでくる。
+      すぐ読むと取り逃すため、少し待ってから見る。
+    */
+    const t = setTimeout(() => setInstall(installState()), 1200);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -259,6 +275,42 @@ export default function MyPageScreen() {
         </Pressable>
       </View>
 
+      {/*
+        ホーム画面への追加。
+
+        iPhone は、追加しないとプッシュ通知を受け取れない。通知を
+        作っても届かないので、その場で理由と手順を出す。
+      */}
+      {(install === 'ios' || install === 'prompt' || install === 'manual') && (
+        <View style={styles.installBox}>
+          <View style={styles.installHead}>
+            <Ionicons name="phone-portrait-outline" size={18} color={c.accent} />
+            <Text style={styles.installTitle}>{t.mypage.install}</Text>
+          </View>
+          <Text style={styles.installBody}>
+            {t.mypage.installWhy}
+            {install === 'ios' ? ` ${t.mypage.installWhyPush}` : ''}
+          </Text>
+
+          {install === 'prompt' ? (
+            <Pressable
+              onPress={async () => {
+                await askToInstall();
+                setInstall(installState());
+              }}
+              accessibilityRole="button"
+              style={styles.installButton}
+            >
+              <Text style={styles.installButtonText}>{t.mypage.installNow}</Text>
+            </Pressable>
+          ) : (
+            <Text style={styles.installSteps}>
+              {install === 'ios' ? t.mypage.installIosSteps : t.mypage.installManual}
+            </Text>
+          )}
+        </View>
+      )}
+
       <Text style={styles.note}>{t.mypage.note}</Text>
       </PageWidth>
     </SafeAreaView>
@@ -368,6 +420,29 @@ function makeStyles(c: Palette) {
       backgroundColor: c.accentSoft,
     },
     choiceText: { fontSize: TEXT.sub, fontWeight: '700' },
+    /* ホーム画面への追加のご案内 */
+    installBox: {
+      marginHorizontal: SPACE.lg,
+      marginTop: SPACE.md,
+      padding: SPACE.md,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.accentSoft,
+      gap: SPACE.xs,
+    },
+    installHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+    installTitle: { fontSize: TEXT.body, fontWeight: '800', color: c.text },
+    installBody: { fontSize: TEXT.sub, color: c.text, lineHeight: 19 },
+    installSteps: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 19 },
+    installButton: {
+      marginTop: SPACE.xs,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: RADIUS.sm,
+      backgroundColor: c.accent,
+    },
+    installButtonText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentText },
+
     note: {
       marginTop: SPACE.md,
       paddingHorizontal: SPACE.lg,

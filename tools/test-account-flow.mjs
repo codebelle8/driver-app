@@ -477,6 +477,23 @@ try {
     check('請求が起きないことを書いてある', paid.includes('まだお支払いは発生しません'));
     check('期間後どうなるかを書いてある', paid.includes('引き続きお使いいただけます'));
 
+    /*
+      切れる前の知らせ。
+
+      切れてから初めて出すと、その日まで誰も気づかない。終わりが
+      近づいたら出す。残り3日にして確かめる。
+    */
+    const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
+    await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: svc,
+      body: JSON.stringify({ trial_ends_at: soon }),
+    });
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(5000);
+    const near = await page.locator('body').innerText();
+    check('切れる前から知らせが出る', /無料期間はあと \d+ 日です/.test(near), near.slice(0, 90));
+
     // 無料期間を切らせる（鍵で過去日にする）
     await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
       method: 'PATCH',

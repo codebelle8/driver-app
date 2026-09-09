@@ -33,6 +33,15 @@ import { useTheme } from '@/theme-context';
  *   page   … お支払いの画面。最初から開いており、たたむ釦も出さない。
  *            そこを見に来た方に、もう一手を求める理由がない。
  */
+/**
+ * 探す画面の帯を出し始める、残り日数。
+ *
+ * 切れてから初めて出すと、その日まで誰も気づかない。かといって
+ * 「あと28日」を毎日出しても読まなくなるだけで、切れた日にも読み
+ * 飛ばされる。**終わりが見えてから**出す。
+ */
+const REMIND_DAYS = 7;
+
 export function PlanPrompt({
   variant = 'banner',
   style,
@@ -62,12 +71,13 @@ export function PlanPrompt({
   const left = daysLeft(account.trialEndsAt);
 
   /*
-    探す画面では、切れるまで出さない。
+    探す画面では、終わりが近づくまで出さない。
 
     毎日開く画面に「あと28日」を出し続けても、読まなくなるだけで、
-    切れた日にも読み飛ばされる。
+    切れた日にも読み飛ばされる。かといって切れてから出すのでは、
+    その日まで誰も気づかない。
   */
-  if (variant === 'banner' && !over) return null;
+  if (variant === 'banner' && !over && left > REMIND_DAYS) return null;
   /*
     お支払い済みの方には、催促を出さない。
     ただしお支払いの画面では、選び直せるように出しておく。
