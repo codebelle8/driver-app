@@ -1046,7 +1046,7 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
   入金の催促も、停止のお知らせも、ここから始まる。
 
-関連: , 
+関連: `app/src/lib/supabase.ts`, `admin/src/app/(admin)/members/page.tsx`
 
 ---
 
