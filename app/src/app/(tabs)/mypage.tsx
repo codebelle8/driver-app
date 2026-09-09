@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
@@ -438,9 +438,22 @@ function AboutRow({
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
 }) {
+  /*
+    web では本物の <a> にする。
+
+    見た目だけ整えた押せる箱では、長押しの「新しいタブで開く」も、
+    宛先を確かめる術も無くなる。react-native-web は href を渡すと
+    <a> を出す。ネイティブでは無視されるので、そちらは openURL。
+  */
+  const asAnchor =
+    Platform.OS === 'web'
+      ? ({ href: url, hrefAttrs: { target: '_blank', rel: 'noreferrer' } } as object)
+      : null;
+
   return (
     <Pressable
-      onPress={() => void Linking.openURL(url)}
+      {...asAnchor}
+      onPress={Platform.OS === 'web' ? undefined : () => void Linking.openURL(url)}
       accessibilityRole="link"
       accessibilityLabel={label}
       style={styles.row}
