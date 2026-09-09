@@ -12,11 +12,20 @@ import {
   CardIcon,
   BellIcon,
 } from '@/components/icons';
+import { useCloseSideNav } from '@/components/side-nav';
 
 /**
- * ヘッダーのナビゲーション。
+ * 行き先の並び。左の柱の中に置く。
  *
- * 現在開いている画面の項目だけ地色を一段明るくして区別する。
+ * **縦に並べる**
+ *   以前はヘッダーへ横に並べていたが、項目が増えるたびに横が詰まり、
+ *   狭い画面では横へ流れていた。縦なら、いくつ増えても収まる。
+ *
+ * **文字を省かない**
+ *   横並びのときは狭い画面で記号だけにしていた。記号だけでは
+ *   「会員」と「アカウント」のような近い項目を見分けられない。
+ *   柱には幅があるので、常に文字を添える。
+ *
  * 開いている画面がどれかはサーバーコンポーネントからは分からないため、
  * ここだけクライアント側で usePathname() を使う。
  */
@@ -37,6 +46,7 @@ export function NavLinks({
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
+  const close = useCloseSideNav();
 
   const items = [
     { href: '/', label: labels.dashboard, Icon: GaugeIcon },
@@ -56,10 +66,8 @@ export function NavLinks({
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
-  // flex-1 にせず自然な幅に留め、右側の操作ボタンは ml-auto で端へ寄せる。
-  // 左の余白でロゴから離し、ナビ全体を少し右に置く。
   return (
-    <nav className="ml-1 flex shrink-0 items-center gap-1 sm:ml-3">
+    <nav className="flex flex-col gap-0.5">
       {items.map(({ href, label, Icon }) => {
         const active = isActive(href);
         return (
@@ -73,20 +81,20 @@ export function NavLinks({
               押してから初めてサーバーへ問い合わせるので、毎回 600ms 前後かかる。
               明示すると、画面に見えた時点で内容を取りにいくため、
               押した瞬間に切り替わる。
-
-              取得先はこの5画面だけで、いずれも管理者が日常的に行き来する。
             */
             prefetch
+            /* 重ねて出しているときは、押した時点で閉じる。 */
+            onClick={close}
             aria-current={active ? 'page' : undefined}
             className={
-              'flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm transition-colors sm:px-2.5 ' +
+              'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ' +
               (active
                 ? 'border-nav-active-border bg-nav-active font-semibold text-text'
                 : 'border-transparent text-text-muted hover:bg-surface-2 hover:text-text')
             }
           >
             <Icon />
-            <span className="hidden sm:inline">{label}</span>
+            <span>{label}</span>
           </Link>
         );
       })}
