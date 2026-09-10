@@ -135,9 +135,16 @@ try {
   });
   check('調査員としてログインできる', true);
 
-  // --- ヘッダーに管理者専用の項目が出ていないか --------------------------------
-  console.log('\n--- ヘッダー ---');
-  const navHrefs = await page.$$eval('header nav a', (as) =>
+  // --- 左の柱に管理者専用の項目が出ていないか ----------------------------------
+  console.log('\n--- 左の柱 ---');
+  /*
+    行き先はヘッダーから左の柱（aside）へ移した。
+
+    選択子を直さずにいたため、'header nav a' が空の配列を返し、
+    「出ていない」が**中身を見ずに通っていた**。権限の検査が
+    素通りしていたことになる。見る場所を合わせる。
+  */
+  const navHrefs = await page.$$eval('aside nav a', (as) =>
     as.map((a) => a.getAttribute('href')),
   );
   check('アカウント管理の項目が出ていない', !navHrefs.includes('/accounts'), navHrefs.join(','));
@@ -148,7 +155,7 @@ try {
   // textContent は <script> の中身まで拾うため、Next.js が埋め込む
   // RSC ペイロード（辞書一式が入っている）に一致してしまい、
   // 画面に出ていない文言まで「ある」と判定されてしまう。
-  const roleBadge = await page.innerText('header');
+  const roleBadge = await page.innerText('aside');
   check('役割が「調査員」と表示される', (roleBadge ?? '').includes('調査員'));
 
   // --- 直接たどり着けないか ----------------------------------------------------

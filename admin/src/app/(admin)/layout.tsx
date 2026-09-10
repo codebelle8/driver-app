@@ -80,7 +80,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 alt={t.brand.name}
                 width={127}
                 height={44}
-                className="only-light h-[38px] w-auto shrink-0 sm:h-[44px]"
+                className="only-light h-[34px] w-auto shrink-0 sm:h-[44px]"
                 priority
               />
               <Image
@@ -89,7 +89,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 aria-hidden
                 width={127}
                 height={44}
-                className="only-dark h-[38px] w-auto shrink-0 sm:h-[44px]"
+                className="only-dark h-[34px] w-auto shrink-0 sm:h-[44px]"
                 priority
               />
               {/* 副題は場所を取るため lg 以上のみ */}
@@ -151,8 +151,20 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             />
           </SideNavPanel>
 
-          {/* 本文とフッター。柱は端まで伸ばし、送るのはこちらだけにする。 */}
-          <div className="flex min-h-0 flex-1 flex-col">
+          {/*
+            本文とフッター。柱は端まで伸ばし、送るのはこちらだけにする。
+
+            min-w-0 が要る。
+
+            並びの中の箱は、既定では**中身より狭くならない**。本文に
+            会員の表のような広いものが入ると、この列がその幅まで広がり、
+            外枠（overflow-hidden）に切り取られる。指で送っても続きは
+            出ない。狭い画面で右が切れていたのはこれ。
+
+            0 まで縮めてよいと伝えると、列は画面の幅に収まり、広いものは
+            自分の中（表の overflow-x-auto）で送られるようになる。
+          */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {/*
               本文だけが送られる領域。
               min-h-0 が要る。これが無いと flex の子は内容の高さまで伸び、

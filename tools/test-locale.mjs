@@ -13,6 +13,8 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 const BASE = (process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app').replace(/\/$/, '');
 
 function loadEnv(path) {
@@ -44,13 +46,14 @@ function check(label, ok, detail = '') {
   }
 }
 
-async function sb(path, { method = 'GET', body } = {}) {
+async function sb(path, { method = 'GET', body, prefer } = {}) {
   const res = await fetch(`${SB}${path}`, {
     method,
     headers: {
       apikey: KEY,
       Authorization: `Bearer ${KEY}`,
       'Content-Type': 'application/json',
+      ...(prefer ? { Prefer: prefer } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -224,14 +227,15 @@ try {
     const r = await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
     console.log(`  ${r.ok ? '削除' : '削除失敗'}  検証用アカウント`);
   }
-  const left = await sb('/rest/v1/audit_logs?select=id,diff&actor_id=is.null');
-  const ids = (Array.isArray(left.body) ? left.body : [])
-    .filter((r) => JSON.stringify(r.diff ?? '').includes('Locale Check'))
-    .map((r) => r.id);
-  if (ids.length) {
-    await sb(`/rest/v1/audit_logs?id=in.(${ids.join(',')})`, { method: 'DELETE' });
-    console.log(`  削除  検証用の操作履歴 ${ids.length} 件`);
-  }
+  /*
+    操作履歴はいちばん最後に、record_id で消す。
+
+    名前（Locale Check）で拾う形にしていたが、取りこぼしていた。
+    実際に4件、発注元の履歴へ残っていた。触った行の id そのもので
+    消せば、消す順に左右されない（tools/lib/audit-cleanup.mjs）。
+  */
+  const purged = await purgeAuditLogs(sb, [userId]);
+  console.log(`  削除    検証で残した操作履歴 ${purged} 件`);
 }
 
 console.log('');

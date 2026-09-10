@@ -201,7 +201,14 @@ export function LocaleSelect({
           印が2つ並ぶと、どちらが今の言語を指しているのか読み取りにくい。
         */}
         <Flag locale={current.value} />
-        {current.label}
+        {/*
+          狭い画面では旗だけにする。
+
+          三本線・ロゴ・明るさ・言語・ログアウトを並べると、366px より
+          狭い画面では右のログアウトが切れていた。言語名は旗と重なる
+          情報で、削っても何が選ばれているかは分かる。
+        */}
+        <span className="hidden sm:inline">{current.label}</span>
         <svg
           width="10"
           height="10"
