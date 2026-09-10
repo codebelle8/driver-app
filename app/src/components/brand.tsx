@@ -1,6 +1,11 @@
 import { Image } from 'expo-image';
-import { Image as RNImage, StyleSheet, View } from 'react-native';
+import { Link } from 'expo-router';
+import { Image as RNImage, Pressable, StyleSheet, View } from 'react-native';
 
+import { useLocked } from '@/components/plan-gate';
+import { homePressed } from '@/lib/home-signal';
+import { useT } from '@/lib/i18n/context';
+import { HIT_SLOP } from '@/theme';
 import { useThemeControl } from '@/theme-context';
 
 /**
@@ -58,6 +63,42 @@ function aspectOf(source: unknown): number {
   }
 
   return FALLBACK_ASPECT;
+}
+
+/**
+ * 押せるロゴ。押すと探す画面へ戻る。
+ *
+ * **なぜ押せるようにしたか**（ご指示 2026-09-10）
+ *   ロゴを押せば最初の画面へ戻る、というのは web で身についた癖で、
+ *   まず試される。何も起きないと、そこで手が止まる。
+ *
+ * **期限が切れているあいだは設定へ**
+ *   探す画面へは入れないため、押しても門で戻されるだけになる。
+ *   はじめから、行ける先へ渡す。
+ *
+ * ログインの入口では使わない（渡す先が無い）。あちらは BrandLogo のまま。
+ */
+export function BrandHome({ height = DISPLAY_HEIGHT }: { height?: number }) {
+  const t = useT();
+  const locked = useLocked();
+  const href = locked ? '/mypage' : '/';
+
+  return (
+    <Link href={href} asChild>
+      <Pressable
+        /*
+          既に探す画面に居るときは、渡す先が同じで何も起きない。
+          押されたことを伝え、絞り込みは向こうで解いてもらう。
+        */
+        onPress={homePressed}
+        accessibilityRole="link"
+        accessibilityLabel={locked ? t.brand.toSettings : t.brand.toSearch}
+        hitSlop={HIT_SLOP}
+      >
+        <BrandLogo height={height} />
+      </Pressable>
+    </Link>
+  );
 }
 
 export function BrandLogo({ height = DISPLAY_HEIGHT }: { height?: number }) {

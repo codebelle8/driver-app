@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, usePathname } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BrandLogo } from '@/components/brand';
+import { BrandHome } from '@/components/brand';
 import { useLocked } from '@/components/plan-gate';
 import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
@@ -80,8 +80,9 @@ export function SideRail() {
 
   return (
     <View style={s.rail}>
+      {/* ロゴは押せる。探す画面へ戻る（締めているあいだは設定へ）。 */}
       <View style={s.brandBand}>
-        <BrandLogo height={44} />
+        <BrandHome height={44} />
       </View>
 
       <View style={s.nav} role="tablist">

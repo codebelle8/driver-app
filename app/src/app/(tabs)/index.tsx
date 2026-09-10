@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandLogo } from '@/components/brand';
+import { BrandHome } from '@/components/brand';
+import { onHomePressed } from '@/lib/home-signal';
 import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
 import { IconButton } from '@/components/icon-button';
@@ -210,6 +211,22 @@ export default function SearchScreen() {
   const [atTop, setAtTop] = useState(true);
 
   const listRef = useRef<FlatList<Facility>>(null);
+
+  /*
+    ロゴを押したときの戻り先。
+
+    既に探す画面に居るときは、渡す先が同じで何も起きない。
+    絞り込みを解いて頭へ戻し、検索欄が見える形にする。
+  */
+  const toSearchTop = useCallback(() => {
+    setQuery('');
+    setCategoryId(null);
+    setShowAll(false);
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
+  // ロゴはどちらの置き場所からも同じ知らせを送る（lib/home-signal.ts）
+  useEffect(() => onHomePressed(toSearchTop), [toSearchTop]);
   const isFiltered = Boolean(query.trim() || categoryId || showAll);
 
   /*
@@ -406,7 +423,7 @@ export default function SearchScreen() {
       {!isWide && (
         <View style={styles.head}>
           {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
-          <BrandLogo height={34} />
+          <BrandHome height={34} />
           <Text style={styles.lead}>{t.search.lead}</Text>
           <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
         </View>

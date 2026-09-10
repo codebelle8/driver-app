@@ -43,6 +43,9 @@ const ja = {
   brand: {
     tagline1: 'スムーズな到着を、',
     tagline2: 'もっと快適に。',
+    /** ロゴを押したときの行き先。読み上げに使う。 */
+    toSearch: '探す画面へ',
+    toSettings: '設定へ',
   },
 
   common: {
@@ -545,6 +548,8 @@ const en: Dictionary = {
   brand: {
     tagline1: 'Arrive smoothly,',
     tagline2: 'every time.',
+    toSearch: 'Go to search',
+    toSettings: 'Go to settings',
   },
 
   common: {
