@@ -292,6 +292,13 @@ const ja = {
     signOutConfirm: 'ログアウトしますか',
     signOutBody: 'お気に入りと閲覧履歴は、この端末に残ります。',
 
+    lockedTitle: '無料期間が終了しました',
+    lockedBody:
+      'お支払いの手続きが済むまで、施設の検索はご利用いただけません。お手続きが済み次第、これまでどおりお使いいただけます。',
+    lockedAction: 'お支払いの手続きへ',
+    lockedCheck: 'お振込みが済んだ方はこちら',
+    lockedChecking: '確かめています…',
+
     trialTitle: '無料期間',
     trialLeft: 'あと {n} 日（{date} まで）',
     trialEnded: '{date} に終了しました',
@@ -430,6 +437,10 @@ const ja = {
     emptyBody: '新しく増えた施設や、いま効いている注意事項がここに出ます。',
     sectionCautions: 'いま効いている注意',
     sectionAdded: '新しく増えた施設',
+    sectionTrial: 'お支払いのご案内',
+    trialTitle: '無料期間が、あと {n} 日で終わります',
+    trialBody:
+      '{date} を過ぎると、お支払いいただくまで設定より先へ進めなくなります。押してお手続きへ。',
     addedNote: '前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。',
     addedBody: '新しく追加されました。',
   },
@@ -766,6 +777,13 @@ const en: Dictionary = {
     signOutConfirm: 'Sign out?',
     signOutBody: 'Your favourites and history stay on this device.',
 
+    lockedTitle: 'Your free trial has ended',
+    lockedBody:
+      'Searching for facilities is unavailable until payment is arranged. Everything returns as soon as it is.',
+    lockedAction: 'Go to payment',
+    lockedCheck: 'Already paid? Check again',
+    lockedChecking: 'Checking...',
+
     trialTitle: 'Free month',
     trialLeft: '{n} days left (until {date})',
     trialEnded: 'Ended on {date}',
@@ -891,6 +909,10 @@ const en: Dictionary = {
     emptyBody: 'Newly added facilities and cautions that apply right now appear here.',
     sectionCautions: 'Cautions that apply now',
     sectionAdded: 'Newly added facilities',
+    sectionTrial: 'About your payment',
+    trialTitle: 'Your free trial ends in {n} days',
+    trialBody:
+      'After {date}, only the settings screen stays available until payment is made. Tap to continue.',
     addedNote: 'Facilities added since this device last downloaded, for up to 14 days.',
     addedBody: 'Newly added.',
   },

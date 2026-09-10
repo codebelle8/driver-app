@@ -31,6 +31,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { daysLeft, type Account } from './account';
 import { getAddedFacilities } from './catalog';
 import { isActiveNow } from './cautions';
 import { fetchCautionsWithFacility, fetchFacilitiesByIds } from './facilities';
@@ -49,13 +50,16 @@ const READ_KEY = 'kn_notices_read';
  */
 const READ_LIMIT = 300;
 
-export type NoticeKind = 'caution' | 'added';
+export type NoticeKind = 'caution' | 'added' | 'trial';
 
 export interface Notice {
   id: string;
   kind: NoticeKind;
-  facilityId: string;
-  facilityName: string;
+  /** 施設に紐づく知らせだけが持つ。無料期間の知らせは持たない。 */
+  facilityId?: string;
+  facilityName?: string;
+  /** 無料期間の知らせだけが持つ。残りの日数。 */
+  daysLeft?: number;
   /** 画面に出す本文 */
   /**
    * 本文。注意事項はそのまま出す。
@@ -68,15 +72,58 @@ export interface Notice {
 }
 
 /**
+ * 無料期間の終わりが近いことの知らせ。
+ *
+ * **2日前と1日前だけ出す。**
+ *   ご指示による。毎日出すと読まなくなり、切れた日にも読み飛ばされる。
+ *   2回に絞れば、どちらも目に入る。
+ *
+ * **お支払い済みの方には出さない。**
+ *   払った方に払えと言うのが、いちばんしてはいけないこと。
+ *
+ * **1件ずつ別の知らせにする。**
+ *   id に残りの日数を入れてある。2日前を読んでも、1日前はまた
+ *   未読として出る。同じ id にすると、一度読んだきり二度と出ない。
+ */
+export function trialNotice(account: Account | null, now: Date = new Date()): Notice | null {
+  /*
+    払った方と、停止中の方には出さない。
+    払った方に払えと言うのが、いちばんしてはいけないこと。
+  */
+  if (!account) return null;
+  if (account.status === 'active' || account.status === 'blocked') return null;
+
+  const left = daysLeft(account.trialEndsAt, now);
+  if (left !== 1 && left !== 2) return null;
+
+  const end = new Date(account.trialEndsAt).getTime();
+  if (Number.isNaN(end)) return null;
+
+  return {
+    id: `t:${account.trialEndsAt}:${left}`,
+    kind: 'trial',
+    daysLeft: left,
+    /* 知らせが効き始めた時刻。並べ替えと「何時間前」に使う。 */
+    at: new Date(end - left * 86_400_000).toISOString(),
+  };
+}
+
+/**
  * お知らせを組み立てる。
  *
- * 注意事項を先に置く。いま現地で効いている条件のほうが、
+ * 無料期間の知らせを先頭に置く。現地の注意より切迫している。
+ * 期限を過ぎると設定より先へ進めなくなるため、見落とすと仕事が止まる。
+ *
+ * 次に注意事項。いま現地で効いている条件のほうが、
  * 「更新されました」より切迫しているため。
  */
 /**
  * @param locale 施設名の言語。お知らせの一覧でも英語で読めるようにする。
  */
-export async function fetchNotices(locale: Locale = 'ja'): Promise<Notice[]> {
+export async function fetchNotices(
+  locale: Locale = 'ja',
+  account: Account | null = null,
+): Promise<Notice[]> {
   const withFacility = await fetchCautionsWithFacility();
 
   const cautions: Notice[] = withFacility
@@ -110,7 +157,9 @@ export async function fetchNotices(locale: Locale = 'ja'): Promise<Notice[]> {
     // 新しいものを先に
     .reverse();
 
-  return [...cautions, ...added];
+  const trial = trialNotice(account);
+
+  return [...(trial ? [trial] : []), ...cautions, ...added];
 }
 
 /** これまでに読んだお知らせの控え */

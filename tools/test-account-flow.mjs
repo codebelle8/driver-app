@@ -503,13 +503,21 @@ try {
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(5000);
 
-    const banner = page.getByText('無料期間が終了しました');
-    check('切れると探す画面に案内が出る', (await banner.count()) > 0);
+    /*
+      期限が切れたあとは、設定より先へ進めない（2026-09-10 のご指示）。
 
-    const openPlans = page.getByRole('button', { name: '料金プランを見る' });
-    if ((await openPlans.count()) > 0) {
-      await openPlans.first().click();
-      await page.waitForTimeout(600);
+      以前はここで探す画面に帯が出るのを見ていたが、いまは探す画面
+      そのものへ入れない。設定へ移されること、締めた理由が出ること、
+      そこからお支払いへ行けることを見る。
+    */
+    check('探す画面へは入れない', page.url().includes('/mypage'), page.url());
+    check('締めた理由が出る', (await page.getByText('無料期間が終了しました').count()) > 0);
+
+    await page.getByRole('button', { name: 'お支払いの手続きへ' }).first().click();
+    await page.waitForTimeout(3000);
+    check('お支払いの画面へ行ける', page.url().includes('/plan'), page.url());
+
+    {
       const body = await page.locator('body').innerText();
       check('月額 4,000 円が出ている', body.includes('4,000 円 / 月'), body.slice(0, 80));
       check('年額 40,000 円が出ている', body.includes('40,000 円 / 年'));
@@ -530,8 +538,6 @@ try {
         chosen?.status === 'trial',
         String(chosen?.status),
       );
-    } else {
-      check('料金プランを開ける', false, '釦が無い');
     }
 
     // --- 11. パスワードの変更 --------------------------------------------------

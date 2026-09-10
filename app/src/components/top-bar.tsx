@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AccountMenu } from '@/components/account-menu';
+import { useAccount } from '@/lib/account-context';
 import { HEADER_HEIGHT } from '@/components/side-rail';
 import { fetchCoverage } from '@/lib/facilities';
 import { useT } from '@/lib/i18n/context';
@@ -43,6 +44,7 @@ export function TopBar() {
   const c = useTheme();
   const t = useT();
   const { locale } = useLocale();
+  const { account } = useAccount();
   const { isWide } = useLayout();
   const styles = makeStyles(c);
   const pathname = usePathname();
@@ -87,13 +89,14 @@ export function TopBar() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [notices, read] = await Promise.all([fetchNotices(locale), getRead()]);
+      const [notices, read] = await Promise.all([fetchNotices(locale, account), getRead()]);
       if (alive) setUnseen(countUnread(notices, read));
     })();
     return () => {
       alive = false;
     };
-  }, [pathname, locale]);
+    // 会員の状態が変わったら数え直す。払った時点で期限の知らせは消える。
+  }, [pathname, locale, account]);
 
   /**
    * 案内できる範囲。登録されている施設の所在地から求める。

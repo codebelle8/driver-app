@@ -11,6 +11,7 @@ import {
   markRead,
   type Notice,
 } from '@/lib/notices';
+import { useAccount } from '@/lib/account-context';
 import { describeWhen } from '@/lib/when';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
@@ -34,6 +35,7 @@ export default function NoticesScreen() {
   const { locale } = useLocale();
   const styles = makeStyles(c);
   const router = useRouter();
+  const { account } = useAccount();
 
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [read, setRead] = useState<Set<string>>(new Set());
@@ -41,7 +43,7 @@ export default function NoticesScreen() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [list, already] = await Promise.all([fetchNotices(locale), getRead()]);
+      const [list, already] = await Promise.all([fetchNotices(locale, account), getRead()]);
       if (!alive) return;
       setNotices(list);
       setRead(already);
@@ -50,7 +52,8 @@ export default function NoticesScreen() {
       alive = false;
     };
     // 言語を変えたら取り直す。施設名は取った時点の言語で控えている。
-  }, [locale]);
+    // 会員の状態が変わったら（お支払いが済んだら）、期限の知らせも消す。
+  }, [locale, account]);
 
   /*
     開いただけでは既読にしない。
@@ -71,6 +74,7 @@ export default function NoticesScreen() {
 
   const unread = (notices ?? []).filter((n) => !read.has(n.id)).length;
 
+  const trials = (notices ?? []).filter((n) => n.kind === 'trial');
   const cautions = (notices ?? []).filter((n) => n.kind === 'caution');
   const added = (notices ?? []).filter((n) => n.kind === 'added');
 
@@ -106,6 +110,28 @@ export default function NoticesScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+          {trials.length > 0 && (
+            <>
+              {/*
+                無料期間の知らせは、施設の知らせより前に置く。
+
+                現地の注意より切迫している。見落とすと、翌日には
+                設定より先へ進めなくなる。
+              */}
+              <Text style={styles.section}>{t.notices.sectionTrial}</Text>
+              {trials.map((n) => (
+                <TrialRow
+                  key={n.id}
+                  notice={n}
+                  styles={styles}
+                  c={c}
+                  unread={!read.has(n.id)}
+                  onOpen={onOpen}
+                />
+              ))}
+            </>
+          )}
+
           {cautions.length > 0 && (
             <>
               <Text style={styles.section}>{t.notices.sectionCautions}</Text>
@@ -146,6 +172,62 @@ export default function NoticesScreen() {
       )}
       </PageWidth>
     </SafeAreaView>
+  );
+}
+
+/**
+ * 無料期間の終わりの知らせ。
+ *
+ * 施設ではなくお支払いの画面へ渡す。ここから先の一手が
+ * 「どこで払うのか探す」になると、そこで止まる。
+ */
+function TrialRow({
+  notice,
+  styles,
+  c,
+  unread,
+  onOpen,
+}: {
+  notice: Notice;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  unread: boolean;
+  onOpen: (id: string) => void;
+}) {
+  const t = useT();
+  const { locale } = useLocale();
+  const left = notice.daysLeft ?? 0;
+  const endsOn = new Date(new Date(notice.at).getTime() + left * 86_400_000);
+
+  return (
+    <Link href="/plan" asChild>
+      <Pressable
+        onPress={() => onOpen(notice.id)}
+        style={styles.rowUrgent}
+        accessibilityRole="link"
+      >
+        <View style={styles.iconUrgent}>
+          <Ionicons name="card" size={18} color={c.danger} />
+        </View>
+        <View style={styles.body}>
+          <View style={styles.nameRow}>
+            {unread && <View style={styles.dot} />}
+            <Text style={unread ? styles.nameUnread : styles.name} numberOfLines={2}>
+              {fill(t.notices.trialTitle, { n: left })}
+            </Text>
+          </View>
+          <Text style={styles.text}>
+            {fill(t.notices.trialBody, {
+              date: endsOn.toLocaleDateString(locale === 'en' ? 'en-GB' : 'ja-JP', {
+                month: 'long',
+                day: 'numeric',
+              }),
+            })}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+      </Pressable>
+    </Link>
   );
 }
 

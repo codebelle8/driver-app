@@ -12,6 +12,7 @@ import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
+import { PlanLock } from '@/components/plan-lock';
 import { askToInstall, installState, type InstallState } from '@/lib/install';
 import { appVersion, hasAny, loadSite, type Site } from '@/lib/site';
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
@@ -110,6 +111,15 @@ export default function MyPageScreen() {
       <View style={styles.head}>
         <Text style={styles.heading}>{t.mypage.title}</Text>
       </View>
+
+      {/*
+        無料期間が終わっているときの説明。いちばん上に置く。
+
+        突然「探す」が消えると、壊れたのだと受け取られる。壊れたと
+        思った方は直るのを待ち、そのあいだお支払いは起きない。
+        締めた理由と、次の一手を最初に出す。
+      */}
+      <PlanLock />
 
       {/*
         アカウント。設定とは別の箱にしている。

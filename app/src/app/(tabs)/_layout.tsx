@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useLocked } from '@/components/plan-gate';
 import { useT } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
@@ -46,6 +47,14 @@ export default function TabsLayout() {
   const { isWide } = useLayout();
   const dict = useT();
 
+  /*
+    無料期間が終わったあとは、設定だけを残す。
+
+    押せる項目を残したまま門で戻すと、押すたびに弾かれることになり、
+    壊れているように見える。行けない先は、はじめから出さない。
+  */
+  const locked = useLocked();
+
   return (
     <Tabs
       /*
@@ -87,6 +96,8 @@ export default function TabsLayout() {
           name={t.name}
           options={{
             title: dict.tabs[t.key],
+            /* href: null で帯から外れる。設定（mypage）だけを残す。 */
+            href: locked && t.name !== 'mypage' ? null : undefined,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? t.on : t.off} size={22} color={color} />
             ),

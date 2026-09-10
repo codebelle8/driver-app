@@ -3,6 +3,7 @@ import { Link, usePathname } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrandLogo } from '@/components/brand';
+import { useLocked } from '@/components/plan-gate';
 import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
 import { useT } from '@/lib/i18n/context';
@@ -68,6 +69,15 @@ export function SideRail() {
   const here = usePathname();
   const dict = useT();
 
+  /*
+    無料期間が終わったあとは、設定だけを残す。
+
+    狭い画面の下の帯（(tabs)/_layout.tsx）と揃える。片方だけ残すと、
+    画面を広げただけで行けたり行けなかったりする。
+  */
+  const locked = useLocked();
+  const items = locked ? NAV.filter((t) => t.path === '/mypage') : NAV;
+
   return (
     <View style={s.rail}>
       <View style={s.brandBand}>
@@ -75,7 +85,7 @@ export function SideRail() {
       </View>
 
       <View style={s.nav} role="tablist">
-        {NAV.map((t) => {
+        {items.map((t) => {
           /*
             いまどこにいるか。
 

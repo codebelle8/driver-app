@@ -10,6 +10,7 @@ import { ConfirmHost } from '@/components/confirm-dialog';
 import { IntroVideo } from '@/components/intro-video';
 import { NoticeHost } from '@/components/notice-toast';
 import { AuthGate } from '@/components/auth-gate';
+import { PlanGate } from '@/components/plan-gate';
 import { SideRail } from '@/components/side-rail';
 import { TopBar } from '@/components/top-bar';
 import { AccountProvider } from '@/lib/account-context';
@@ -151,6 +152,7 @@ function Shell() {
       */}
       <View style={styles.column}>
       <TopBar />
+      <PlanGate>
       <Stack
         screenOptions={{
           // 画面ごとに見出しを持つため、共通の見出しは出さない
@@ -164,6 +166,7 @@ function Shell() {
         <Stack.Screen name="account" />
         <Stack.Screen name="plan" />
       </Stack>
+      </PlanGate>
       </View>
       </View>
     </AuthGate>
