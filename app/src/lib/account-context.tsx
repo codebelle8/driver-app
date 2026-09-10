@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { loadAccount, scrubUrlFragment, tookOver, type Account } from './account';
+import { isRecovery, loadAccount, scrubUrlFragment, tookOver, type Account } from './account';
 import { forgetSync, syncAccountData } from './sync-account';
 import { supabase } from './supabase';
 
@@ -52,7 +52,13 @@ const AccountContext = createContext<AccountContextValue>({
 export function AccountProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<Account | null>(null);
   const [ready, setReady] = useState(false);
-  const [recovering, setRecovering] = useState(false);
+  /*
+    最初から印を入れておく。
+
+    出来事（PASSWORD_RECOVERY）を待つと、URL の後片付けと競り合う。
+    後片付けが勝つと、そのまま中へ通していた。
+  */
+  const [recovering, setRecovering] = useState(isRecovery);
   const [takenOver, setTakenOver] = useState(false);
 
   const refresh = useCallback(async () => {

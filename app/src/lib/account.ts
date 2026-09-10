@@ -161,6 +161,29 @@ function redirectTo(): string | undefined {
  * implicit では鍵が # の後ろに載ってくる。supabase-js が読み終えた後は
  * 用済みで、履歴や共有された URL に残ると、そのまま人のログインになる。
  */
+/**
+ * 再設定のリンクから戻ってきたか。
+ *
+ * **取り込んだ時点で読む。**
+ *   これを出来事（PASSWORD_RECOVERY）だけに頼っていた。ところが
+ *   URL の後片付け（scrubUrlFragment）が先に走ると印ごと消え、
+ *   出来事は流れてこない。**6回中5回、新しいパスワードを決めずに
+ *   そのまま中へ通していた。** 忘れた方が入れたつもりで帰り、
+ *   次にまた入れない。
+ *
+ *   読み取りをここ（取り込みの時点）で済ませれば、あとで誰が
+ *   後片付けをしても変わらない。
+ */
+const cameFromRecovery = ((): boolean => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  return /(^|[#&])type=recovery(&|$)/.test(window.location.hash);
+})();
+
+/** 再設定のリンクから来たか。画面が最初に決まる前に呼ばれる。 */
+export function isRecovery(): boolean {
+  return cameFromRecovery;
+}
+
 export function scrubUrlFragment(): void {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return;
   const h = window.location.hash;
