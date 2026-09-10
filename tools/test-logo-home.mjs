@@ -91,12 +91,16 @@ try {
   );
   check('探す画面のまま', new URL(page.url()).pathname === '/', page.url());
 
-  // 別の画面から戻れることを見る（探す画面で押しても動きが分からない）
+  // 別の画面からも戻れる。ロゴは帯にあり、どの画面でも出る
   const fac = await (
     await fetch(`${conn.url}/rest/v1/facilities?select=id&limit=1`, { headers: conn.svc })
   ).json();
   await go(`/facility/${fac[0].id}`);
-  check('施設の画面にロゴは出ない（帯には無い）', (await logo().count()) === 0);
+  check('施設の画面でも帯にロゴがある', (await logo().count()) > 0);
+
+  await logo().first().click();
+  await page.waitForTimeout(3000);
+  check('狭い画面でも探す画面へ戻る', new URL(page.url()).pathname === '/', page.url());
 
   // --- 広い画面（左メニューの上）----------------------------------------------
   console.log('\n--- 1280px ---');

@@ -1,20 +1,19 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, usePathname } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AccountMenu } from '@/components/account-menu';
+import { BrandHome } from '@/components/brand';
+import { Coverage } from '@/components/coverage';
 import { useAccount } from '@/lib/account-context';
 import { HEADER_HEIGHT } from '@/components/side-rail';
-import { fetchCoverage } from '@/lib/facilities';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { PAGE_MAX, PAGE_PAD, useLayout } from '@/lib/layout';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
-import { describePlace } from '@/lib/place';
 import { ensureSynced } from '@/lib/sync';
-import { useLocale } from '@/lib/i18n/context';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -42,47 +41,24 @@ import { useTheme } from '@/theme-context';
  */
 export function TopBar() {
   const c = useTheme();
-  const t = useT();
   const { locale } = useLocale();
   const { account } = useAccount();
   const { isWide } = useLayout();
   const styles = makeStyles(c);
   const pathname = usePathname();
 
-  const [coverage, setCoverage] = useState<{
-    prefectures: string[];
-    cities: number;
-    total: number;
-  }>({ prefectures: [], cities: 0, total: 0 });
-  const [place, setPlace] = useState<string | null>(null);
   const [unseen, setUnseen] = useState(0);
 
-  /* 案内できる範囲。端末にあるものを先に出し、取り込みの後で読み直す。 */
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const first = await fetchCoverage();
-      if (!alive) return;
-      setCoverage(first);
+  /*
+    施設の取り込みを促す。
 
-      await ensureSynced();
-      const after = await fetchCoverage();
-      if (alive) setCoverage(after);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  /* 現在地。断られたら、案内できる範囲のままにする。 */
+    案内できる範囲そのものは Coverage が持つが、あれは狭い画面では
+    探す画面にしか出ない。取り込みまでそこへ預けると、設定を開いた
+    まま起動した日に、古いままになる。**帯はどの画面にも出る。**
+    ここから一度だけ促す（ensureSynced は重ねて呼んでも1回で済む）。
+  */
   useEffect(() => {
-    let alive = true;
-    describePlace().then((name) => {
-      if (alive && name) setPlace(name);
-    });
-    return () => {
-      alive = false;
-    };
+    void ensureSynced();
   }, []);
 
   /* 未読の数。画面を移るたびに数え直す。 */
@@ -98,39 +74,19 @@ export function TopBar() {
     // 会員の状態が変わったら数え直す。払った時点で期限の知らせは消える。
   }, [pathname, locale, account]);
 
-  /**
-   * 案内できる範囲。登録されている施設の所在地から求める。
-   *
-   * 都道府県が1つなら県名、複数なら件数で示す。
-   * 決め打ちの地名を出すと、対応していない場所でも案内できるように見える。
-   */
-  const area = useMemo(() => {
-    if (coverage.total === 0) return t.search.waiting;
-    const { prefectures, cities } = coverage;
-    if (prefectures.length === 1) {
-      const name = prefectures[0];
-      return cities > 1 ? fill(t.search.areaOne, { name, n: coverage.total }) : name;
-    }
-    if (prefectures.length > 1) {
-      return fill(t.search.areaMore, { name: prefectures[0], n: coverage.total });
-    }
-    return fill(t.search.registered, { n: coverage.total });
-  }, [coverage, t]);
+
 
   return (
     <SafeAreaView edges={['top']} style={[styles.bar, isWide && styles.barWide]}>
       <View style={isWide ? styles.inner : styles.row}>
-        <View style={styles.place}>
-          <Ionicons name="location" size={isWide ? 18 : 13} color={c.accent} />
-          <View style={styles.placeText}>
-            <Text style={isWide ? styles.placeLabelWide : styles.placeLabel}>
-              {place ? t.search.here : t.search.area}
-            </Text>
-            <Text style={isWide ? styles.placeValueWide : styles.placeValue} numberOfLines={1}>
-              {place ?? area}
-            </Text>
-          </View>
-        </View>
+        {/*
+          左に置くもの。ご指示（2026-09-10）で入れ替えた。
+
+            狭い画面 … ロゴ。案内できる範囲は探す画面の頭へ移した。
+            広い画面 … 案内できる範囲。ロゴは左メニューの上にあり、
+                       ここへ置くと同じものが2つ並ぶ。
+        */}
+        {isWide ? <Coverage wide /> : <View style={styles.brandSlot}><BrandHome height={26} /></View>}
 
         <BellButton unseen={unseen} wide={isWide} styles={styles} c={c} />
         {/* 顔写真は鐘の右端。登録していない方には出ない。 */}
@@ -253,12 +209,8 @@ function makeStyles(c: Palette) {
       paddingHorizontal: PAGE_PAD,
     },
 
-    place: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5 },
-    placeText: { flex: 1 },
-    placeLabel: { fontSize: TEXT.small, color: c.textFaint },
-    placeValue: { fontSize: TEXT.sub, color: c.text, fontWeight: '600' },
-    placeLabelWide: { fontSize: TEXT.sub, color: c.textFaint },
-    placeValueWide: { fontSize: TEXT.title, color: c.text, fontWeight: '700' },
+    /* 狭い画面のロゴ。残りの幅を取り、鐘と顔写真を右端へ押しやる。 */
+    brandSlot: { flex: 1, alignItems: 'flex-start', justifyContent: 'center' },
 
     /*
       鐘。当たり判定は広く、下地は記号のまわりだけ。

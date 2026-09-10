@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHome } from '@/components/brand';
+import { Coverage } from '@/components/coverage';
 import { onHomePressed } from '@/lib/home-signal';
 import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
@@ -422,8 +422,13 @@ export default function SearchScreen() {
       {/* 狭い画面。ロゴ・呼びかけ・検索欄をまとめて上に置く。 */}
       {!isWide && (
         <View style={styles.head}>
-          {/* 文字の見出しではなくロゴを置く。名乗りはロゴが担う。 */}
-          <BrandHome height={34} />
+          {/*
+            案内できる範囲。ご指示（2026-09-10）で、上部の帯にあった
+            ものをここへ移した。ロゴは入れ替わりに帯へ上がっている。
+
+            検索欄のすぐ上にあるほうが、何を探せるのかと結びつく。
+          */}
+          <Coverage />
           <Text style={styles.lead}>{t.search.lead}</Text>
           <SearchField query={query} onChange={setQuery} styles={styles} c={c} />
         </View>

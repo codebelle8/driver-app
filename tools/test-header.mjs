@@ -138,7 +138,22 @@ try {
         await skip();
 
         const body = await page.locator('body').innerText();
-        check(`${w}px ${name}: 場所が出ている`, /案内できる範囲|現在地/.test(body));
+        /*
+          帯の左に置くものは、画面の広さで変わる（ご指示 2026-09-10）。
+
+            狭い画面 … ロゴ。案内できる範囲は探す画面の頭へ移した。
+            広い画面 … 案内できる範囲。ロゴは左メニューの上にある。
+
+          どちらも「帯の左が空でない」ことは変わらない。そこを見る。
+        */
+        if (w >= 1024) {
+          check(`${w}px ${name}: 場所が出ている`, /案内できる範囲|現在地/.test(body));
+        } else {
+          check(
+            `${w}px ${name}: 帯にロゴが出ている`,
+            (await page.getByRole('link', { name: /探す画面へ|設定へ/ }).count()) > 0,
+          );
+        }
         check(
           `${w}px ${name}: 鐘が出ている`,
           (await page.getByRole('link', { name: /お知らせ/ }).count()) > 0,
