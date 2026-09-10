@@ -19,6 +19,7 @@
  *   Supabase が返す文面は英語で、しかも版によって変わる。ここでは
  *   種類だけを返し、言い回しは辞書（i18n）に持たせる。
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 import { deviceId } from './device';
@@ -269,6 +270,7 @@ async function claimDevice(): Promise<void> {
  * 損をする形になる。
  */
 export async function signOut(): Promise<Result> {
+  await dropSnapshot();
   const { error } = await supabase.auth.signOut();
   if (error) return bad(toProblem(error));
   return good(undefined);
@@ -281,6 +283,7 @@ export async function signOut(): Promise<Result> {
  * 心当たりのあるときに、まとめて切れるようにしておく。
  */
 export async function signOutEverywhere(): Promise<Result> {
+  await dropSnapshot();
   const { error } = await supabase.auth.signOut({ scope: 'global' });
   if (error) return bad(toProblem(error));
   return good(undefined);
@@ -317,6 +320,7 @@ export async function deleteMyAccount(userId: string): Promise<Result> {
 
   const { error } = await supabase.rpc('delete_my_account');
   if (error) return bad(toProblem(error));
+  await dropSnapshot();
   // 消えた利用者のセッションは、もう使えない。手元も片付ける。
   await supabase.auth.signOut().catch(() => undefined);
   return good(undefined);
@@ -410,10 +414,60 @@ export function tookOver(): boolean {
  *
  * 何度呼んでも無料期間は延びない（データベース側で on conflict do nothing）。
  */
-async function ensureProfile(): Promise<ProfileRow | null> {
+/**
+ * 最後に確かめた会員の控え。
+ *
+ * **なぜ要るか**
+ *   このアプリの一番の売りが「地下駐車場でも出る」ことにある。
+ *   ところがログインの確認は通信を使う。繋がらないときに
+ *   「ログインしていない」と判断すると、**地下へ入った瞬間に入口へ
+ *   戻される。そこは電波が無いのでログインもできない。** 仕事が止まる。
+ *
+ * **期限は控えの中の日付で判断される**
+ *   無料期間の終わりは日付であって、通信で決まるものではない。
+ *   圏外でも、切れていれば切れていると分かる。
+ *
+ * **停止だけは、次に繋がるまで効かない**
+ *   停止した方が電波を切れば、その間は使える。管理画面で停止した
+ *   直後の数分に限られ、次に繋がった時点で締まる。ここを厳しくすると
+ *   「圏外では誰も使えない」に戻ってしまう。
+ */
+const SNAPSHOT_KEY = 'kn_account_snapshot';
+
+async function keepSnapshot(account: Account): Promise<void> {
+  await AsyncStorage.setItem(SNAPSHOT_KEY, JSON.stringify(account)).catch(() => undefined);
+}
+
+async function readSnapshot(): Promise<Account | null> {
+  const raw = await AsyncStorage.getItem(SNAPSHOT_KEY).catch(() => null);
+  if (!raw) return null;
+  try {
+    const kept = JSON.parse(raw) as Account;
+    return kept && typeof kept.userId === 'string' ? kept : null;
+  } catch {
+    return null;
+  }
+}
+
+/** ログアウト・退会のときに捨てる。次の方に前の方の控えを見せない。 */
+async function dropSnapshot(): Promise<void> {
+  await AsyncStorage.removeItem(SNAPSHOT_KEY).catch(() => undefined);
+}
+
+/**
+ * 名簿の行を取る。**届いたかどうかも返す。**
+ *
+ * サーバーが答えた誤りには code が付く（PostgREST が必ず付ける）。
+ * 付いていなければ、そもそも届いていない。文言で見分けると、
+ * 言語や版で変わったときに黙って壊れる。
+ */
+async function ensureProfile(): Promise<{ row: ProfileRow | null; reached: boolean }> {
   const { data, error } = await supabase.rpc('ensure_driver_profile');
-  if (error || !data) return null;
-  return data as ProfileRow;
+  if (error) {
+    const code = (error as { code?: string }).code;
+    return { row: null, reached: typeof code === 'string' && code !== '' };
+  }
+  return { row: (data as ProfileRow) ?? null, reached: true };
 }
 
 /**
@@ -427,8 +481,19 @@ export async function loadAccount(): Promise<Account | null> {
   const session = data.session;
   if (!session) return null;
 
-  const row = await ensureProfile();
-  if (!row) return null;
+  const { row, reached } = await ensureProfile();
+  if (!row) {
+    /*
+      届かなかっただけなら、最後に確かめた姿で通す（圏外）。
+
+      別の方の控えは使わない。いま入っている方のものだけ。
+    */
+    if (!reached) {
+      const kept = await readSnapshot();
+      if (kept && kept.userId === session.user.id) return kept;
+    }
+    return null;
+  }
 
   /*
     控えと違う端末なら、ここで出ていく。
@@ -440,11 +505,12 @@ export async function loadAccount(): Promise<Account | null> {
   const mine = await deviceId();
   if (claiming === 0 && row.device_id && row.device_id !== mine) {
     takenOver = true;
+    await dropSnapshot();
     await supabase.auth.signOut().catch(() => undefined);
     return null;
   }
 
-  return {
+  const account: Account = {
     userId: row.user_id,
     email: session.user.email ?? null,
     displayName: row.display_name,
@@ -456,6 +522,10 @@ export async function loadAccount(): Promise<Account | null> {
     planChosenAt: row.plan_chosen_at,
     memberNo: row.member_no,
   };
+
+  // 次に圏外で開いたときのために控える
+  await keepSnapshot(account);
+  return account;
 }
 
 // --- 顔写真 -------------------------------------------------------------------
