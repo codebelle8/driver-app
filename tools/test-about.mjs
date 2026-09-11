@@ -84,7 +84,12 @@ try {
     });
 
     await signInOn(page, BASE, member, { goto: '/mypage' });
-    await page.waitForTimeout(2500);
+    /*
+      入り終えると探す画面へ渡される（2026-09-12）。
+      マイページを見たいので、あらためて開き直す。
+    */
+    await page.goto(`${BASE}/mypage`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4000);
 
     const text = async () => (await page.locator('body').innerText());
 

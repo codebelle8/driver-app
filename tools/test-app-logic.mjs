@@ -15,6 +15,14 @@ import { readFileSync } from 'node:fs';
 
 import { buildSearchText, normalizeSearchText, toSearchPattern } from '../app/src/lib/search.ts';
 import { describeSchedule, isActiveNow, splitByActive } from '../app/src/lib/cautions.ts';
+import { dictionaries } from '../app/src/lib/i18n/dictionaries.ts';
+
+/*
+  適用条件の文言は、言語ごとの辞書から組み立てる（describeSchedule の
+  2つめの引数）。英語対応を入れたときに増えたが、この検査は渡さないまま
+  だった。日本語の辞書を渡して、以前と同じ文言を確かめる。
+*/
+const ja = dictionaries.ja;
 
 // sync.ts は接続設定を読み込み時に見るため、先に入れてから動的に読み込む。
 // import 文は巻き上げられて先に実行されるため、静的な import では間に合わない。
@@ -187,12 +195,12 @@ check('該当しないものは後ろへ', split.inactive.length, 1);
 
 console.log('\n適用条件の表示:\n');
 
-check('平日とまとめる', describeSchedule(weekdaysOnly), '平日 07:00-09:00'.replace('-', '–'));
-check('時刻のみ', describeSchedule(evening), '17:00–20:00');
-check('条件なしは表示しない', describeSchedule(caution({})), null);
+check('平日とまとめる', describeSchedule(weekdaysOnly, ja), '平日 07:00-09:00'.replace('-', '–'));
+check('時刻のみ', describeSchedule(evening, ja), '17:00–20:00');
+check('条件なしは表示しない', describeSchedule(caution({}), ja), null);
 check(
   '土日とまとめる',
-  describeSchedule(caution({ weekdays: [6, 7] })),
+  describeSchedule(caution({ weekdays: [6, 7] }), ja),
   '土日',
 );
 
@@ -206,15 +214,15 @@ const MIN = 60000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-check('未取得', describeSyncedAt(null), '未取得');
-check('1分未満', describeSyncedAt(ago(30 * 1000)), 'たった今');
-check('数分前', describeSyncedAt(ago(5 * MIN)), '5分前');
-check('1時間以上', describeSyncedAt(ago(3 * HOUR)), '3時間前');
-check('1日以上', describeSyncedAt(ago(2 * DAY)), '2日前');
+check('未取得', describeSyncedAt(null, ja), '未取得');
+check('1分未満', describeSyncedAt(ago(30 * 1000), ja), 'たった今');
+check('数分前', describeSyncedAt(ago(5 * MIN), ja), '5分前');
+check('1時間以上', describeSyncedAt(ago(3 * HOUR), ja), '3時間前');
+check('1日以上', describeSyncedAt(ago(2 * DAY), ja), '2日前');
 // 「17日前」まで来ると、いつの情報か直感的に分からなくなる
 check(
   '1週間を超えたら日付で示す',
-  /月\d+日$/.test(describeSyncedAt(ago(20 * DAY))),
+  /月\d+日$/.test(describeSyncedAt(ago(20 * DAY), ja)),
   true,
 );
 

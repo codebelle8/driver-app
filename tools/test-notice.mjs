@@ -12,7 +12,10 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
+const BASE = (process.argv[2] ?? 'http://localhost:4190').replace(/\/$/, '');
+const conn = connect();
 
 let pass = 0;
 const failures = [];
@@ -28,10 +31,19 @@ function check(label, ok, detail = '') {
 }
 
 let browser = null;
+let member = null;
 
 try {
   console.log(`短い知らせの検査: ${BASE}\n`);
 
+  /*
+    先にログインする。
+
+    起動したときにログインを求める作りへ変えた（P-10）以降、
+    ログインせずに施設の画面を開いても入口が出るだけになっていた。
+    この検査はそこで止まったまま気づかれずにいた。
+  */
+  member = await createMember(conn, 'notice');
   browser = await chromium.launch();
   const context = await browser.newContext({
     locale: 'ja-JP',
@@ -55,8 +67,8 @@ try {
     }
   };
 
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(8000);
+  await signInOn(page, BASE, member, { goto: '/' });
+  await page.waitForTimeout(4000);
   await skipIntro();
 
   // 座標のある施設を探す。無い施設では複製のボタンが出ない。
@@ -126,6 +138,7 @@ try {
     );
   }
 } finally {
+  if (member) check('検査で作った会員を消した', await removeMember(conn, member));
   if (browser) await browser.close();
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);

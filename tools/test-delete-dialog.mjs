@@ -16,7 +16,10 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = (process.argv[2] ?? 'http://localhost:8081').replace(/\/$/, '');
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
+const BASE = (process.argv[2] ?? 'http://localhost:4190').replace(/\/$/, '');
+const conn = connect();
 
 let pass = 0;
 const failures = [];
@@ -54,6 +57,7 @@ const SCREENS = [
 ];
 
 let browser = null;
+let member = null;
 
 try {
   console.log(`削除の札の検査: ${BASE}\n`);
@@ -85,10 +89,19 @@ try {
     }
   };
 
+  /*
+    先にログインする。
+
+    起動したときにログインを求める作りへ変えた（P-10）以降、
+    ログインせずに開いても入口が出るだけになっていた。
+    この検査はそこで止まったまま気づかれずにいた。
+  */
+  member = await createMember(conn, 'deldlg');
+
   // --- 施設の id を取り、履歴とお気に入りに仕込む -------------------------------
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await signInOn(page, BASE, member, { goto: '/' });
   // 取り込みが終わるまで待つ。端末の中に施設が無いと一覧は空になる。
-  await page.waitForTimeout(8000);
+  await page.waitForTimeout(6000);
   await skipIntro();
 
   const ids = await page.evaluate(() => {
@@ -231,6 +244,7 @@ try {
     check(`${sc.name}: すべて消せる`, (await kept()) === 0, `残り${await kept()}件`);
   }
 } finally {
+  if (member) check('検査で作った会員を消した', await removeMember(conn, member));
   if (browser) await browser.close();
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);

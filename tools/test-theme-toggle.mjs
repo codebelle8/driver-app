@@ -10,7 +10,13 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
-const BASE = 'http://localhost:3000';
+/*
+  接続先。既定は手元の管理画面（開発サーバー）。
+
+  引数で差し替えられる。決め打ちにしていたため、手元のサーバーが
+  止まっているあいだ、この検査は回しようがなかった。
+*/
+const BASE = (process.argv[2] ?? 'http://localhost:3000').replace(/\/$/, '');
 
 function loadEnv(path) {
   const env = {};
