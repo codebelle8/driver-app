@@ -131,6 +131,22 @@ export async function clearFavorites(): Promise<void> {
 }
 
 /**
+ * 端末の控えだけを捨てる。サーバーには触れない。
+ *
+ * 退会のときに使う。サーバー側は `delete_my_account` が消すので、
+ * 消えたアカウントへ呼びに行く必要はない。
+ *
+ * **なぜ端末も消すか**
+ *   退会の確認に「お気に入り・閲覧履歴を、すべて消します」と書いて
+ *   ある。ところが控えは端末に残り、**次に登録した方へそのまま
+ *   引き継がれていた**（引き継ぎの仕組みが端末の中身を持ち上げる）。
+ *   同じ端末を人に譲ると、前の方の行き先が見えることになる。
+ */
+export async function forgetFavoritesHere(): Promise<void> {
+  await AsyncStorage.removeItem(KEY).catch(() => undefined);
+}
+
+/**
  * サーバーにあるものと突き合わせる。
  *
  * **消えるより重複するほうがまし** という寄せ方にしている

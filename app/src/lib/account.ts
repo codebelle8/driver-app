@@ -23,6 +23,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 import { deviceId } from './device';
+import { forgetFavoritesHere } from './favorites';
+import { forgetHistoryHere } from './history';
 import type { PlanId } from './plans';
 import { supabase } from './supabase';
 
@@ -379,6 +381,16 @@ export async function deleteMyAccount(userId: string): Promise<Result> {
   const { error } = await supabase.rpc('delete_my_account');
   if (error) return bad(toProblem(error));
   await dropSnapshot();
+
+  /*
+    端末の控えも捨てる。
+
+    退会の確認に「お気に入り・閲覧履歴を、すべて消します」と書いて
+    ある。サーバー側だけ消しても控えは端末に残り、次に登録した方へ
+    引き継がれていた。同じ端末を人に譲ると、前の方の行き先が見える。
+  */
+  await forgetFavoritesHere();
+  await forgetHistoryHere();
   // 消えた利用者のセッションは、もう使えない。手元も片付ける。
   await supabase.auth.signOut().catch(() => undefined);
   return good(undefined);

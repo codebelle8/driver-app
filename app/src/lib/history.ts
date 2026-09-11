@@ -135,6 +135,14 @@ export async function clearHistory(): Promise<void> {
 }
 
 /**
+ * 端末の控えだけを捨てる。サーバーには触れない。
+ * 退会のときに使う（favorites.ts の同名の関数と同じ理由）。
+ */
+export async function forgetHistoryHere(): Promise<void> {
+  await AsyncStorage.removeItem(KEY).catch(() => undefined);
+}
+
+/**
  * サーバーにあるものと突き合わせる。
  *
  * 寄せ方はお気に入りと同じ（favorites.ts の mergeFavorites を参照）。
