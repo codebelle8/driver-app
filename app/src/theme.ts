@@ -19,13 +19,17 @@ const light = {
   textMuted: '#5a666e',
   textFaint: '#8b969d',
   /*
-    鮮やかな青。ご指示 2026-09-11。
+    草色。ご指示 2026-09-11。
 
-    ロゴの濃紺（#0b192f）と同じ系統で、並べても喧嘩しない。
-    白文字とのコントラスト 5.1:1（AA）。
+    以前の翠（#0f7a55）より黄へ寄せている。青緑ではなく、草の緑。
+    白文字とのコントラスト 5.2:1（AA）。
+
+    **これより明るくはできない。** 鮮やかな黄緑（#4caf50 など）は
+    白地で 2.8:1 しかなく、文字として読めない。緑は明度を上げると
+    すぐ contrast を失う色で、ここが上限にあたる。
   */
-  accent: '#0b5fff',
-  accentSoft: '#e8f1ff',
+  accent: '#487a13',
+  accentSoft: '#f1f8e8',
   accentText: '#ffffff',
   /* 警告（削除・入力の誤り）。主役が青に戻ったので、赤へ戻した。 */
   danger: '#b3261e',
@@ -51,10 +55,10 @@ const dark: typeof light = {
   text: '#e8edef',
   textMuted: '#9aa8ae',
   textFaint: '#6b7a81',
-  // 暗所で沈まないよう明度を上げた青。暗色文字とのコントラスト 7.7:1
-  accent: '#6fa8ff',
-  accentSoft: '#10233f',
-  accentText: '#041428',
+  // 暗所で沈まないよう明度を上げた草色。暗色文字とのコントラスト 9.6:1
+  accent: '#9ccc65',
+  accentSoft: '#1a2610',
+  accentText: '#0d1a05',
   danger: '#e5675c',
   dangerSoft: '#2a1614',
   dangerText: '#2a0b08',

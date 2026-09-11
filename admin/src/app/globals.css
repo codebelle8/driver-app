@@ -33,12 +33,15 @@
   --c-text-faint: #8b969d;
 
   /*
-    鮮やかな青。ご指示 2026-09-11。
-    ロゴの濃紺（#0b192f）と同じ系統。白文字とのコントラスト 5.1:1 (AA)
+    草色。ご指示 2026-09-11。以前の翠より黄へ寄せている。
+    白文字とのコントラスト 5.2:1 (AA)
+
+    これより明るくはできない。鮮やかな黄緑は白地で 2.8:1 しかなく、
+    文字として読めない。
   */
-  --c-accent: #0b5fff;
-  --c-accent-hover: #0a51d8;
-  --c-accent-soft: #e8f1ff;
+  --c-accent: #487a13;
+  --c-accent-hover: #38600e;
+  --c-accent-soft: #f1f8e8;
   --c-accent-text: #ffffff;
 
   /* 警告は赤。主役が青に戻ったので、取り違えない */
@@ -78,17 +81,17 @@
   --c-text-muted: #9aa8ae;
   --c-text-faint: #6b7a81;
 
-  /* 暗所で沈まないよう明度を上げた青。暗色文字とのコントラスト 7.7:1 */
-  --c-accent: #6fa8ff;
-  --c-accent-hover: #8dbaff;
-  --c-accent-soft: #10233f;
-  --c-accent-text: #041428;
+  /* 暗所で沈まないよう明度を上げた草色。暗色文字とのコントラスト 9.6:1 */
+  --c-accent: #9ccc65;
+  --c-accent-hover: #b2db82;
+  --c-accent-soft: #1a2610;
+  --c-accent-text: #0d1a05;
 
   --c-danger: #f0857c;
   --c-warn: #d8a252;
   --c-ok: #4cc492;
 
-  --c-backdrop: #7fb6ff;
+  --c-backdrop: #b6dd8c;
   --c-backdrop-opacity: 0.07;
 
   --c-nav-active: #2b363c;
