@@ -1,6 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { isRecovery, loadAccount, scrubUrlFragment, tookOver, type Account } from './account';
+import {
+  endRecovery,
+  isRecovery,
+  loadAccount,
+  recoveryPending,
+  scrubUrlFragment,
+  tookOver,
+  type Account,
+} from './account';
 import { forgetSync, syncAccountData } from './sync-account';
 import { supabase } from './supabase';
 
@@ -58,7 +66,14 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     出来事（PASSWORD_RECOVERY）を待つと、URL の後片付けと競り合う。
     後片付けが勝つと、そのまま中へ通していた。
   */
-  const [recovering, setRecovering] = useState(isRecovery);
+  /*
+    最初から印を入れておく。
+
+    出来事（PASSWORD_RECOVERY）を待つと、URL の後片付けと競り合う。
+    後片付けが勝つと、そのまま中へ通していた。
+  */
+  const cameFromUrl = isRecovery();
+  const [recovering, setRecovering] = useState(cameFromUrl);
   const [takenOver, setTakenOver] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -73,6 +88,15 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       if (!alive) return;
       setAccount(found);
       setReady(true);
+
+      /*
+        決めないまま開き直した場合。
+
+        URL の印は一度きりで、後片付けで消える。控えのほうを見る。
+      */
+      if (!cameFromUrl && (await recoveryPending())) {
+        if (alive) setRecovering(true);
+      }
       if (tookOver()) setTakenOver(true);
       else if (found) setTakenOver(false);
       /*
@@ -121,7 +145,11 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const doneRecovering = useCallback(() => setRecovering(false), []);
+  const doneRecovering = useCallback(() => {
+    setRecovering(false);
+    // 控えも捨てる。次に開き直しても、もう途中には戻らない。
+    void endRecovery();
+  }, []);
 
   return (
     <AccountContext.Provider

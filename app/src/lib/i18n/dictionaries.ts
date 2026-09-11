@@ -283,6 +283,7 @@ const ja = {
 
     recoveryTitle: '新しいパスワードを決める',
     recoveryLead: '新しいパスワードをご入力ください。',
+    recoveryCancel: 'やめて、ログイン画面へ戻る',
     changed: 'パスワードを変えました',
 
     confirmTitle: '確認のメールをお送りしました',
@@ -769,6 +770,7 @@ const en: Dictionary = {
     resetSentBody: 'Open the link in the email we sent you.',
 
     recoveryTitle: 'Set a new password',
+    recoveryCancel: 'Cancel and go back to sign in',
     recoveryLead: 'Enter your new password.',
     changed: 'Password changed',
 

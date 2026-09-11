@@ -112,6 +112,28 @@ try {
   );
   check('確認の欄がある（打ち間違いを防ぐ）', text.includes('パスワード（確認）'));
 
+  /*
+    決めずに開き直しても、通してはいけない（ご報告 2026-09-11）。
+
+    リンクを開いた時点で、Supabase はもうログイン済みの状態にする。
+    URL の印は一度きりで後片付けで消えるため、以前はここで**古い
+    パスワードのまま中へ入れて**いた。リンクが転送された場合や
+    共用のパソコンを考えると、決めるまで通してはいけない。
+  */
+  console.log(`
+--- 決めずに開き直したとき ---`);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(8000);
+  await skipIntro(page);
+  text = await page.locator('body').innerText();
+  check('開き直しても決める画面のまま', text.includes('新しいパスワードを決める'), text.slice(0, 140));
+  check(
+    '開き直しても中へ通さない',
+    !text.includes('行きたい場所を見つけよう') && !text.includes('カテゴリから探す'),
+    text.slice(0, 120),
+  );
+  check('やめる道がある', text.includes('やめて、ログイン画面へ戻る'), text.slice(0, 160));
+
   // --- 新しいパスワードを決める -------------------------------------------------
   const NEW = 'kn-reset-new-2026';
   await page.getByLabel('新しいパスワード', { exact: true }).fill(NEW);
@@ -119,9 +141,15 @@ try {
   await page.getByRole('button', { name: 'パスワードを変える' }).last().click();
   await page.waitForTimeout(8000);
   text = await page.locator('body').innerText();
+  /*
+    決めた後は中へ入れる。着く先は画面の流れで変わる（探す画面・
+    アカウントの画面）ので、**どこに着いたか**ではなく
+    **決める画面から出られたか**を見る。
+  */
+  check('決める画面から出られる', !text.includes('新しいパスワードを決める'), text.slice(0, 140));
   check(
-    '決めると中へ入れる',
-    text.includes('行きたい場所を見つけよう') || text.includes('パスワードを変えました'),
+    '中へ入れている（入口ではない）',
+    !text.includes('ご登録のメールアドレスでログインしてください'),
     text.slice(0, 140),
   );
 

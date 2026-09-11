@@ -179,9 +179,42 @@ const cameFromRecovery = ((): boolean => {
   return /(^|[#&])type=recovery(&|$)/.test(window.location.hash);
 })();
 
+/**
+ * 再設定の途中であることを、端末に控える。
+ *
+ * **なぜ URL だけでは足りないか**（ご報告 2026-09-11）
+ *   印は一度きりで、後片付けで消える。**開き直すと印が無くなり、
+ *   パスワードを決めないまま中へ入れてしまっていた。**
+ *   リンクを開いた時点でログイン済みの状態になっているため、
+ *   そのまま古いパスワードのままで使えてしまう。
+ *
+ *   リンクが人手に渡っている場面（転送された、共用のパソコン）を
+ *   考えると、これは決めるまで通してはいけない。
+ *
+ * **消えるのは3つのときだけ**
+ *   新しいパスワードを決めたとき、やめたとき、ログアウトしたとき。
+ */
+const RECOVERY_KEY = 'kn_recovering';
+
+if (cameFromRecovery) {
+  // 控えは待たずに書く。読むのは次の描画より後になる。
+  void AsyncStorage.setItem(RECOVERY_KEY, '1').catch(() => undefined);
+}
+
 /** 再設定のリンクから来たか。画面が最初に決まる前に呼ばれる。 */
 export function isRecovery(): boolean {
   return cameFromRecovery;
+}
+
+/** 決めないまま開き直したか。控えを読む。 */
+export async function recoveryPending(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(RECOVERY_KEY).catch(() => null);
+  return raw === '1';
+}
+
+/** 決め終えた・やめた・出た。控えを捨てる。 */
+export async function endRecovery(): Promise<void> {
+  await AsyncStorage.removeItem(RECOVERY_KEY).catch(() => undefined);
 }
 
 export function scrubUrlFragment(): void {
@@ -294,6 +327,7 @@ async function claimDevice(): Promise<void> {
  */
 export async function signOut(): Promise<Result> {
   await dropSnapshot();
+  await endRecovery();
   const { error } = await supabase.auth.signOut();
   if (error) return bad(toProblem(error));
   return good(undefined);
@@ -307,6 +341,7 @@ export async function signOut(): Promise<Result> {
  */
 export async function signOutEverywhere(): Promise<Result> {
   await dropSnapshot();
+  await endRecovery();
   const { error } = await supabase.auth.signOut({ scope: 'global' });
   if (error) return bad(toProblem(error));
   return good(undefined);
@@ -381,6 +416,8 @@ export async function changePassword(
 export async function updatePassword(next: string): Promise<Result> {
   const { error } = await supabase.auth.updateUser({ password: next });
   if (error) return bad(toProblem(error));
+  // 決まった。もう途中ではない。
+  await endRecovery();
   return good(undefined);
 }
 

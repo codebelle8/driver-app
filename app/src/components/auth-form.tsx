@@ -6,6 +6,7 @@ import {
   PASSWORD_MIN,
   sendReset,
   signIn,
+  signOut,
   signUp,
   updatePassword,
   type Problem,
@@ -184,6 +185,24 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
           disabled={busy}
           onPress={onNewPassword}
         />
+
+        {/*
+          やめる道。
+
+          決めるまで中へ通さない作りにしたため、これが無いと、
+          気が変わった方が何もできなくなる。出て、今までの
+          パスワードでログインし直していただく。
+        */}
+        <Pressable
+          onPress={async () => {
+            await signOut();
+            doneRecovering();
+          }}
+          accessibilityRole="button"
+          style={s.linkRow}
+        >
+          <Text style={s.link}>{t.account.recoveryCancel}</Text>
+        </Pressable>
       </View>
     );
   }
