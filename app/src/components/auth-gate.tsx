@@ -9,7 +9,7 @@ import { BrandLogo } from '@/components/brand';
 import { Ramp } from '@/components/ramp';
 import { signOut } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
-import { LOGIN_BANNER_URLS, RAIL_ART_URLS } from '@/lib/art';
+import { RAIL_ART_URLS } from '@/lib/art';
 import { useT } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
@@ -38,7 +38,11 @@ import { useTheme } from '@/theme-context';
  *   以前は上に寄せ、下半分が空いていた。
  *
  *     広い画面 … 左に写真、右に入力。空いていた横幅を写真に充てる
- *     狭い画面 … 上に写真の帯。写真と入力をひとまとまりにして中央へ
+ *     狭い画面 … 写真は置かない（ご指示）。入力だけを中央へ
+ *
+ *   **狭い画面に写真を置かない理由**
+ *     入る文字の量が変わらないまま、帯のぶんだけ入力が下へ送られる。
+ *     打つ前に指で送ることになり、用事が一手増える。
  *
  *   写真は左メニューと同じもの（app/public/art/rail.jpg）。
  *   **無くても成り立つ。** 下敷きに淡い緑を敷いてあり、読み込めなければ
@@ -49,7 +53,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const c = useTheme();
   const t = useT();
   const s = makeStyles(c);
-  const { isWide, height } = useLayout();
+  const { isWide } = useLayout();
   const { account, ready, recovering, takenOver } = useAccount();
 
   // 調べ終えるまでは、地の色だけ出しておく
@@ -149,17 +153,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={s.pane} showsVerticalScrollIndicator={false}>
         <View style={s.body}>
-          {/*
-            背の低い端末では帯を薄くする。
-
-            150px のままだと、入力が画面に収まりきらず送ることになる。
-            写真は飾りで、入力は用事。用事のほうを優先する。
-          */}
-          <View style={[s.banner, height < 700 && s.bannerShort]}>
-            <View style={s.artBase} />
-            <ArtImage urls={LOGIN_BANNER_URLS} style={s.fill} contentPosition="center" />
-          </View>
-
           {welcome}
           {notice}
           <AuthForm />
@@ -227,15 +220,6 @@ const makeStyles = (c: Palette) =>
       lineHeight: 30,
     },
 
-    /* ---- 狭い画面の帯 ---- */
-    banner: {
-      height: 150,
-      borderRadius: RADIUS.md,
-      overflow: 'hidden',
-      backgroundColor: c.accentSoft,
-      marginBottom: SPACE.xs,
-    },
-    bannerShort: { height: 104 },
 
     notice: {
       flexDirection: 'row',

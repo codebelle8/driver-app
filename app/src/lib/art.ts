@@ -73,14 +73,3 @@ export const SLIDE_HOLD_MS = 5000;
 /** 入れ替わりにかける時間（ミリ秒） */
 export const SLIDE_FADE_MS = 900;
 
-/**
- * ログインの入口に敷く写真。
- *
- * **新しい名前は増やさない。** いただいている写真の中から、置き場所に
- * 合うものを順に試す。
- *
- *   狭い画面では横長の帯になるため、横長の hero を先に見る。
- *   hero-3 は車寄せの案内そのものが写っていて、入口に合う。
- *   どれも無ければ縦長の rail、それも無ければ淡い緑の面が残る。
- */
-export const LOGIN_BANNER_URLS = [...HERO_SLIDES[2], ...HERO_SLIDES[0], ...RAIL_ART_URLS];
