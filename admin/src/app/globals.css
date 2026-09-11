@@ -33,15 +33,15 @@
   --c-text-faint: #8b969d;
 
   /*
-    草色。ご指示 2026-09-11。以前の翠より黄へ寄せている。
-    白文字とのコントラスト 5.2:1 (AA)
+    W3C の名前つきの色 green (#008000)。ご指示 2026-09-11。
+    白文字とのコントラスト 5.1:1 (AA)
 
-    これより明るくはできない。鮮やかな黄緑は白地で 2.8:1 しかなく、
-    文字として読めない。
+    名前つきの緑で白地に使えるのは green と darkgreen だけ。
+    forestgreen 4.4:1、olivedrab 3.8:1、limegreen 2.1:1、lime 1.4:1。
   */
-  --c-accent: #487a13;
-  --c-accent-hover: #38600e;
-  --c-accent-soft: #f1f8e8;
+  --c-accent: #008000;
+  --c-accent-hover: #006400;
+  --c-accent-soft: #eaf6ea;
   --c-accent-text: #ffffff;
 
   /* 警告は赤。主役が青に戻ったので、取り違えない */
@@ -81,17 +81,17 @@
   --c-text-muted: #9aa8ae;
   --c-text-faint: #6b7a81;
 
-  /* 暗所で沈まないよう明度を上げた草色。暗色文字とのコントラスト 9.6:1 */
-  --c-accent: #9ccc65;
-  --c-accent-hover: #b2db82;
-  --c-accent-soft: #1a2610;
-  --c-accent-text: #0d1a05;
+  /* 暗い配色は limegreen (#32cd32)。green は暗い地で 3.4:1 まで落ちる */
+  --c-accent: #32cd32;
+  --c-accent-hover: #56dd56;
+  --c-accent-soft: #10240f;
+  --c-accent-text: #062b06;
 
   --c-danger: #f0857c;
   --c-warn: #d8a252;
   --c-ok: #4cc492;
 
-  --c-backdrop: #b6dd8c;
+  --c-backdrop: #7fe07f;
   --c-backdrop-opacity: 0.07;
 
   --c-nav-active: #2b363c;
