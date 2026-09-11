@@ -32,20 +32,18 @@
   --c-text-muted: #5a666e;
   --c-text-faint: #8b969d;
 
-  /* ご指定の紅色（国旗の赤）。白文字とのコントラスト 6.6:1 (AA) */
-  --c-accent: #bc002d;
-  --c-accent-hover: #9b0025;
-  --c-accent-soft: #fde9ee;
+  /*
+    鮮やかな青。ご指示 2026-09-11。
+    ロゴの濃紺（#0b192f）と同じ系統。白文字とのコントラスト 5.1:1 (AA)
+  */
+  --c-accent: #0b5fff;
+  --c-accent-hover: #0a51d8;
+  --c-accent-soft: #e8f1ff;
   --c-accent-text: #ffffff;
 
-  /*
-    警告はご指定の黄 #ffe600。ただし**白地の文字には使えない**
-    （1.3:1）。地に回し、文字はその黄を暗くした形にする。
-  */
-  --c-danger: #6f6000;
-  --c-danger-soft: #ffe600;
-  --c-warn: #7d7118;
-  --c-warn-soft: #fffbe6;
+  /* 警告は赤。主役が青に戻ったので、取り違えない */
+  --c-danger: #b3261e;
+  --c-warn: #9a6410;
   /* 成功は翠のまま。赤と取り違えない */
   --c-ok: #0f7a55;
 
@@ -80,20 +78,17 @@
   --c-text-muted: #9aa8ae;
   --c-text-faint: #6b7a81;
 
-  /* ご指定の #bc002d は暗い地で 2.8:1 まで落ちるため、明度を上げた紅 */
-  --c-accent: #ff6b86;
-  --c-accent-hover: #ff8aa0;
-  --c-accent-soft: #33121a;
-  --c-accent-text: #2a0008;
+  /* 暗所で沈まないよう明度を上げた青。暗色文字とのコントラスト 7.7:1 */
+  --c-accent: #6fa8ff;
+  --c-accent-hover: #8dbaff;
+  --c-accent-soft: #10233f;
+  --c-accent-text: #041428;
 
-  /* 暗い配色では、ご指定の黄をそのまま使える（14.6:1） */
-  --c-danger: #ffe600;
-  --c-danger-soft: #2e2a00;
-  --c-warn: #e2d055;
-  --c-warn-soft: #2a2707;
+  --c-danger: #f0857c;
+  --c-warn: #d8a252;
   --c-ok: #4cc492;
 
-  --c-backdrop: #e8a0ae;
+  --c-backdrop: #7fb6ff;
   --c-backdrop-opacity: 0.07;
 
   --c-nav-active: #2b363c;
@@ -126,9 +121,7 @@
   --color-accent-text: var(--c-accent-text);
 
   --color-danger: var(--c-danger);
-  --color-danger-soft: var(--c-danger-soft);
   --color-warn: var(--c-warn);
-  --color-warn-soft: var(--c-warn-soft);
   --color-ok: var(--c-ok);
 
   --color-nav-active: var(--c-nav-active);

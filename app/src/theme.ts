@@ -18,32 +18,25 @@ const light = {
   text: '#171c20',
   textMuted: '#5a666e',
   textFaint: '#8b969d',
-  /* ご指定の紅色（国旗の赤）。白文字とのコントラスト 6.6:1（AA） */
-  accent: '#bc002d',
-  accentSoft: '#fde9ee',
-  accentText: '#ffffff',
   /*
-    警告（削除・入力の誤り）。ご指定の黄 #ffe600 を地に使う。
+    鮮やかな青。ご指示 2026-09-11。
 
-    **#ffe600 は白地の文字には使えない**（コントラスト 1.3:1）。
-    塗りとしては最良（濃い墨を乗せて 14:1）なので、**地に回し、
-    文字はその黄を暗くした形にする。** 暗い配色では地が暗いため、
-    ご指定の色をそのまま文字に使える（14.6:1）。
+    ロゴの濃紺（#0b192f）と同じ系統で、並べても喧嘩しない。
+    白文字とのコントラスト 5.1:1（AA）。
   */
-  danger: '#6f6000',
-  dangerSoft: '#ffe600',
+  accent: '#0b5fff',
+  accentSoft: '#e8f1ff',
+  accentText: '#ffffff',
+  /* 警告（削除・入力の誤り）。主役が青に戻ったので、赤へ戻した。 */
+  danger: '#b3261e',
+  dangerSoft: '#fdecea',
   // 塗りつぶした danger の上に乗せる文字。
   // 明るい配色では地が濃いので白、暗い配色では地が明るいので濃い墨。
   // accentText と同じ考え方。白のままでは暗い配色で 3:1 まで落ちる。
   dangerText: '#ffffff',
-  /*
-    注意（期限・未調査）。警告と同じ黄の系統だが、地を淡くして分ける。
-
-    警告はめったに出ないので強く出してよい。注意は常時どこかに
-    出ているため、同じ濃さにすると画面が黄色く埋まる。
-  */
-  warn: '#7d7118',
-  warnSoft: '#fffbe6',
+  /* 注意（期限・未調査） */
+  warn: '#9a6410',
+  warnSoft: '#fdf3e2',
   // as const を付けないのは、付けると各色が固定値の型になり
   // 暗い配色を同じ型として扱えなくなるため。
 };
@@ -58,19 +51,15 @@ const dark: typeof light = {
   text: '#e8edef',
   textMuted: '#9aa8ae',
   textFaint: '#6b7a81',
-  /*
-    暗所で沈まないよう明度を上げた紅。
-    ご指定の #bc002d をそのまま使うと、暗い地で 2.8:1 まで落ちて読めない。
-  */
-  accent: '#ff6b86',
-  accentSoft: '#33121a',
-  accentText: '#2a0008',
-  /* 暗い配色では、ご指定の黄をそのまま文字に使える（14.6:1） */
-  danger: '#ffe600',
-  dangerSoft: '#2e2a00',
-  dangerText: '#1a1700',
-  warn: '#e2d055',
-  warnSoft: '#2a2707',
+  // 暗所で沈まないよう明度を上げた青。暗色文字とのコントラスト 7.7:1
+  accent: '#6fa8ff',
+  accentSoft: '#10233f',
+  accentText: '#041428',
+  danger: '#e5675c',
+  dangerSoft: '#2a1614',
+  dangerText: '#2a0b08',
+  warn: '#d9a441',
+  warnSoft: '#2a2113',
 };
 
 export type Palette = typeof light;

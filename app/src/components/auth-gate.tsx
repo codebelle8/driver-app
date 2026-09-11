@@ -33,7 +33,11 @@ import { useTheme } from '@/theme-context';
  * **管理画面の入口に合わせる**（ご指示 2026-09-11）
  *   同じ製品として、入口の形を揃える。
  *
- *     ロゴ → 名乗り → 枠で囲った入力 → 下端に一行
+ *     ロゴ → 名乗り → 枠で囲った入力
+ *
+ *   **下端の一行は置かない**（ご指示 2026-09-11）。管理画面には
+ *   常に出ているが、アプリの入口では入力より下に線が一本入るだけで、
+ *   打つ場所から目が逸れる。
  *
  *   中身は上下の真ん中へ。以前は上に寄り、下半分が空いていた。
  *   **写真は置かない。** 管理画面の入口にも写真は無く、帯を入れると
@@ -110,12 +114,6 @@ export function AuthGate({ children }: { children: ReactNode }) {
           </View>
         </View>
       </ScrollView>
-
-      {/* 下端の一行。管理画面と揃える。 */}
-      <View style={s.foot}>
-        <Text style={s.footName}>{t.brand.footerName}</Text>
-        <Text style={s.footYear}>2026</Text>
-      </View>
     </SafeAreaView>
   );
 }
@@ -159,18 +157,6 @@ const makeStyles = (c: Palette) =>
       borderColor: c.border,
     },
 
-    /* 下端の一行。管理画面と同じ。 */
-    foot: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'baseline',
-      gap: SPACE.sm,
-      paddingVertical: SPACE.md,
-      borderTopWidth: 1,
-      borderTopColor: c.border,
-    },
-    footName: { fontSize: TEXT.sub, color: c.textMuted, letterSpacing: 2 },
-    footYear: { fontSize: TEXT.sub, color: c.accent, fontWeight: '700' },
 
     notice: {
       flexDirection: 'row',
