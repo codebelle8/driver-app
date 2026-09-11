@@ -55,18 +55,24 @@ const dark: typeof light = {
   textMuted: '#9aa8ae',
   textFaint: '#6b7a81',
   /*
-    暗い配色。W3C の limegreen（#32cd32）。
-    green のままでは暗い地で 3.4:1 まで落ちて読めない。
-    こちらも名前つきの色から採っている。
+    **暗い配色でも、明るい配色と同じ値を使う**（ご指示 2026-09-12）。
+
+    以前はここだけ明度を上げていた（limegreen・薄い赤）。同じ製品で
+    色が二通りに見えるため、指定の色へ揃えた。
+
+    **代わりに、淡い地を明るい側へ回した。** 塗った釦は白文字で読める
+    （緑 5.1:1、赤 6.5:1）が、暗い地へ直に置く文字は緑 3.6:1・
+    赤 2.8:1 にしかならない。色そのものを変えずに読めるようにするには、
+    文字を淡い地の上へ置くしかない。
   */
-  accent: '#32cd32',
-  accentSoft: '#10240f',
-  accentText: '#062b06',
-  danger: '#e5675c',
-  dangerSoft: '#2a1614',
-  dangerText: '#2a0b08',
-  warn: '#d9a441',
-  warnSoft: '#2a2113',
+  accent: '#008000',
+  accentSoft: '#e8f5e8',
+  accentText: '#ffffff',
+  danger: '#b3261e',
+  dangerSoft: '#fbeae9',
+  dangerText: '#ffffff',
+  warn: '#9a6410',
+  warnSoft: '#fdf3e2',
 };
 
 export type Palette = typeof light;
