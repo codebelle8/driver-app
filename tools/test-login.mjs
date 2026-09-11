@@ -97,7 +97,38 @@ try {
   await page.waitForTimeout(6000);
   check('ログインできる', (await page.locator('body').innerText()).includes('案内できる範囲'));
 
+  /*
+    入り終えたら、探す画面へ渡されること（ご報告 2026-09-12）。
+
+    ログアウトはアカウントの画面から行うため、入り直すとアカウントの
+    画面がそのまま出ていた。入り直した方の用事は施設を探すこと。
+  */
+  check('入ると探す画面へ渡される', new URL(page.url()).pathname === '/', page.url());
+
   // いったん出る
+  await open('/account');
+  await page.getByRole('button', { name: 'ログアウト', exact: true }).click();
+  await page.waitForTimeout(700);
+  await page.getByTestId('confirm-accept').click();
+  await page.waitForTimeout(4000);
+
+  /*
+    出た場所で入り直しても、探す画面へ渡されること。
+
+    ログアウトはアカウントの画面から行うため、以前はここで入り直すと
+    アカウントの画面がそのまま出ていた（ご報告 2026-09-12）。
+  */
+  check('ログアウト直後はアカウントの画面', page.url().includes('/account'), page.url());
+  await loginButton().click();
+  await page.waitForTimeout(7000);
+  await skipIntro(page);
+  check(
+    '出た場所で入り直しても探す画面へ',
+    new URL(page.url()).pathname === '/',
+    page.url(),
+  );
+
+  // もう一度出て、記憶の確認へ進む
   await open('/account');
   await page.getByRole('button', { name: 'ログアウト', exact: true }).click();
   await page.waitForTimeout(700);

@@ -152,12 +152,22 @@ try {
     入口（AuthGate）を挟むぶん、入るまでの時間が延びた。決め打ちだと
     込み具合によって落ちたり通ったりする。
   */
+  /*
+    入れたかどうか。
+
+    **入り終えると探す画面へ渡される**ので（ご報告 2026-09-12）、
+    アカウントの画面に留まる前提では見られない。中へ入ったことを
+    確かめてから、アカウントの画面へ回って中身を見る。
+  */
   const signedInNow = async () => {
     await page
-      .getByText('無料期間')
+      .getByText('行きたい場所を見つけよう')
       .first()
       .waitFor({ state: 'visible', timeout: 20000 })
       .catch(() => {});
+    if ((await page.getByText('行きたい場所を見つけよう').count()) === 0) return false;
+
+    await goAccount();
     return (await page.getByText('無料期間').count()) > 0;
   };
 
@@ -277,8 +287,9 @@ try {
       毎日の使い方（開いて施設を探す）には、むしろ素直な始まり方。
     */
     check('入り直すと探す画面から始まる', (await page.locator('body').innerText()).includes('カテゴリから探す'));
+    /* ここは既に探す画面を見たあと。アカウントの画面へ回って中身を見る。 */
     await goAccount();
-    check('同じ相手でログインし直せる', await signedInNow());
+    check('同じ相手でログインし直せる', (await page.getByText('無料期間').count()) > 0);
 
     console.log('\n--- 誤ったパスワード ---');
     const other = await browser.newPage({ viewport: { width: 390, height: 844 } });

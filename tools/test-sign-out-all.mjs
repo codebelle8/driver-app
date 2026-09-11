@@ -84,6 +84,14 @@ try {
   await page.waitForTimeout(3000);
   await skipIntro(page);
 
+  /*
+    入り終えると探す画面へ渡される（ご報告 2026-09-12）。
+    アカウントの画面を見たいので、あらためて開き直す。
+  */
+  await page.goto(`${BASE}/account`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(4000);
+  await skipIntro(page);
+
   let text = await page.locator('body').innerText();
   check('入れている', text.includes('パスワードの変更') || text.includes('顔写真'), text.slice(0, 100));
 

@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -44,11 +45,24 @@ type Mode = 'in' | 'up' | 'reset';
 /** 欄のすぐ下に出す言い分。Problem に、こちらで見つけるぶんを足す。 */
 export type Trouble = Problem | 'empty' | 'emptyEmail' | 'short';
 
-export function AuthForm({ onDone }: { onDone?: () => void }) {
+export function AuthForm() {
   const c = useTheme();
   const t = useT();
   const s = makeStyles(c);
   const { ready, recovering, doneRecovering } = useAccount();
+
+  /*
+    入れたら、探す画面へ渡す。
+
+    **ここを渡さないと、出た場所に戻る。** ログアウトはアカウントの
+    画面から行うため、入り直すとアカウントの画面がそのまま出ていた。
+    入り直した方の用事は施設を探すことで、自分の情報を見ることではない。
+
+    replace にするのは、戻る操作で入口へ引き返さないようにするため。
+    無料期間が切れている場合は、この先で設定へ回される（plan-gate）。
+  */
+  const router = useRouter();
+  const toSearch = () => router.replace('/');
 
   const [mode, setMode] = useState<Mode>('in');
   const [email, setEmail] = useState('');
@@ -113,7 +127,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
           notify(t.account.confirmTitle, t.account.resetSentBody);
         } else {
           notify(t.account.welcome);
-          onDone?.();
+          toSearch();
         }
         return;
       }
@@ -122,7 +136,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
       if (!r.ok) return setTrouble(r.problem);
       await remember(email, password, keep);
       notify(t.account.signedIn);
-      onDone?.();
+      toSearch();
     } finally {
       setBusy(false);
     }
@@ -143,6 +157,7 @@ export function AuthForm({ onDone }: { onDone?: () => void }) {
       setConfirm('');
       doneRecovering();
       notify(t.account.changed);
+      toSearch();
     } finally {
       setBusy(false);
     }
