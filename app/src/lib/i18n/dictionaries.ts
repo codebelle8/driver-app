@@ -46,6 +46,8 @@ const ja = {
     /** ロゴを押したときの行き先。読み上げに使う。 */
     toSearch: '探す画面へ',
     toSettings: '設定へ',
+    /** 入口の下端。管理画面と同じ一行。 */
+    footerName: '車寄せナビ — 車寄せ案内システム',
   },
 
   common: {
@@ -551,6 +553,7 @@ const en: Dictionary = {
     tagline2: 'every time.',
     toSearch: 'Go to search',
     toSettings: 'Go to settings',
+    footerName: 'Kurumayose Navi — Driver Entrance Navi',
   },
 
   common: {

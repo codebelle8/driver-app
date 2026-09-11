@@ -18,17 +18,37 @@ const light = {
   text: '#171c20',
   textMuted: '#5a666e',
   textFaint: '#8b969d',
-  accent: '#0f7a55',
-  accentSoft: '#e6f2ed',
+  /*
+    茜色（あかね）。ご指示 2026-09-11 で翠から替えた。
+
+    国旗の紅色（#bc002d）より一段落ち着かせている。主役の色は
+    釦・帯・選択中の項目と、画面のあちこちに広く乗る。彩度が高いと
+    走行前後の車内では目に刺さる。
+
+    白文字とのコントラスト 6.3:1（AA）。
+  */
+  accent: '#b7282e',
+  accentSoft: '#faeaeb',
   accentText: '#ffffff',
-  danger: '#b3261e',
-  dangerSoft: '#fdecea',
+  /*
+    警告（削除・入力の誤り）。赤が主役になったので黄へ移した。
+    赤のままだと、押してよい釦と取り返しのつかない釦が同じ色になる。
+
+    黄は文字にすると白地で読めないため、濃い山吹にしている。
+    白地とのコントラスト 5.5:1。
+  */
+  danger: '#9a5a00',
+  dangerSoft: '#ffeeda',
   // 塗りつぶした danger の上に乗せる文字。
   // 明るい配色では地が濃いので白、暗い配色では地が明るいので濃い墨。
   // accentText と同じ考え方。白のままでは暗い配色で 3:1 まで落ちる。
   dangerText: '#ffffff',
-  warn: '#9a6410',
-  warnSoft: '#fdf3e2',
+  /*
+    注意（期限・未調査）。警告より黄へ寄せ、地も淡くして見分ける。
+    同じ黄の系統になるため、文言と記号でも分かるようにしてある。
+  */
+  warn: '#816907',
+  warnSoft: '#fdf8e6',
   // as const を付けないのは、付けると各色が固定値の型になり
   // 暗い配色を同じ型として扱えなくなるため。
 };
@@ -43,14 +63,15 @@ const dark: typeof light = {
   text: '#e8edef',
   textMuted: '#9aa8ae',
   textFaint: '#6b7a81',
-  accent: '#2ea87d',
-  accentSoft: '#12291f',
-  accentText: '#06120d',
-  danger: '#e5675c',
-  dangerSoft: '#2a1614',
-  dangerText: '#2a0b08',
-  warn: '#d9a441',
-  warnSoft: '#2a2113',
+  // 暗所で沈まないよう明度を上げた茜。暗色文字とのコントラスト 6.3:1
+  accent: '#ee6f73',
+  accentSoft: '#2e1517',
+  accentText: '#2a0709',
+  danger: '#e8a64a',
+  dangerSoft: '#2e2413',
+  dangerText: '#241800',
+  warn: '#d9c268',
+  warnSoft: '#2a2617',
 };
 
 export type Palette = typeof light;

@@ -3,15 +3,11 @@ import { type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ArtImage } from '@/components/art-image';
 import { AuthForm } from '@/components/auth-form';
 import { BrandLogo } from '@/components/brand';
-import { Ramp } from '@/components/ramp';
 import { signOut } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
-import { RAIL_ART_URLS } from '@/lib/art';
 import { useT } from '@/lib/i18n/context';
-import { useLayout } from '@/lib/layout';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -34,26 +30,19 @@ import { useTheme } from '@/theme-context';
  *   停止という状態を持ちながら、それを見て止める場所が無かった。
  *   ここで止め、理由と問い合わせ先を出す。
  *
- * **写真を敷き、中身を上下の真ん中へ置く**（ご指示 2026-09-11）
- *   以前は上に寄せ、下半分が空いていた。
+ * **管理画面の入口に合わせる**（ご指示 2026-09-11）
+ *   同じ製品として、入口の形を揃える。
  *
- *     広い画面 … 左に写真、右に入力。空いていた横幅を写真に充てる
- *     狭い画面 … 写真は置かない（ご指示）。入力だけを中央へ
+ *     ロゴ → 名乗り → 枠で囲った入力 → 下端に一行
  *
- *   **狭い画面に写真を置かない理由**
- *     入る文字の量が変わらないまま、帯のぶんだけ入力が下へ送られる。
- *     打つ前に指で送ることになり、用事が一手増える。
- *
- *   写真は左メニューと同じもの（app/public/art/rail.jpg）。
- *   **無くても成り立つ。** 下敷きに淡い緑を敷いてあり、読み込めなければ
- *   それがそのまま残る。端末側（Expo Go・APK）では public/ の仕組みが
- *   無いため、常に下敷きだけになる。
+ *   中身は上下の真ん中へ。以前は上に寄り、下半分が空いていた。
+ *   **写真は置かない。** 管理画面の入口にも写真は無く、帯を入れると
+ *   入る文字の量は変わらないまま入力が下へ送られる（同日のご指示）。
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const c = useTheme();
   const t = useT();
   const s = makeStyles(c);
-  const { isWide } = useLayout();
   const { account, ready, recovering, takenOver } = useAccount();
 
   // 調べ終えるまでは、地の色だけ出しておく
@@ -83,81 +72,50 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   if (account && !recovering) return <>{children}</>;
 
-  /*
-    ほかの端末で入られて出された場合。
-
-    一瞬で消える帯では、戻ってきた画面を見た方に理由が伝わらない。
-    ここへ出したままにする。次に入れば消える。
-  */
-  const notice = takenOver ? (
-    <View style={s.notice} accessibilityRole="alert">
-      <Ionicons name="phone-portrait-outline" size={18} color={c.warn} />
-      <View style={s.noticeBody}>
-        <Text style={s.noticeTitle}>{t.account.takenOver}</Text>
-        <Text style={s.noticeText}>{t.account.takenOverBody}</Text>
-      </View>
-    </View>
-  ) : null;
-
-  const welcome = (
-    <View style={s.head}>
-      <BrandLogo height={40} />
-      <Text style={s.welcome}>{t.account.welcomeTitle}</Text>
-      <Text style={s.lead}>{t.account.welcomeBody}</Text>
-    </View>
-  );
-
-  // ---- 広い画面。左に写真、右に入力 ----------------------------------------
-  if (isWide) {
-    return (
-      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
-        <View style={s.split}>
-          <View style={s.art}>
-            {/* 下敷き。写真が無くてもここが残る。 */}
-            <View style={s.artBase} />
-            <ArtImage urls={RAIL_ART_URLS} style={s.fill} />
-
-            {/*
-              下端だけ暗く落とす。
-
-              文字を写真へ直に置くと、明るい車体と白い文字で見分けが
-              付かなくなる。落とすのは文字が乗る範囲だけにする。
-            */}
-            <View style={s.artVeil} pointerEvents="none">
-              <Ramp color="#0b1512" direction="down" from={0} to={0.72} />
-            </View>
-
-            <View style={s.artText} pointerEvents="none">
-              <Text style={s.tagline}>{t.brand.tagline1}</Text>
-              <Text style={s.tagline}>{t.brand.tagline2}</Text>
-            </View>
-          </View>
-
-          <ScrollView
-            contentContainerStyle={s.pane}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={s.body}>
-              {welcome}
-              {notice}
-              <AuthForm />
-            </View>
-          </ScrollView>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // ---- 狭い画面。上に写真の帯、全体を上下の真ん中へ --------------------------
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={s.pane} showsVerticalScrollIndicator={false}>
         <View style={s.body}>
-          {welcome}
-          {notice}
-          <AuthForm />
+          <View style={s.head}>
+            <BrandLogo height={44} />
+            <Text style={s.welcome}>{t.account.welcomeTitle}</Text>
+            <Text style={s.lead}>{t.account.welcomeBody}</Text>
+          </View>
+
+          {/*
+            ほかの端末で入られて出された場合。
+
+            一瞬で消える帯では、戻ってきた画面を見た方に理由が伝わらない。
+            ここへ出したままにする。次に入れば消える。
+          */}
+          {takenOver && (
+            <View style={s.notice} accessibilityRole="alert">
+              <Ionicons name="phone-portrait-outline" size={18} color={c.warn} />
+              <View style={s.noticeBody}>
+                <Text style={s.noticeTitle}>{t.account.takenOver}</Text>
+                <Text style={s.noticeText}>{t.account.takenOverBody}</Text>
+              </View>
+            </View>
+          )}
+
+          {/*
+            入力を枠で囲う。管理画面の入口と同じ形。
+
+            囲うと、打つ場所がひとまとまりに見える。地の色の上へ直に
+            並べていたころは、どこからどこまでが入力なのかを線ではなく
+            余白だけで示していた。
+          */}
+          <View style={s.formCard}>
+            <AuthForm />
+          </View>
         </View>
       </ScrollView>
+
+      {/* 下端の一行。管理画面と揃える。 */}
+      <View style={s.foot}>
+        <Text style={s.footName}>{t.brand.footerName}</Text>
+        <Text style={s.footYear}>2026</Text>
+      </View>
     </SafeAreaView>
   );
 }
@@ -184,42 +142,35 @@ const makeStyles = (c: Palette) =>
     /* 入力の列は広げない。1本の欄が 1000px あっても打ちやすくならない。 */
     body: {
       width: '100%',
-      maxWidth: 440,
+      maxWidth: 420,
       alignSelf: 'center',
       gap: SPACE.md,
     },
 
-    head: { alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.sm },
+    head: { alignItems: 'center', gap: SPACE.xs, marginBottom: SPACE.xs },
     welcome: { fontSize: TEXT.heading, fontWeight: '800', color: c.text, marginTop: SPACE.sm },
     lead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20, textAlign: 'center' },
 
-    /* ---- 広い画面の写真 ---- */
-    split: { flex: 1, flexDirection: 'row' },
-    art: {
-      width: '42%',
-      maxWidth: 560,
-      overflow: 'hidden',
-      backgroundColor: c.accentSoft,
-      justifyContent: 'flex-end',
-    },
-    fill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-    artBase: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: c.accentSoft,
-    },
-    artVeil: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 220 },
-    artText: { padding: SPACE.xl, gap: 2 },
-    tagline: {
-      fontSize: TEXT.title,
-      fontWeight: '800',
-      color: '#ffffff',
-      lineHeight: 30,
+    formCard: {
+      padding: SPACE.lg,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
     },
 
+    /* 下端の一行。管理画面と同じ。 */
+    foot: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'baseline',
+      gap: SPACE.sm,
+      paddingVertical: SPACE.md,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
+    footName: { fontSize: TEXT.sub, color: c.textMuted, letterSpacing: 2 },
+    footYear: { fontSize: TEXT.sub, color: c.accent, fontWeight: '700' },
 
     notice: {
       flexDirection: 'row',
@@ -238,7 +189,7 @@ const makeStyles = (c: Palette) =>
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.lg },
     card: {
       width: '100%',
-      maxWidth: 440,
+      maxWidth: 420,
       alignItems: 'center',
       gap: SPACE.sm,
       padding: SPACE.xl,
