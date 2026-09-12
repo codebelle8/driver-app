@@ -211,7 +211,16 @@ try {
   await page.getByRole('button', { name: '追加', exact: true }).first().click();
   await page.waitForTimeout(3000);
 
-  const caSaved = (await sb(`/rest/v1/cautions?select=body,body_en&entry_point_id=eq.${epId}`)).body ?? [];
+  /*
+    id も取る。**取らないと後片付けができない。**
+
+    控えるのは触った行の id で、そこから操作履歴を消している
+    （tools/lib/audit-cleanup.mjs）。id を選んでいなかったため
+    undefined を控えており、発注元の履歴に「検証用の注意事項」が
+    残り続けていた。
+  */
+  const caSaved =
+    (await sb(`/rest/v1/cautions?select=id,body,body_en&entry_point_id=eq.${epId}`)).body ?? [];
   touched.push(caSaved[0]?.id);
   check(
     '注意事項の英語が保存される',
