@@ -27,6 +27,28 @@ import { connect, createMember, removeMember, signInOn, skipIntro } from './lib/
 const BASE = (process.argv[2] ?? 'http://localhost:4190').replace(/\/$/, '');
 const conn = connect();
 
+/**
+ * 承知のうえで基準を割っているもの。
+ *
+ * ご指定により、主役の緑は明るい配色と同じ #008000 を使う（2026-09-13）。
+ * 塗り（釦・選択中の帯）は白文字で 5.1:1 あり、問題ない。
+ * 文字や記号として置くと 3.5:1 前後になる。
+ *
+ * これは調整では直せない。#008000 は明度が中ほどにあり、純黒の上でも
+ * 4.1:1 が上限で、どんな暗い地に置いても基準（4.5:1）へ届かない。
+ * 色を変えるか、暗い配色では文字に使わないか、どちらかしかない。
+ *
+ * ここに並べるのは、目で見て決めたものだけにすること。広く網をかけると、
+ * 新しく壊れたものまで通してしまう。
+ */
+const ALLOWED = [
+  {
+    配色: 'dark',
+    文字: 'rgb(0, 128, 0)',
+    理由: 'ご指定の #008000。暗い地では 4.1:1 が上限',
+  },
+];
+
 /** 見て回る画面 */
 const SCREENS = [
   ['探す', '/'],
@@ -39,6 +61,7 @@ const SCREENS = [
 ];
 
 let pass = 0;
+let knownCount = 0;
 const failures = [];
 const check = (label, ok, detail = '') => {
   if (ok) {
@@ -170,11 +193,21 @@ try {
       await skipIntro(page);
       await page.waitForTimeout(800);
 
-      const bad = await page.evaluate(MEASURE);
+      const found = await page.evaluate(MEASURE);
+
+      /* 承知のうえのものは、数えるだけで咎めない */
+      const allowed = found.filter((b) =>
+        ALLOWED.some((x) => x.配色 === scheme && x.文字 === b.文字),
+      );
+      const bad = found.filter((b) => !allowed.includes(b));
+      knownCount += allowed.length;
+
       check(
-        `${name}`,
+        `${name}${allowed.length ? `（承知のうえ ${allowed.length} 件）` : ''}`,
         bad.length === 0,
-        bad.map((b) => `        「${b.文}」 ${b.比}:1（要 ${b.要}） 文字 ${b.文字} / 地 ${b.地}`).join('\n'),
+        bad
+          .map((b) => `        「${b.文}」 ${b.比}:1（要 ${b.要}） 文字 ${b.文字} / 地 ${b.地}`)
+          .join(String.fromCharCode(10)),
       );
     }
     await ctx.close();
@@ -184,6 +217,10 @@ try {
   check('検査で作った会員を消した', await removeMember(conn, member));
 
   if (browser) await browser.close();
+  if (knownCount > 0) {
+    console.log(`\n  承知のうえで基準を割っているもの: ${knownCount} 件`);
+    for (const x of ALLOWED) console.log(`    ${x.文字}（${x.配色}）… ${x.理由}`);
+  }
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;
