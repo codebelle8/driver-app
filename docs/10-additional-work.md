@@ -1083,7 +1083,18 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 画面を変えたときは `docs/images/admin/` の画像も撮り直す旨を末尾に
 書いてある。
 
-関連: `docs/14-admin-manual.md`, `docs/images/admin/`
+**PDF にもした**（ご指示 2026-09-12）。`docs/14-admin-manual.pdf`
+（A4・18頁・1.2MB）。`node tools/build-manual-pdf.mjs` で作り直せる。
+
+  **画像は中へ埋め込む。** 外部の参照にすると、ファイルを1つ送った
+  だけでは絵が出ない。受け取った方が画像の置き場所ごと持っていな
+  ければ成り立たず、社内で転送されるうちに必ず壊れる。
+
+  **見出しに印を付けている。** marked は付けないため、そのままでは
+  冒頭の目次が押しても動かない紙になる。GitHub と同じ規則で付けた。
+
+関連: `docs/14-admin-manual.md`, `docs/14-admin-manual.pdf`,
+`docs/images/admin/`, `tools/build-manual-pdf.mjs`
 
 ---
 
