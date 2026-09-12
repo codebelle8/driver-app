@@ -115,9 +115,19 @@ const html = `<!doctype html>
   th{ text-align:left; background:var(--surface2); border:1px solid var(--border);
       padding:2mm 3mm; font-weight:700; }
   td{ border:1px solid var(--border); padding:2mm 3mm; vertical-align:top; }
-  img{ max-width:100%; height:auto; display:block; margin:3mm 0 5mm;
-       border:1px solid var(--border); border-radius:2mm; break-inside:avoid; }
-  hr{ border:0; border-top:1px solid var(--border); margin:8mm 0; }
+  /*
+    絵の高さに上限を置く。
+
+    **置かないと、頁の下が大きく空く。** 見出しと絵を離さない決まりに
+    してあるため、絵が入りきらないと組ごと次の頁へ送られ、前の頁の
+    下半分が白く残る。上限を置けば同じ頁に収まり、紙が減る。
+
+    横と縦の両方に上限を置くと、縦横の比は保たれたまま小さくなる。
+  */
+  img{ max-width:100%; max-height:92mm; height:auto; display:block;
+       margin:2mm 0 4mm; border:1px solid var(--border); border-radius:2mm;
+       break-inside:avoid; }
+  hr{ border:0; border-top:1px solid var(--border); margin:6mm 0; }
   a{ color:var(--accent); text-decoration:none; }
   blockquote{ margin:0 0 3mm; padding:3mm 4mm; background:var(--warn-soft);
               border-left:3px solid var(--warn); break-inside:avoid; }
