@@ -79,6 +79,27 @@ export async function openNavigation(
     ? ['google', 'yahoo', 'apple']
     : ['google', 'yahoo'],
 ): Promise<NavApp | 'web'> {
+  /*
+    ブラウザでは、アプリ専用の呼び出しを試さない（ご報告 2026-09-12）。
+
+    **ここが効いていなかった。** 以前は端末と同じ順で
+    `comgooglemaps://` などを先に試していた。端末なら、入っていない
+    アプリの呼び出しは失敗して次へ進む。ところが**ブラウザは、知らない
+    形式の呼び出しを黙って捨てる。例外も出ない。** そのため最初の
+    試行が「成功した」ことになり、地図が開かないまま終わっていた。
+
+    押しても何も起きない、という形で出る。このアプリは PWA として
+    配っている（docs/08-distribution.md）ので、**ほぼ全員がこちらを
+    通る。**
+
+    ブラウザには web の地図を直に渡す。ここから先は、端末に地図の
+    アプリが入っていれば、ブラウザがそちらへ引き継ぐ。
+  */
+  if (Platform.OS === 'web') {
+    await Linking.openURL(webFallbackUrl(target));
+    return 'web';
+  }
+
   for (const app of preferred) {
     try {
       await Linking.openURL(buildUrl(app, target));
