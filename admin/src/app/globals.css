@@ -30,7 +30,7 @@
 
   --c-text: #171c20;
   --c-text-muted: #5a666e;
-  --c-text-faint: #8b969d;
+  --c-text-faint: #6a7277;
 
   /*
     W3C の名前つきの色 green (#008000)。ご指示 2026-09-11。
@@ -79,22 +79,22 @@
 
   --c-text: #e8edef;
   --c-text-muted: #9aa8ae;
-  --c-text-faint: #6b7a81;
+  --c-text-faint: #78868c;
 
   /*
-    暗い配色でも、明るい配色と同じ値を使う（ご指示 2026-09-12）。
-    以前はここだけ明度を上げていた（limegreen）。
-    淡い地を明るい側へ回し、その上の文字が読めるようにしている。
+    暗い配色。明るい配色と同じ色を、読める明るさまで持ち上げたもの。
+    #008000 のままでは暗い地の上で 3.3:1 にしかならない。
+    色相は変えていない（白へ18%寄せただけ）。
   */
-  --c-accent: #008000;
-  --c-accent-hover: #006400;
-  --c-accent-soft: #e8f5e8;
-  --c-accent-text: #ffffff;
+  --c-accent: #2e972e;
+  --c-accent-hover: #45ac45;
+  --c-accent-soft: #081a08;
+  --c-accent-text: #06120d;
 
-  /* 警告・注意も、明るい配色と同じ値へ揃える */
-  --c-danger: #b3261e;
-  --c-warn: #9a6410;
-  --c-ok: #0f7a55;
+  /* 警告・注意も同じ考え方で持ち上げる */
+  --c-danger: #ca6762;
+  --c-warn: #a97b34;
+  --c-ok: #3fa37c;
 
   --c-backdrop: #7fe07f;
   --c-backdrop-opacity: 0.07;

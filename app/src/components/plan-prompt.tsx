@@ -143,10 +143,17 @@ export function PlanPrompt({
                 accessibilityLabel={name(p.id)}
                 style={[s.choice, on && s.choiceOn]}
               >
+                {/*
+                  未選択の丸は、枠線の色では薄すぎた（白地で 1.6:1）。
+
+                  記号だが飾りではなく、**選ぶための操作部品**にあたる。
+                  見えなければ、選べる場所があること自体が伝わらない。
+                  決まりでも 3:1 を求められる（WCAG 1.4.11）。
+                */}
                 <Ionicons
                   name={on ? 'radio-button-on' : 'radio-button-off'}
                   size={20}
-                  color={on ? c.accent : c.borderStrong}
+                  color={on ? c.accent : c.textFaint}
                 />
                 <View style={s.choiceBody}>
                   <Text style={s.choiceName}>{name(p.id)}</Text>
