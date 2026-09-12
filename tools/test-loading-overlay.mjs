@@ -11,6 +11,8 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 /*
   接続先。既定は手元の管理画面（開発サーバー）。
 
@@ -27,10 +29,49 @@ function loadEnv(path) {
   }
   return env;
 }
-void loadEnv('admin/.env.local');
+/*
+  検証用のアカウントを、その場で作って使い、最後に消す。
 
-const email = process.env.KN_EMAIL;
-const password = process.env.KN_PASSWORD;
+  以前は KN_EMAIL / KN_PASSWORD を環境変数で渡す作りだった。
+  **渡さなければ動かず、渡すとすれば発注元の実アカウントになる。**
+  そのため、この検査は回されないままになっていた。
+*/
+const env = loadEnv('admin/.env.local');
+const SB = env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+const email = 'ui-overlay-check@kurumayose.invalid';
+const password = 'Ls3nGv7qZa9dMx';
+
+const sb = async (path, { method = 'GET', body, prefer } = {}) => {
+  const r = await fetch(`${SB}${path}`, {
+    method,
+    headers: {
+      apikey: KEY,
+      Authorization: `Bearer ${KEY}`,
+      'Content-Type': 'application/json',
+      ...(prefer ? { Prefer: prefer } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const t = await r.text();
+  let b = null;
+  try { b = t ? JSON.parse(t) : null; } catch { b = t; }
+  return { ok: r.ok, body: b };
+};
+
+const users = await sb('/auth/v1/admin/users?page=1&per_page=200');
+const stale = (users.body?.users ?? []).find((u) => u.email === email);
+if (stale) await sb(`/auth/v1/admin/users/${stale.id}`, { method: 'DELETE' });
+const made = await sb('/auth/v1/admin/users', {
+  method: 'POST',
+  body: { email, password, email_confirm: true },
+});
+const userId = made.body?.id;
+if (!userId) throw new Error(`検証用のアカウントを作れません: ${JSON.stringify(made.body).slice(0, 160)}`);
+await sb('/rest/v1/admin_profiles', {
+  method: 'POST',
+  body: { user_id: userId, display_name: 'UI検証用管理者', role: 'admin' },
+});
 
 let pass = 0;
 const failures = [];
@@ -114,6 +155,13 @@ check(
 
 await ctx.close();
 await browser.close();
+
+// --- 後片付け -----------------------------------------------------------------
+await sb(`/rest/v1/audit_logs?actor_id=eq.${userId}`, { method: 'DELETE' });
+await sb(`/rest/v1/admin_profiles?user_id=eq.${userId}`, { method: 'DELETE' });
+await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
+const purged = await purgeAuditLogs(sb, [userId]);
+console.log(`  片付け  検証用のアカウントを消しました（操作履歴 ${purged} 件）`);
 
 console.log('');
 if (failures.length) {
