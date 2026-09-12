@@ -186,5 +186,5 @@ const makeStyles = (c: Palette) =>
     },
     blockedTitle: { fontSize: TEXT.titleLarge, fontWeight: '800', color: c.text },
     plain: { marginTop: SPACE.md, paddingVertical: SPACE.sm, paddingHorizontal: SPACE.lg },
-    plainText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    plainText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
   });

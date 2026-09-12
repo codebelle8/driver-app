@@ -99,7 +99,7 @@ export function CategoryEditor({
                     <button
                       type="button"
                       onClick={() => setEditing(cat.id)}
-                      className="text-xs text-text-muted transition-colors hover:text-accent"
+                      className="text-xs text-text-muted transition-colors hover:text-accent-ink"
                     >
                       {c.edit}
                     </button>
@@ -248,7 +248,7 @@ function EditRow({
             <button
               type="button"
               onClick={onDone}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:border-accent hover:text-accent"
+              className="rounded-lg border border-border px-4 py-2 text-sm text-text-muted transition-colors hover:border-accent hover:text-accent-ink"
             >
               {c.cancel}
             </button>

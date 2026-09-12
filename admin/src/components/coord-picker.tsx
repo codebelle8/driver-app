@@ -213,7 +213,7 @@ export function CoordPicker({
             onClick={() => setTarget(which)}
             className={
               target === which
-                ? 'rounded-md border border-accent bg-accent-soft px-3 py-1 font-medium text-accent'
+                ? 'rounded-md border border-accent bg-accent-soft px-3 py-1 font-medium text-accent-ink'
                 : 'rounded-md border border-border px-3 py-1 text-text-muted hover:border-border-strong'
             }
           >

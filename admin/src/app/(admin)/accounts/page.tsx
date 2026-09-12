@@ -83,7 +83,7 @@ export default async function AccountsPage() {
                           <span className="ml-2 text-xs text-text-muted">（{a.self}）</span>
                         )}
                         {owner && (
-                          <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent">
+                          <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent-ink">
                             {a.owner}
                           </span>
                         )}

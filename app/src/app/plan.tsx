@@ -292,7 +292,7 @@ function makeStyles(c: Palette) {
     code: {
       fontSize: TEXT.heading,
       fontWeight: '800',
-      color: c.accent,
+      color: c.accentInk,
       fontVariant: ['tabular-nums'],
       letterSpacing: 2,
     },

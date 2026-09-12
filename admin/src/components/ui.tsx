@@ -133,7 +133,7 @@ export function Badge({
 }) {
   const style = {
     default: 'border-border bg-surface-2 text-text-muted',
-    accent: 'border-accent/35 bg-accent-soft text-accent',
+    accent: 'border-accent/35 bg-accent-soft text-accent-ink',
     warn: 'border-warn/40 bg-warn/10 text-warn',
   }[tone];
 
@@ -184,7 +184,7 @@ export function Field({
     <label className="block">
       <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-text">
         {label}
-        {required && <span className="text-accent">*</span>}
+        {required && <span className="text-accent-ink">*</span>}
       </span>
       {hint && <span className="mb-1.5 block text-xs text-text-faint">{hint}</span>}
       {children}

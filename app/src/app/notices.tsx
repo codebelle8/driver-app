@@ -291,7 +291,7 @@ function makeStyles(c: Palette) {
     },
     topTitle: { flex: 1, textAlign: 'center', fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
     topSpacer: { width: 22 },
-    readAll: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
+    readAll: { fontSize: TEXT.sub, color: c.accentInk, fontWeight: '600' },
 
     page: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
     section: {

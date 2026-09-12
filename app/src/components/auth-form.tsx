@@ -486,7 +486,7 @@ const makeStyles = (c: Palette) =>
     wrap: { gap: SPACE.sm },
     sectionTitle: { fontSize: TEXT.title, fontWeight: '800', color: c.text },
     lead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20 },
-    leadStrong: { fontSize: TEXT.sub, color: c.accent, fontWeight: '700' },
+    leadStrong: { fontSize: TEXT.sub, color: c.accentInk, fontWeight: '700' },
 
     tabs: {
       flexDirection: 'row',
@@ -507,7 +507,7 @@ const makeStyles = (c: Palette) =>
     },
     tabOn: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.accent },
     tabText: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.textMuted },
-    tabTextOn: { color: c.accent },
+    tabTextOn: { color: c.accentInk },
 
     labelRow: {
       flexDirection: 'row',
@@ -595,5 +595,5 @@ const makeStyles = (c: Palette) =>
     submitText: { fontSize: TEXT.title, fontWeight: '800', color: c.accentText },
 
     linkRow: { marginTop: SPACE.md, alignItems: 'center', paddingVertical: SPACE.sm },
-    link: { fontSize: TEXT.sub, fontWeight: '700', color: c.accent },
+    link: { fontSize: TEXT.sub, fontWeight: '700', color: c.accentInk },
   });

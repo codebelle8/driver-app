@@ -218,7 +218,7 @@ const makeStyles = (c: Palette) =>
       borderWidth: 1,
       borderColor: c.accent,
     },
-    openText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    openText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
 
     choices: { gap: SPACE.sm },
     choice: {

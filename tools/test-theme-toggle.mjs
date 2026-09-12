@@ -10,13 +10,23 @@ import { readFileSync } from 'node:fs';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 /*
   接続先。既定は手元の管理画面（開発サーバー）。
 
   引数で差し替えられる。決め打ちにしていたため、手元のサーバーが
   止まっているあいだ、この検査は回しようがなかった。
 */
-const BASE = (process.argv[2] ?? 'http://localhost:3000').replace(/\/$/, '');
+const raw = process.argv[2] ?? 'http://localhost:3000';
+const BASE = raw.endsWith('/') ? raw.slice(0, -1) : raw;
+/*
+  クッキーの宛先。
+
+  以前は 'localhost' を直に書いていた。**本番へ当てると、指定した
+  表示が届かず、最初の4件がそのまま落ちていた。** 接続先から取る。
+*/
+const HOST = new URL(BASE).hostname;
 
 function loadEnv(path) {
   const env = {};
@@ -26,7 +36,49 @@ function loadEnv(path) {
   }
   return env;
 }
-void loadEnv('admin/.env.local');
+/*
+  検証用のアカウントを、その場で作って使い、最後に消す。
+
+  以前は KN_EMAIL / KN_PASSWORD を環境変数で渡す作りだった。
+  **渡さなければ省略され、渡すとすれば発注元の実アカウントになる。**
+  そのため、ログイン後の確認は一度も回されていなかった。
+*/
+const env = loadEnv('admin/.env.local');
+const SB = env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+const email = 'ui-theme-toggle@kurumayose.invalid';
+const password = 'Wc5rJp8nTy3kQm';
+
+const sb = async (path, { method = 'GET', body, prefer } = {}) => {
+  const r = await fetch(`${SB}${path}`, {
+    method,
+    headers: {
+      apikey: KEY,
+      Authorization: `Bearer ${KEY}`,
+      'Content-Type': 'application/json',
+      ...(prefer ? { Prefer: prefer } : {}),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const t = await r.text();
+  let b = null;
+  try { b = t ? JSON.parse(t) : null; } catch { b = t; }
+  return { ok: r.ok, body: b };
+};
+
+const users = await sb('/auth/v1/admin/users?page=1&per_page=200');
+const stale = (users.body?.users ?? []).find((u) => u.email === email);
+if (stale) await sb(`/auth/v1/admin/users/${stale.id}`, { method: 'DELETE' });
+const made = await sb('/auth/v1/admin/users', {
+  method: 'POST',
+  body: { email, password, email_confirm: true },
+});
+const userId = made.body?.id;
+if (!userId) throw new Error(`検証用のアカウントを作れません: ${JSON.stringify(made.body).slice(0, 160)}`);
+await sb('/rest/v1/admin_profiles', {
+  method: 'POST',
+  body: { user_id: userId, display_name: 'UI検証用管理者', role: 'admin' },
+});
 
 const browser = await chromium.launch();
 
@@ -60,7 +112,7 @@ async function visibleLogo(page) {
 
 // --- ログイン画面（未ログインでも確認できる） --------------------------------
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-await ctx.addCookies([{ name: 'kn_theme', value: 'light', domain: 'localhost', path: '/' }]);
+await ctx.addCookies([{ name: 'kn_theme', value: 'light', domain: HOST, path: '/' }]);
 const page = await ctx.newPage();
 
 let navigations = 0;
@@ -93,12 +145,9 @@ check('もう一度押すと濃紺版に戻る', (await visibleLogo(page)).some(
 await ctx.close();
 
 // --- ヘッダー（ログイン後） ---------------------------------------------------
-const email = process.env.KN_EMAIL;
-const password = process.env.KN_PASSWORD;
-
-if (email && password) {
+{
   const ctx2 = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  await ctx2.addCookies([{ name: 'kn_theme', value: 'light', domain: 'localhost', path: '/' }]);
+  await ctx2.addCookies([{ name: 'kn_theme', value: 'light', domain: HOST, path: '/' }]);
   const p2 = await ctx2.newPage();
 
   await p2.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
@@ -123,11 +172,16 @@ if (email && password) {
   check('再読み込みが発生していない', navs === 0, `(navigations=${navs})`);
 
   await ctx2.close();
-} else {
-  console.log('\nヘッダー: KN_EMAIL / KN_PASSWORD 未設定のため省略');
 }
 
 await browser.close();
+
+// --- 後片付け -----------------------------------------------------------------
+await sb(`/rest/v1/audit_logs?actor_id=eq.${userId}`, { method: 'DELETE' });
+await sb(`/rest/v1/admin_profiles?user_id=eq.${userId}`, { method: 'DELETE' });
+await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
+const purged = await purgeAuditLogs(sb, [userId]);
+console.log(`  片付け  検証用のアカウントを消しました（操作履歴 ${purged} 件）`);
 
 console.log('');
 if (failures.length) {

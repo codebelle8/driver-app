@@ -381,11 +381,11 @@ function makeStyles(c: Palette) {
       paddingBottom: SPACE.sm,
     },
     headText: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.sm },
-    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accentInk },
     count: { fontSize: TEXT.sub, color: c.textMuted },
     clearAll: { fontSize: TEXT.sub, color: c.danger, fontWeight: '600' },
     headActions: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-    headAction: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
+    headAction: { fontSize: TEXT.sub, color: c.accentInk, fontWeight: '600' },
     headActionOff: { fontSize: TEXT.sub, color: c.textFaint, fontWeight: '600' },
 
     /* 選ばれている行。縁と地の両方で示す。色だけだと見分けにくい方に伝わらない。 */

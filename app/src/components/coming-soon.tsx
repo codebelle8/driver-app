@@ -45,7 +45,7 @@ function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
     head: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, paddingBottom: SPACE.sm },
-    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accentInk },
     center: {
       flex: 1,
       alignItems: 'center',

@@ -78,5 +78,5 @@ const makeStyles = (c: Palette) =>
       borderWidth: 1,
       borderColor: c.accent,
     },
-    letter: { fontWeight: '800', color: c.accent },
+    letter: { fontWeight: '800', color: c.accentInk },
   });

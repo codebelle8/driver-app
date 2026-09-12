@@ -96,5 +96,5 @@ const makeStyles = (c: Palette) =>
     },
     buttonText: { fontSize: TEXT.body, fontWeight: '800', color: c.accentText },
     plain: { alignSelf: 'center', paddingVertical: SPACE.xs, paddingHorizontal: SPACE.md },
-    plainText: { fontSize: TEXT.sub, fontWeight: '700', color: c.accent },
+    plainText: { fontSize: TEXT.sub, fontWeight: '700', color: c.accentInk },
   });

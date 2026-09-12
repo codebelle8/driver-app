@@ -170,9 +170,21 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
   node tools/test-login.mjs https://kurumayose-navi.vercel.app
   node tools/test-navigation.mjs https://kurumayose-navi.vercel.app
   node tools/test-offline.mjs https://kurumayose-navi.vercel.app
+  node tools/test-scroll.mjs https://kurumayose-navi.vercel.app
+  node tools/test-contrast.mjs https://kurumayose-navi.vercel.app
+  node tools/test-admin-contrast.mjs https://kurumayose-navi-admin.vercel.app
+  node tools/check-palette.mjs
   node tools/check-account-guard.mjs
   node tools/check-bundle.mjs
   ```
+
+  **配色を変えたときは、必ず両方の読みやすさを測ること。**
+  アプリだけを測っていた時期があり、管理画面の暗い表示が
+  9画面とも基準を割ったまま配られていた（2026-09-13 に発見）。
+
+  **画面の中身を増やしたときは、`test-scroll` を回すこと。**
+  手元の広い画面では収まってしまい、実機で切れていることに
+  気づけない。マイページが実際にそうなっていた。
 
 ---
 

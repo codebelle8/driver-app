@@ -248,7 +248,7 @@ export function LocaleSelect({
                 onClick={() => select(l.value)}
                 className={
                   'flex w-full items-center gap-2 whitespace-nowrap px-3 py-1.5 text-left text-xs transition-colors hover:bg-surface-2 ' +
-                  (l.value === locale ? 'font-semibold text-accent' : 'text-text')
+                  (l.value === locale ? 'font-semibold text-accent-ink' : 'text-text')
                 }
               >
                 <Flag locale={l.value} />

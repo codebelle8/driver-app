@@ -725,7 +725,7 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     errorActionOn: { backgroundColor: c.surface2 },
-    errorActionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    errorActionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
     page: { paddingBottom: SPACE.lg },
 
     /*
@@ -820,7 +820,7 @@ function makeStyles(c: Palette) {
     /* 留めてある状態 */
     actionOn: { backgroundColor: c.accentSoft, borderColor: c.accent },
     actionOff: { opacity: 0.4 },
-    actionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    actionText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
     actionMainText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentText },
 
     // --- 中身の切り替え ---
@@ -855,7 +855,7 @@ function makeStyles(c: Palette) {
     tabWideOn: { backgroundColor: c.surface },
     tabWideText: { fontSize: TEXT.sub, color: c.textFaint, fontWeight: '600' },
     tabText: { fontSize: TEXT.small, color: c.textFaint, fontWeight: '600' },
-    tabTextOn: { color: c.accent },
+    tabTextOn: { color: c.accentInk },
 
     body: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md },
     stack: { gap: SPACE.sm },

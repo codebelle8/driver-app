@@ -41,7 +41,7 @@ export function PageLink({
     <Link
       href={href}
       prefetch
-      className={`${base} border-border text-text hover:border-accent hover:text-accent`}
+      className={`${base} border-border text-text hover:border-accent hover:text-accent-ink`}
     >
       {children}
     </Link>

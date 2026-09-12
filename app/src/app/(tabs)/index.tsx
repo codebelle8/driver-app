@@ -1306,7 +1306,7 @@ function makeStyles(c: Palette) {
       marginBottom: SPACE.sm,
     },
     sectionTitle: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
-    sectionMore: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
+    sectionMore: { fontSize: TEXT.sub, color: c.accentInk, fontWeight: '600' },
     sectionHeadWide: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1315,7 +1315,7 @@ function makeStyles(c: Palette) {
       marginBottom: SPACE.md,
     },
     sectionTitleWide: { fontSize: TEXT.lead, fontWeight: '700', color: c.text },
-    sectionMoreWide: { fontSize: TEXT.body, color: c.accent, fontWeight: '600' },
+    sectionMoreWide: { fontSize: TEXT.body, color: c.accentInk, fontWeight: '600' },
 
     grid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md },
     card: {
@@ -1479,7 +1479,7 @@ function makeStyles(c: Palette) {
       borderColor: c.border,
     },
     retryPressed: { backgroundColor: c.surface2 },
-    retryText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    retryText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
 
     // --- 絞り込みの結果 ---
     list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
@@ -1518,7 +1518,7 @@ function makeStyles(c: Palette) {
     },
     resultCount: { flex: 1, fontSize: TEXT.sub, color: c.text, fontWeight: '700' },
     resultCountNum: { color: c.textMuted, fontWeight: '400' },
-    resultClear: { fontSize: TEXT.sub, color: c.accent, fontWeight: '600' },
+    resultClear: { fontSize: TEXT.sub, color: c.accentInk, fontWeight: '600' },
 
     row: {
       flexDirection: 'row',

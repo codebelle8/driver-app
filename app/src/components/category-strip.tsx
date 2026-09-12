@@ -268,7 +268,7 @@ function Chip({
         style={[
           styles.chipText,
           { color: c.textMuted },
-          item.active && { color: c.accent, fontWeight: '700' },
+          item.active && { color: c.accentInk, fontWeight: '700' },
         ]}
       >
         {item.label}

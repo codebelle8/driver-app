@@ -190,7 +190,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 <span className="text-sm tracking-widest text-text-muted">
                   {t.brand.footerName}
                 </span>
-                <span className="tabular text-sm text-accent">2026</span>
+                <span className="tabular text-sm text-accent-ink">2026</span>
               </div>
             </footer>
           </div>

@@ -30,7 +30,12 @@
 
   --c-text: #171c20;
   --c-text-muted: #5a666e;
-  --c-text-faint: #6a7277;
+  /*
+    補足の文字。**白地ではなく、いちばん沈んだ地の上で決める。**
+    入力欄の説明はその中にあり、白地で測ると取りこぼす（2026-09-13）。
+    #666e73 … bg-sub で 4.58:1、surface-2 で 4.74:1、白地で 5.19:1
+  */
+  --c-text-faint: #666e73;
 
   /*
     W3C の名前つきの色 green (#008000)。ご指示 2026-09-11。
@@ -43,10 +48,18 @@
   --c-accent-hover: #006400;
   --c-accent-soft: #eaf6ea;
   --c-accent-text: #ffffff;
+  /*
+    主役の色を「文字・記号」として置くときの色。
+
+    明るい配色では、地が白なので主役の色そのままで 5.1:1 あり、
+    分ける必要がない。暗い配色でだけ別の値になる（下記）。
+  */
+  --c-accent-ink: #008000;
 
   /* 警告は赤。主役が青に戻ったので、取り違えない */
   --c-danger: #b3261e;
-  --c-warn: #9a6410;
+  /* 注意。いちばん沈んだ地（bg-sub）の上で 4.72:1 */
+  --c-warn: #955f0f;
   /* 成功は翠のまま。赤と取り違えない */
   --c-ok: #0f7a55;
 
@@ -79,7 +92,8 @@
 
   --c-text: #e8edef;
   --c-text-muted: #9aa8ae;
-  --c-text-faint: #78868c;
+  /* 同じ理由。#808e94 … surface-2 で 4.56:1、surface で 5.05:1 */
+  --c-text-faint: #808e94;
 
   /*
     主役の緑は、明るい配色と同じ #008000（ご指定 2026-09-13）。
@@ -91,10 +105,27 @@
   --c-accent-hover: #0a9a0a;
   --c-accent-soft: #081a08;
   --c-accent-text: #ffffff;
+  /*
+    暗い配色で、主役の色を文字として置くと 3.3〜3.6:1 にしかならない。
+    #008000 は純黒の上でも 4.1:1 が上限で、地をどれだけ暗くしても
+    基準（4.5:1）へ届かない。**文字のときだけ白にする。**
+
+    塗り・枠・記号は #008000 のまま（ご指定 2026-09-13）。
+      塗り     … 白文字で 5.1:1。問題ない
+      記号     … 操作部品として 3:1（WCAG 1.4.11）。3.5:1 で足りる
+      文字     … ここだけが届かない。だからここだけ替える
+  */
+  --c-accent-ink: #ffffff;
 
   /* 警告・注意も同じ考え方で持ち上げる */
-  --c-danger: #ca6762;
-  --c-warn: #a97b34;
+  /* 警告。一段沈んだ枠（surface-2）の上で 4.75:1 */
+  --c-danger: #d4736e;
+  /*
+    注意。これも surface-2（#1d262a）の上で決める。
+    「仮画像」の札はその中にあり、#a97b34 では 4.09:1 だった。
+    #b3873f … surface-2 で 4.73:1、surface で 5.25:1
+  */
+  --c-warn: #b3873f;
   --c-ok: #3fa37c;
 
   --c-backdrop: #7fe07f;
@@ -128,6 +159,7 @@
   --color-accent-hover: var(--c-accent-hover);
   --color-accent-soft: var(--c-accent-soft);
   --color-accent-text: var(--c-accent-text);
+  --color-accent-ink: var(--c-accent-ink);
 
   --color-danger: var(--c-danger);
   --color-warn: var(--c-warn);

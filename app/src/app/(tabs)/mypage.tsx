@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { describeSyncedAt, ensureSynced, resync, type SyncResult } from '@/lib/sync';
@@ -108,6 +108,18 @@ export default function MyPageScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       {/* 広い画面で間延びしないよう、中身の幅に上限を設ける */}
       <PageWidth>
+      {/*
+        スクロールする箱。**これが無かった。**
+
+        中身が画面より高くなると、そのまま切り落とされ、指で動かしても
+        何も起きない。実機（スマートフォン）で「このアプリについて」から
+        下へ届かなくなっていた（ご報告 2026-09-13）。
+
+        手元の検査は 1280×900 で見ており、そこでは収まってしまうため
+        一度も引っかからなかった。他の画面（account・plan）は初めから
+        この形になっている。ここだけ抜けていた。
+      */}
+      <ScrollView contentContainerStyle={styles.scrollBody} showsVerticalScrollIndicator={false}>
       <View style={styles.head}>
         <Text style={styles.heading}>{t.mypage.title}</Text>
       </View>
@@ -381,6 +393,7 @@ export default function MyPageScreen() {
       </View>
 
       <Text style={styles.note}>{t.mypage.note}</Text>
+      </ScrollView>
       </PageWidth>
     </SafeAreaView>
   );
@@ -422,7 +435,7 @@ function LocaleChoice({
       style={[styles.choice, on && styles.choiceOn]}
     >
       <Flag locale={locale} width={18} />
-      <Text style={[styles.choiceText, { color: on ? c.accent : c.textMuted }]}>
+      <Text style={[styles.choiceText, { color: on ? c.accentInk : c.textMuted }]}>
         {LOCALE_NAME[locale]}
       </Text>
     </Pressable>
@@ -487,8 +500,10 @@ function AboutRow({
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     safe: { flex: 1, backgroundColor: c.bg },
+    /* 下端に余白を置き、最後の一行が画面の縁に貼り付かないようにする */
+    scrollBody: { paddingBottom: SPACE.xl },
     head: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.md, paddingBottom: SPACE.md },
-    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accent },
+    heading: { fontSize: TEXT.heading, fontWeight: '800', color: c.accentInk },
     box: {
       marginHorizontal: SPACE.lg,
       borderRadius: RADIUS.md,

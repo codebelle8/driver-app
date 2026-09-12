@@ -111,10 +111,18 @@ export default function TabsLayout() {
 
               左メニューでは記号の右に並ぶため、大きさと寄せ方を変える。
             */
-            tabBarLabel: ({ color }) => (
+            tabBarLabel: ({ color, focused }) => (
               <View style={isWide ? styles.railLabelBox : styles.labelBox}>
                 <Text
-                  style={[isWide ? styles.railLabel : styles.label, { color }]}
+                  /*
+                    記号と文字は同じ色を受け取るが、**文字だけは分ける。**
+                    暗い配色で主役の緑を文字に使うと 3.5:1 にしかならない。
+                    記号は 3:1 で足りるため、そのまま緑で置く。
+                  */
+                  style={[
+                    isWide ? styles.railLabel : styles.label,
+                    { color: focused ? c.accentInk : color },
+                  ]}
                   numberOfLines={1}
                 >
                   {dict.tabs[t.key]}

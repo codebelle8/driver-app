@@ -138,7 +138,7 @@ export function SideRail() {
                   color={focused ? c.accent : c.textMuted}
                 />
                 <Text
-                  style={[s.label, { color: focused ? c.accent : c.textMuted }]}
+                  style={[s.label, { color: focused ? c.accentInk : c.textMuted }]}
                   numberOfLines={1}
                 >
                   {dict.tabs[t.key]}

@@ -497,7 +497,7 @@ function makeStyles(c: Palette) {
     },
     smallWide: { alignSelf: 'stretch', marginTop: SPACE.sm, height: 46 },
     smallOff: { opacity: 0.5 },
-    smallText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    smallText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
     smallGhost: {
       height: 40,
       paddingHorizontal: SPACE.lg,
@@ -549,7 +549,7 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.accent,
     },
-    saveText: { fontSize: TEXT.body, fontWeight: '700', color: c.accent },
+    saveText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
 
     signOut: {
       marginTop: SPACE.xl,
