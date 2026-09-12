@@ -24,7 +24,20 @@ import { chromium } from 'playwright';
 const SRC = 'docs/14-admin-manual.md';
 const OUT = 'docs/14-admin-manual.pdf';
 
-const md = readFileSync(SRC, 'utf8');
+/*
+  お渡しする紙に入れないところを落とす。
+
+  手順書には、開発側への申し送り（画面を変えたら写真を撮り直す、など）
+  も書いてある。**受け取る方には関係がなく、入っていると何をすれば
+  よいのか迷わせる。** 印で囲んだ範囲を、PDF にするときだけ落とす。
+
+    <!-- pdf-skip:start -->  …  <!-- pdf-skip:end -->
+*/
+const raw = readFileSync(SRC, 'utf8');
+const md = raw.replace(/<!--\s*pdf-skip:start\s*-->[\s\S]*?<!--\s*pdf-skip:end\s*-->/g, '');
+if (md.length !== raw.length) {
+  console.log(`  申し送りを ${raw.length - md.length} 文字ぶん落としました`);
+}
 
 /* marked は入れていない。使うときだけ取ってくる。 */
 const body = execFileSync('npx', ['--yes', 'marked'], {
