@@ -9,6 +9,7 @@
  *     app/public/art/hero-2.(jpg|png) … 上部。2枚目
  *     app/public/art/hero-3.(jpg|png) … 上部。3枚目
  *     app/public/art/hero-4.(jpg|png) … 上部。4枚目
+ *     app/public/art/hero-5.(jpg|png) … 上部。5枚目
  *     app/public/art/rail.(jpg|png)   … 左メニューの下半分
  *
  *   置いていないものは読み込みに失敗し、そこは飛ばされる。
@@ -16,7 +17,7 @@
  *   失敗を異常として扱わず、通常の分岐として設計している。
  *
  * **番号を付けない hero も受け取る**
- *   4枚に分ける前は hero.jpg の1枚だった。番号付きが1枚も無いときは
+ *   番号で分ける前は hero.jpg の1枚だった。番号付きが1枚も無いときは
  *   こちらを見る。入れ替えの途中で画面が空になるのを避けるため。
  *
  * **拡張子を1つに決めない理由**
@@ -39,8 +40,14 @@
  */
 import { Platform } from 'react-native';
 
-/** 上部の入れ替え表示の枚数 */
-export const HERO_SLIDE_COUNT = 4;
+/**
+ * 上部の入れ替え表示の枚数。
+ *
+ * ここを増やすだけで、置き場所も、読み込みも、送りの矢印も追随する。
+ * **置かれていない番号は読み込みに失敗し、並びから外れる。**
+ * 5枚ぶん用意して3枚しか置いていなければ、3枚で回る。
+ */
+export const HERO_SLIDE_COUNT = 5;
 
 /** 1枚ぶんの在り処。読めるまで順に試す。 */
 const candidates = (name: string) => [`/art/${name}.jpg`, `/art/${name}.png`];
@@ -48,7 +55,7 @@ const candidates = (name: string) => [`/art/${name}.jpg`, `/art/${name}.png`];
 /**
  * 上部の写真。1枚ぶんずつ、試す順の配列で持つ。
  *
- * 番号付きの4枚を先に並べ、最後に番号なしを置く。番号付きが1枚も
+ * 番号付きを先に並べ、最後に番号なしを置く。番号付きが1枚も
  * 読めなかったときだけ、番号なしが残って1枚として出る。
  */
 export const HERO_SLIDES: string[][] = [
@@ -66,7 +73,7 @@ export const CAN_LOAD_ART = Platform.OS === 'web';
  * 1枚あたりの表示時間（ミリ秒）。
  *
  * 短いと、読もうとしている最中に背景が動いて気が散る。
- * 長すぎると、4枚あることが伝わらないまま画面を離れる。
+ * 長すぎると、複数あることが伝わらないまま画面を離れる。
  */
 export const SLIDE_HOLD_MS = 5000;
 

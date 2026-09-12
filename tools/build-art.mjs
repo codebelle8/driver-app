@@ -4,7 +4,7 @@
  *   node tools/build-art.mjs
  *
  * **なぜ要るか**
- *   いただいた原本は1枚で 2.5MB あった。上部は4枚を順に入れ替えるため、
+ *   いただいた原本は1枚で 2.5MB あった。上部は複数枚を順に入れ替えるため、
  *   そのままだと10MBを超える。飾りの絵のために、施設を探す画面の
  *   表示を待たせる理由はない。
  *
@@ -37,12 +37,13 @@ const ORIGINALS = 'assets/art';
 
 /** 出力の設計。名前と、書き出す幅。 */
 const TARGETS = [
-  // 上部は4枚を順に入れ替える。置かれているものだけを処理する。
+  // 上部は順に入れ替える。置かれているものだけを処理する。
   { name: 'hero-1', width: 1800 },
   { name: 'hero-2', width: 1800 },
   { name: 'hero-3', width: 1800 },
   { name: 'hero-4', width: 1800 },
-  // 4枚に分ける前の1枚。番号付きが1枚も無いときの受け皿。
+  { name: 'hero-5', width: 1800 },
+  // 番号で分ける前の1枚。番号付きが1枚も無いときの受け皿。
   { name: 'hero', width: 1800 },
   { name: 'rail', width: 620 },
 ];
@@ -122,7 +123,7 @@ if (done > 0) console.log(`  ${done} 枚を整え、原本を ${ORIGINALS}/ へ�
 if (skipped > 0) console.log(`  ${skipped} 枚は整え済みのため触れていません`);
 if (done === 0 && skipped === 0) {
   console.log(`  ${PUBLIC}/ に写真を置いてから実行してください。`);
-  console.log('  名前は hero-1〜hero-4 と rail（拡張子は .png / .jpg のどちらでも）。');
+  console.log('  名前は hero-1〜hero-5 と rail（拡張子は .png / .jpg のどちらでも）。');
 }
 
 if (done > 0 || skipped > 0) {
