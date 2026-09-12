@@ -13,12 +13,25 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!--
-      user-scalable=no。走行前に片手で扱うため、
-      二本指の拡大で画面が崩れないようにする。
+      拡大を止めない（2026-09-12）。
+
+      以前は user-scalable=no を付けていた。走行前に片手で扱うため、
+      二本指で画面が崩れないように、という意図だった。
+
+      **止めたままにしてはいけない。**
+        * 乗務員は50〜70代が中心で、小さい字を拡大して読む方がいる。
+          その手立てを奪うことになる
+        * 文字の拡大は WCAG 1.4.4 で 200% まで求められている
+        * iOS 10 以降の Safari はこの指定を無視する。**止まるのは
+          Android だけ**で、端末によって振る舞いが割れていた
+        * 何かの拍子に小さく出たとき、利用者に逃げ道が無くなる
+
+      viewport-fit=cover は残す。切り欠きのある端末で、地の色を
+      端まで届かせるために要る。
     -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>車寄せナビ</title>
 
