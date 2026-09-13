@@ -21,7 +21,7 @@ import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
 import { IconButton } from '@/components/icon-button';
 import { RAIL_WIDTH } from '@/components/side-rail';
-import { ScrollTopButton } from '@/components/scroll-top-button';
+import { ScrollTopButton, SCROLL_TOP_CLEARANCE } from '@/components/scroll-top-button';
 import {
   fetchCategories,
   fetchCoverage,
@@ -1482,7 +1482,12 @@ function makeStyles(c: Palette) {
     retryText: { fontSize: TEXT.body, fontWeight: '700', color: c.accentInk },
 
     // --- 絞り込みの結果 ---
-    list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
+    /*
+      下は「上へ」の釦のぶんだけ空ける。
+      24 のままでは、一覧の最後の行に釦がかぶっていた。
+      お気に入り・履歴と同じ値を使う。
+    */
+    list: { paddingHorizontal: SPACE.lg, paddingBottom: SCROLL_TOP_CLEARANCE },
 
     /*
       一覧と地図の左右分割。

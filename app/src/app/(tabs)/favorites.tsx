@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
+import { ScrollTopButton, SCROLL_TOP_CLEARANCE } from '@/components/scroll-top-button';
 import {
   clearFavorites,
   FAVORITE_LIMIT,
@@ -50,6 +51,18 @@ export default function FavoritesScreen() {
   const [entries, setEntries] = useState<FavoriteEntry[] | null>(null);
   const ids = (entries ?? []).map((e) => e.id);
   const pick = useSelection(ids);
+
+  /*
+    先頭へ戻す釦。探す画面と同じ作りにしている。
+
+    お気に入りは上限まで溜まる。下まで送ったあと、指で何度も戻すのは、
+    走行前の限られた時間では負担になる。
+
+    240px を超えてから出す。ひと画面ぶんに満たない量では要らないうえ、
+    先頭付近で浮いていると一覧を隠すだけになる。
+  */
+  const listRef = useRef<FlatList<FavoriteEntry>>(null);
+  const [atTop, setAtTop] = useState(true);
 
   /*
     画面へ戻るたびに読み直す。
@@ -224,8 +237,11 @@ export default function FavoritesScreen() {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={entries}
             keyExtractor={(e) => e.id}
+            onScroll={(e) => setAtTop(e.nativeEvent.contentOffset.y < 240)}
+            scrollEventThrottle={64}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
@@ -244,6 +260,15 @@ export default function FavoritesScreen() {
             }
           />
         )}
+
+        {/*
+          中身が空になったときは出さない。下まで送ったあとに全部消すと、
+          釦だけが何も無い画面に残ることになる。
+        */}
+        <ScrollTopButton
+          visible={!atTop && (entries?.length ?? 0) > 0}
+          onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+        />
       </PageWidth>
     </SafeAreaView>
   );
@@ -421,7 +446,8 @@ function makeStyles(c: Palette) {
       justifyContent: 'center',
     },
 
-    list: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
+    /* 下は「上へ」の釦のぶんだけ空ける。末尾の一行と重ならないように */
+    list: { paddingHorizontal: SPACE.lg, paddingBottom: SCROLL_TOP_CLEARANCE },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
