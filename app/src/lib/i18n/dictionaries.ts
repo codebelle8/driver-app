@@ -426,6 +426,19 @@ const ja = {
     transferNameHow: 'お名前の前に、この番号をお付けください。',
     transferNameExample: '例: {code}ヤマダタロウ',
     transferAfter: 'お振込を確認しましたら、ご利用開始のご連絡をいたします。',
+    /*
+      お振込みのあとに押していただく報告。
+
+      入金そのものは機械で分からない。押していただくと管理画面へ
+      知らせが届き、通帳を確かめたうえで開始になる。
+    */
+    reportTitle: 'お振込みが済んだら',
+    reportLead: '下の釦を押していただくと、こちらへ知らせが届きます。通帳を確かめてから、ご利用開始のご連絡をいたします。',
+    reportButton: 'お振込みを済ませました',
+    reportSending: 'お伝えしています…',
+    reportDone: 'お知らせしました',
+    reportDoneBody: '確認までしばらくお時間をいただきます。確認できましたら、この画面が「ご利用中」に変わります。',
+    reportFailed: 'お伝えできませんでした。電波の届くところで、もう一度お試しください。',
     transferNotReady: 'お振込先はただいま準備中です',
     transferNotReadyBody: '整い次第、この画面でご案内いたします。お手数をおかけいたします。',
     futsu: '普通',
@@ -901,6 +914,13 @@ const en: Dictionary = {
     transferNameHow: 'Please put this number before your name.',
     transferNameExample: 'e.g. {code}YAMADA TARO',
     transferAfter: 'We will confirm your transfer and let you know when your plan starts.',
+    reportTitle: 'Once you have transferred',
+    reportLead: 'Tap the button below and we will be notified. We will check the account and then confirm that your plan has started.',
+    reportButton: 'I have made the transfer',
+    reportSending: 'Sending…',
+    reportDone: 'Thank you — we have been notified',
+    reportDoneBody: 'Checking takes a little time. This screen will change to “Active” once we have confirmed it.',
+    reportFailed: 'We could not send this. Please try again where there is a signal.',
     transferNotReady: 'Payment details are being prepared',
     transferNotReadyBody: 'We will show them here as soon as they are ready.',
     futsu: 'Ordinary',

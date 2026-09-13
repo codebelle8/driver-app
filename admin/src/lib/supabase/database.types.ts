@@ -5,7 +5,7 @@
  * このコマンドは Docker を必要とし、当環境では利用できないため手書きで維持する。
  *
  * **`supabase/migrations/` を変更したら、このファイルも必ず更新すること。**
- * 対応するマイグレーション: 20260807000001 〜 20260808000002
+ * 対応するマイグレーション: 20260807000001 〜 20260914000001
  */
 
 export type PublishStatus = 'draft' | 'published' | 'archived';
@@ -182,6 +182,30 @@ export type SiteSettings = {
   updated_at: string;
 }
 
+/** 知らせの種類。文面は管理画面が組み立てる。 */
+export type NoticeKind = 'purge_request' | 'payment';
+
+/** 知らせの状態。open が「未対応」で、ヘッダーの数はこれを数える。 */
+export type NoticeState = 'open' | 'done' | 'dismissed';
+
+/**
+ * 管理画面のお知らせ。
+ *
+ * detail の中身は種類ごとに違う。
+ *   purge_request … { cutoff: string; count: number }
+ *   payment       … { plan: 'monthly' | 'yearly'; member_no: number }
+ */
+export type AdminNotice = {
+  id: number;
+  kind: NoticeKind;
+  state: NoticeState;
+  member_id: string | null;
+  detail: Record<string, unknown> | null;
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+}
+
 /** どの端末へ送るか。1つのブラウザにつき1件。 */
 export type PushSubscription = {
   id: string;
@@ -324,12 +348,28 @@ export interface Database {
         CatalogSnapshot,
         Insert<CatalogSnapshot, 'published_by' | 'published_at'>
       >;
+      admin_notices: Table<
+        AdminNotice,
+        Insert<
+          AdminNotice,
+          | 'id' | 'state' | 'member_id' | 'detail'
+          | 'created_at' | 'decided_at' | 'decided_by'
+        >
+      >;
     };
     Views: Record<never, never>;
     Functions: {
       validate_facility_for_publish: {
         Args: { p_facility_id: string };
         Returns: string[];
+      };
+      report_payment: {
+        Args: Record<never, never>;
+        Returns: AdminNotice;
+      };
+      my_payment_reported: {
+        Args: Record<never, never>;
+        Returns: string | null;
       };
     };
   };

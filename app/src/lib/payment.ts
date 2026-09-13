@@ -81,3 +81,31 @@ export function isReady(t: Transfer | null): t is Transfer {
 export function memberCode(memberNo: number): string {
   return memberNo < 10000 ? String(memberNo).padStart(4, '0') : String(memberNo);
 }
+
+/**
+ * 「お振込みを済ませました」とお伝えする。
+ *
+ * **入金そのものは機械で分からない。** 銀行振込は、こちらの通帳に
+ * 名義と金額が届くだけで、アプリからは見えない。だからご本人に
+ * 教えていただき、管理画面の知らせへ回す。人が通帳を確かめて
+ * 「入金を確認した」を押すまでが一連の流れ。
+ *
+ * 何度押しても知らせは増えない（データベース側で止めている）。
+ * 確認までに間が空くため、待っているあいだ何度か押される前提。
+ */
+export async function reportPayment(): Promise<boolean> {
+  const { error } = await supabase.rpc('report_payment');
+  return !error;
+}
+
+/**
+ * 自分の報告が受け付けられているか。受け付けた時刻を返す。
+ *
+ * 会員は管理画面の知らせを読めないため、これで確かめる。
+ * 押したのに何も変わらないと、押せたのかどうかが分からない。
+ */
+export async function paymentReported(): Promise<Date | null> {
+  const { data, error } = await supabase.rpc('my_payment_reported');
+  if (error || typeof data !== 'string') return null;
+  return new Date(data);
+}

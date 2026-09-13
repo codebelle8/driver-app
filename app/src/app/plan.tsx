@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconButton } from '@/components/icon-button';
@@ -11,9 +11,16 @@ import { daysLeft, isExpired } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatDate } from '@/lib/i18n/dictionaries';
-import { isReady, loadTransfer, memberCode, type Transfer } from '@/lib/payment';
+import {
+  isReady,
+  loadTransfer,
+  memberCode,
+  paymentReported,
+  reportPayment,
+  type Transfer,
+} from '@/lib/payment';
 import { planOf, yen } from '@/lib/plans';
-import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
+import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
@@ -62,6 +69,40 @@ export default function PlanScreen() {
       alive = false;
     };
   }, []);
+
+  /*
+    お振込みの報告。
+
+    **入金そのものは機械で分からない。** 銀行振込は、こちらの通帳に
+    名義と金額が届くだけで、アプリからは見えない。ご本人に押して
+    いただき、管理画面の知らせへ回す。
+
+    開いた時点で「すでに報告済みか」を引く。押したことを覚えていない
+    方もいれば、別の端末から押した方もいる。押せる釦が出たままだと、
+    何度も押すことになる。
+  */
+  const [reportedAt, setReportedAt] = useState<Date | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const [reportFailed, setReportFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    paymentReported().then((at) => {
+      if (alive) setReportedAt(at);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  async function onReport() {
+    setReporting(true);
+    setReportFailed(false);
+    const ok = await reportPayment();
+    setReporting(false);
+    if (ok) setReportedAt(await paymentReported());
+    else setReportFailed(true);
+  }
 
   const head = (
     <View style={styles.head}>
@@ -209,6 +250,48 @@ export default function PlanScreen() {
 
                 <Text style={styles.sectionLead}>{t.plan.transferAfter}</Text>
                 {!!transfer.note && <Text style={styles.sectionLead}>{transfer.note}</Text>}
+
+                {/*
+                  お振込みのあとの報告。
+
+                  **お振込先が出ているときにだけ出す。** 振込先が
+                  決まっていない段階で「振り込みました」を押せても、
+                  どこへ振り込んだ話なのか分からない。
+                */}
+                <View style={styles.report}>
+                  {reportedAt ? (
+                    <>
+                      <View style={styles.reportDone}>
+                        <Ionicons name="checkmark-circle" size={18} color={c.accent} />
+                        <Text style={styles.reportDoneText}>{t.plan.reportDone}</Text>
+                      </View>
+                      <Text style={styles.sectionLead}>{t.plan.reportDoneBody}</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.sectionTitle}>{t.plan.reportTitle}</Text>
+                      <Text style={styles.sectionLead}>{t.plan.reportLead}</Text>
+                      <Pressable
+                        onPress={onReport}
+                        disabled={reporting}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: reporting }}
+                        style={({ pressed }) => [
+                          styles.reportButton,
+                          pressed && styles.reportButtonOn,
+                          reporting && styles.reportButtonOff,
+                        ]}
+                      >
+                        <Text style={styles.reportButtonText}>
+                          {reporting ? t.plan.reportSending : t.plan.reportButton}
+                        </Text>
+                      </Pressable>
+                      {reportFailed && (
+                        <Text style={styles.reportFailed}>{t.plan.reportFailed}</Text>
+                      )}
+                    </>
+                  )}
+                </View>
               </View>
             ) : (
               <View style={styles.notice}>
@@ -285,6 +368,44 @@ function makeStyles(c: Palette) {
     section: { gap: SPACE.sm },
     sectionTitle: { fontSize: TEXT.title, fontWeight: '800', color: c.text },
     sectionLead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20 },
+
+    /* お振込みの報告 */
+    report: {
+      marginTop: SPACE.lg,
+      paddingTop: SPACE.lg,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      gap: SPACE.xs,
+    },
+    reportButton: {
+      marginTop: SPACE.sm,
+      minHeight: HIT.primary,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: SPACE.lg,
+    },
+    reportButtonOn: { opacity: 0.85 },
+    reportButtonOff: { opacity: 0.5 },
+    reportButtonText: {
+      fontSize: TEXT.bodyStrong,
+      fontWeight: '700',
+      color: c.accentText,
+      textAlign: 'center',
+    },
+    reportDone: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+    reportDoneText: {
+      fontSize: TEXT.title,
+      fontWeight: '800',
+      color: c.accentInk,
+    },
+    reportFailed: {
+      marginTop: SPACE.sm,
+      fontSize: TEXT.sub,
+      color: c.danger,
+      lineHeight: 20,
+    },
     /*
       会員番号。振込の欄へ打ち写していただくものなので、大きく、
       等幅で出す。1 と l、0 と O を見分けられるようにする。

@@ -164,5 +164,28 @@ async function setStatus(
     diff: { status: { from: before?.status ?? null, to: next } },
   });
 
+  /*
+    お支払いの報告が出ていたら、ここで片付ける。
+
+    「入金を確認した」を押した時点で用は済んでいる。押したあとも
+    ヘッダーに残り続けると、片付いたのか分からない。
+
+    ご利用中にしたときだけ。停止や無料期間へ戻したときは、まだ
+    入金を待っている状態なので残す。
+  */
+  if (next === 'active') {
+    await admin
+      .from('admin_notices')
+      .update({
+        state: 'done',
+        decided_at: new Date().toISOString(),
+        decided_by: me.userId,
+      })
+      .eq('kind', 'payment')
+      .eq('member_id', userId)
+      .eq('state', 'open');
+  }
+
   revalidatePath('/members');
+  revalidatePath('/', 'layout');
 }

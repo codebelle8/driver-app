@@ -2,14 +2,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { approvePurge, declinePurge, dismissNotice } from '@/app/actions/notices';
 import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { SignOutIcon } from '@/components/icons';
+import { NoticeMenu } from '@/components/notice-menu';
 import { NavigationOverlay } from '@/components/navigation-overlay';
 import { NavLinks } from '@/components/nav-links';
 import { ScrollTopButton } from '@/components/scroll-top';
 import { SideNavPanel, SideNavProvider, SideNavTrigger } from '@/components/side-nav';
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
+import { ensurePurgeRequest, fetchOpenNotices } from '@/lib/notices';
 import { createClient } from '@/lib/supabase/server';
 
 async function signOut() {
@@ -26,6 +29,22 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
     getLocale(),
     getTheme(),
   ]);
+
+  /*
+    知らせは管理者だけに出す。
+
+    履歴の整理も会員のお支払いも、編集者・調査員が判断する立場にない。
+    出しても押せないものを見せると、押せないことのほうが目に付く。
+
+    お伺いを作るのもここで行う。仕掛け（cron）を持たずに済ませるため、
+    管理者が画面を開いたときに時期を確かめる。消しはしない。
+  */
+  const isAdmin = staff.profile.role === 'admin';
+  let notices: Awaited<ReturnType<typeof fetchOpenNotices>> = null;
+  if (isAdmin) {
+    await ensurePurgeRequest();
+    notices = await fetchOpenNotices();
+  }
 
   const roleLabel = {
     admin: t.nav.roleAdmin,
@@ -98,6 +117,17 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
 
             {/* ml-auto で操作ボタンを右端へ寄せる */}
             <div className="ml-auto flex shrink-0 items-center gap-2">
+              {isAdmin && notices !== null && (
+                <NoticeMenu
+                  items={notices}
+                  locale={locale}
+                  labels={t.notices}
+                  approve={approvePurge}
+                  decline={declinePurge}
+                  dismiss={dismissNotice}
+                />
+              )}
+
               <ThemeToggle
                 initial={theme}
                 labels={{

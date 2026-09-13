@@ -223,7 +223,32 @@ const ja = {
     unknownUser: '（削除された利用者）',
     filterAll: 'すべて',
     changedFields: '件の項目を変更',
-    note: '記録はデータベース側で自動的に残るため、画面の操作では消せません。',
+    note: '記録はデータベース側で自動的に残ります。半年に一度、半年より古い記録の整理をお伺いします。同意をいただいたときだけ消し、それ以外の方法では消せません。',
+  },
+
+  /*
+    ヘッダーの知らせの窓。
+
+    文面はここで組み立てる。データベース側には種類と手がかりしか
+    入れていない。文字を入れてしまうと、表示の言語を切り替えても
+    前の言語のまま残る。
+  */
+  notices: {
+    title: 'お知らせ',
+    open: 'お知らせを開く',
+    empty: '新しいお知らせはありません。',
+    unread: '未対応 {n} 件',
+    purgeTitle: '操作履歴の整理',
+    purgeBody: '{date} より古い記録が {count} 件あります。消してよろしいでしょうか。',
+    purgeApprove: '同意して消す',
+    purgeDecline: '今回は見送る',
+    purgeNote: '直近半年ぶんは残ります。消した記録は戻せません。',
+    paymentTitle: 'お支払いの報告',
+    paymentBody: '会員番号 {no} の方から、{plan}のお振込みを済ませたとご報告がありました。',
+    paymentGo: '会員・お支払いへ',
+    dismiss: '取り下げる',
+    monthly: '月額',
+    yearly: '年額',
   },
   common: {
     save: '保存',
@@ -747,7 +772,25 @@ const en: Dictionary = {
     unknownUser: '(deleted user)',
     filterAll: 'All',
     changedFields: 'field(s) changed',
-    note: 'Records are written by the database itself and cannot be removed from this screen.',
+    note: 'Records are written automatically by the database. Every six months we ask whether to clear entries older than six months. They are removed only with your consent, and there is no other way to delete them.',
+  },
+
+  notices: {
+    title: 'Notifications',
+    open: 'Open notifications',
+    empty: 'Nothing new.',
+    unread: '{n} to handle',
+    purgeTitle: 'Clearing the activity log',
+    purgeBody: 'There are {count} entries older than {date}. May we remove them?',
+    purgeApprove: 'Agree and remove',
+    purgeDecline: 'Not this time',
+    purgeNote: 'The last six months are kept. Removed entries cannot be restored.',
+    paymentTitle: 'Payment reported',
+    paymentBody: 'Member {no} reports they have made the {plan} transfer.',
+    paymentGo: 'Go to members',
+    dismiss: 'Dismiss',
+    monthly: 'monthly',
+    yearly: 'annual',
   },
   common: {
     save: 'Save',

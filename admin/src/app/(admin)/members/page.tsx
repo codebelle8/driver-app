@@ -1,11 +1,20 @@
 import { savePaymentSettings, setMemberActive, setMemberBlocked } from '@/app/actions/members';
 import { PaymentSettingsForm } from '@/components/payment-settings-form';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
+import { PageLink } from '@/components/page-link';
 import { requireAdmin } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * 1ページに出す人数。ご指示 2026-09-14。
+ *
+ * 通帳と見比べながら1人ずつ手を打つ画面なので、一度に並べる数を
+ * 抑える。多く並べても、上から順に処理する使い方は変わらない。
+ */
+const PAGE_SIZE = 10;
 
 /**
  * 会員（ドライバー）と、お支払い。
@@ -22,8 +31,9 @@ export const dynamic = 'force-dynamic';
  *   メールアドレスは auth 側にあり、そちらは service_role でしか
  *   引けない。同じ鍵で揃えたほうが、二種類の経路を持たずに済む。
  */
-export default async function MembersPage() {
+export default async function MembersPage({ searchParams }: PageProps<'/members'>) {
   await requireAdmin();
+  const page = Math.max(1, Number((await searchParams).page) || 1);
   const t = await getDictionary();
   const m = t.members;
 
@@ -83,6 +93,19 @@ export default async function MembersPage() {
 
   const count = (want: number) => members.filter((p) => rank(p) === want).length;
 
+  /*
+    切り出しは**並べ替えたあと**に行う。
+
+    並びは「手を打つ必要がある順」で、期限切れが先頭に来る。先に
+    切り出すと、その順番が崩れて期限切れが後ろのページへ散らばる。
+
+    内訳（期限切れ◯名…）は全体の数のまま出す。ページごとの数を
+    出しても、何人に手を打つ必要があるかが分からなくなる。
+  */
+  const lastPage = Math.max(1, Math.ceil(members.length / PAGE_SIZE));
+  const from = Math.min(page, lastPage) - 1;
+  const shown = members.slice(from * PAGE_SIZE, from * PAGE_SIZE + PAGE_SIZE);
+
   return (
     <div className="space-y-6">
       <PageHeader title={m.title} description={m.description} />
@@ -139,7 +162,7 @@ export default async function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {members.map((p) => {
+                {shown.map((p) => {
                   const paid = p.status === 'active';
                   const blocked = p.status === 'blocked';
                   const left = daysTo(p.trial_ends_at);
@@ -227,6 +250,26 @@ export default async function MembersPage() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {lastPage > 1 && (
+          <nav
+            className="flex items-center justify-center gap-2 border-t border-border px-5 py-3"
+            aria-label={t.common.pagination}
+          >
+            <PageLink
+              href={page > 2 ? `/members?page=${page - 1}` : '/members'}
+              disabled={page <= 1}
+            >
+              {t.common.prev}
+            </PageLink>
+            <span className="tabular px-3 text-sm text-text-muted">
+              {Math.min(page, lastPage)} / {lastPage}
+            </span>
+            <PageLink href={`/members?page=${page + 1}`} disabled={page >= lastPage}>
+              {t.common.next}
+            </PageLink>
+          </nav>
         )}
       </Card>
     </div>
