@@ -10,7 +10,7 @@ import {
   UsersIcon,
   HistoryIcon,
   CardIcon,
-  BellIcon,
+  MegaphoneIcon,
   DocumentIcon,
 } from '@/components/icons';
 import { useCloseSideNav } from '@/components/side-nav';
@@ -57,11 +57,17 @@ export function NavLinks({
     ...(isAdmin
       ? [
           { href: '/members', label: labels.members, Icon: CardIcon },
-          { href: '/push', label: labels.push, Icon: BellIcon },
           { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
           { href: '/history', label: labels.history, Icon: HistoryIcon },
-          /* 規約類の掲載先。開くのは決めるときだけなので、いちばん下。 */
+          /* 規約類の掲載先。開くのは決めるときだけなので、下のほうへ。 */
           { href: '/site', label: labels.site, Icon: DocumentIcon },
+          /*
+            お知らせを送る。ご指示によりいちばん下（2026-09-14）。
+
+            印は拡声器にした。ヘッダーのベルと同じ印だったため、
+            「届いた知らせ」と「こちらから送る」が見分けられなかった。
+          */
+          { href: '/push', label: labels.push, Icon: MegaphoneIcon },
         ]
       : []),
   ];

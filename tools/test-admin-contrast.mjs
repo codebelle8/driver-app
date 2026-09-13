@@ -219,9 +219,10 @@ try {
     ...(facilityId ? [['施設の詳細', `/facilities/${facilityId}`]] : []),
     ['カテゴリ', '/categories'],
     ['会員', '/members'],
-    ['お知らせ', '/push'],
+    ['通知を送る', '/push'],
     ['アカウント', '/accounts'],
     ['操作履歴', '/history'],
+    ['お知らせ', '/notices'],
     ['サイト設定', '/site'],
   ];
 

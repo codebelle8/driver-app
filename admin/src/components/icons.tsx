@@ -135,6 +135,24 @@ export function BellIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/**
+ * 拡声器 — お知らせを送る。
+ *
+ * **ベルとは分ける。** ヘッダーのベルは「届いた知らせを見る」で、
+ * こちらは「こちらから送る」。同じ印を両方に使うと、押すまで
+ * どちらの用かが分からない（ご指摘 2026-09-14）。
+ */
+export function MegaphoneIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1Z" />
+      <path d="M6 14v4a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-2" />
+      <path d="M15.5 9a3.5 3.5 0 0 1 0 6" />
+      <path d="M18.5 6.5a7 7 0 0 1 0 11" />
+    </svg>
+  );
+}
+
 /** カード — 会員とお支払い */
 export function CardIcon(props: SVGProps<SVGSVGElement>) {
   return (

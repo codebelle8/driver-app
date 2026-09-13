@@ -42,7 +42,7 @@ const PASSWORD = 'Rk7vNq2wXe5tGa';
 
 /** 細い順に見る。320px は今も現役の端末（iPhone SE 第1世代）。 */
 const WIDTHS = [320, 360, 390];
-const PATHS = ['/', '/facilities', '/categories', '/members', '/push', '/accounts', '/history', '/site'];
+const PATHS = ['/', '/facilities', '/categories', '/members', '/push', '/accounts', '/history', '/site', '/notices'];
 
 let pass = 0;
 const failures = [];

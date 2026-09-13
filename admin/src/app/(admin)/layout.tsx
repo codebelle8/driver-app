@@ -2,10 +2,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { approvePurge, declinePurge, dismissNotice } from '@/app/actions/notices';
 import { LocaleSelect, ThemeToggle } from '@/components/header-controls';
 import { SignOutIcon } from '@/components/icons';
-import { NoticeMenu } from '@/components/notice-menu';
+import { NoticeBell } from '@/components/notice-bell';
 import { NavigationOverlay } from '@/components/navigation-overlay';
 import { NavLinks } from '@/components/nav-links';
 import { ScrollTopButton } from '@/components/scroll-top';
@@ -128,14 +127,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             {/* ml-auto で操作ボタンを右端へ寄せる */}
             <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               {isAdmin && notices !== null && (
-                <NoticeMenu
-                  items={notices}
-                  locale={locale}
-                  labels={t.notices}
-                  approve={approvePurge}
-                  decline={declinePurge}
-                  dismiss={dismissNotice}
-                />
+                <NoticeBell items={notices} locale={locale} labels={t.notices} />
               )}
 
               <ThemeToggle

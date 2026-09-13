@@ -147,14 +147,22 @@ async function callRpc(token, name) {
   return { ok: r.ok, body: b };
 }
 
-/** ベルの未対応の数を読む。出ていなければ null。 */
+/**
+ * ベルの未対応の数を読む。出ていなければ null。
+ *
+ * ベルは**リンク**（押すと一覧へ移る）。釦ではない。
+ */
 const BELL = () => {
-  const btn = [...document.querySelectorAll('button')].find((b) =>
+  const el = [...document.querySelectorAll('a, button')].find((b) =>
     (b.getAttribute('aria-label') ?? '').includes('お知らせ'),
   );
-  if (!btn) return { ある: false };
-  const badge = btn.querySelector('span');
-  return { ある: true, 数: badge ? badge.textContent.trim() : '' };
+  if (!el) return { ある: false };
+  const badge = el.querySelector('span');
+  return {
+    ある: true,
+    数: badge ? badge.textContent.trim() : '',
+    行き先: el.getAttribute('href') ?? null,
+  };
 };
 
 let browser = null;
@@ -226,12 +234,13 @@ try {
   check('管理者にベルが出る', bell.ある === true, JSON.stringify(bell));
   check('未対応の数が出る', bell.数 !== '', JSON.stringify(bell));
 
-  await page.click('button[aria-label*="お知らせ"]');
-  await page.waitForTimeout(600);
-  const body = await page.evaluate(() => document.querySelector('[role="dialog"]')?.innerText ?? '');
-  check('お支払いの報告が並ぶ', body.includes('お支払いの報告'), body.slice(0, 120));
-  check('会員番号が出る', /\d{4}/.test(body), body.slice(0, 120));
-  await page.keyboard.press('Escape');
+  check('ベルは一覧への行き先を持つ', bell.行き先 === '/notices', JSON.stringify(bell));
+
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  const body = await page.evaluate(() => document.body.innerText);
+  check('一覧にお支払いの報告が並ぶ', body.includes('お支払いの報告'), body.slice(0, 200));
+  check('会員番号が出る', /\d{4}/.test(body), body.slice(0, 200));
 
   // --- 2. 入金を確認すると片付く ---------------------------------------------
   console.log('--- 入金の確認 ---');
@@ -272,28 +281,38 @@ try {
   seededAudit = seeded.body?.[0]?.id ?? null;
   check('古い記録を1件置いた', seededAudit !== null, JSON.stringify(seeded.body).slice(0, 120));
 
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
-  await page.click('button[aria-label*="お知らせ"]');
-  await page.waitForTimeout(600);
-  let text = await page.evaluate(() => document.querySelector('[role="dialog"]')?.innerText ?? '');
-  check('整理のお伺いが出る', text.includes('操作履歴の整理'), text.slice(0, 160));
-  check('戻せない旨を添えている', text.includes('戻せません'), text.slice(0, 160));
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  const text = await page.evaluate(() => document.body.innerText);
+  check('整理のお伺いが出る', text.includes('操作履歴の整理'), text.slice(0, 200));
+  check('戻せない旨を添えている', text.includes('戻せません'), text.slice(0, 200));
 
   // --- 4. 見送ると、消えない -------------------------------------------------
   await page.click('button:has-text("今回は見送る")');
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
   const afterDecline = { all: await countAll(), old: await countOld() };
   check('見送ったら1件も消えていない',
     afterDecline.all === before.all + 1 && afterDecline.old === 1,
     `総数 ${afterDecline.all}（前 ${before.all}）/ 古い ${afterDecline.old}`);
 
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
   const openAfter = await sb('/rest/v1/admin_notices?select=id&kind=eq.purge_request&state=eq.open');
+  /*
+    **二重に積まれていないことも、ここで見る。**
+
+    外枠と中身が同時に描かれるため、両方が「まだ無い」と判断して
+    2件作ったことがあった（2026-09-14、差は2ミリ秒）。
+    データベース側の索引で1件までに縛ってある。
+  */
   check('見送った直後に、同じお伺いを出し直さない',
     Array.isArray(openAfter.body) && openAfter.body.length === 0,
     `未対応 ${Array.isArray(openAfter.body) ? openAfter.body.length : '?'} 件`);
+
+  const everyPurge = await sb('/rest/v1/admin_notices?select=id,state&kind=eq.purge_request');
+  check('お伺いが二重に積まれていない',
+    Array.isArray(everyPurge.body) && everyPurge.body.length === 1,
+    JSON.stringify(everyPurge.body));
 
   // --- 5. 同意すると、古いものだけが消える -----------------------------------
   const cut = new Date();
@@ -308,10 +327,8 @@ try {
   });
   const purgeId = made.body?.[0]?.id ?? null;
 
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
-  await page.click('button[aria-label*="お知らせ"]');
-  await page.waitForTimeout(600);
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
   await page.click('button:has-text("同意して消す")');
   await page.waitForTimeout(2500);
 
@@ -377,6 +394,93 @@ try {
     check('会員が10名以下なのでページ送りは出さない',
       (await page.locator('nav[aria-label="ページ送り"]').count()) === 0);
   }
+
+  // --- 8. 左の並びと印 -------------------------------------------------------
+  console.log('--- 左の並びと印 ---');
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  const nav = await page.evaluate(() => {
+    const links = [...document.querySelectorAll('aside a[href], nav a[href]')]
+      .filter((a) => a.textContent.trim() && a.querySelector('svg'));
+    const seen = new Map();
+    for (const a of links) if (!seen.has(a.getAttribute('href'))) seen.set(a.getAttribute('href'), a);
+    const list = [...seen.entries()].map(([href, a]) => ({
+      href,
+      label: a.textContent.trim(),
+      d: [...a.querySelectorAll('svg path, svg circle')].map((x) => x.getAttribute('d') ?? 'circle').join('|'),
+    }));
+    const bell = document.querySelector('a[aria-label*="お知らせ"] svg');
+    return {
+      list,
+      bellD: bell
+        ? [...bell.querySelectorAll('path, circle')].map((x) => x.getAttribute('d') ?? 'circle').join('|')
+        : null,
+    };
+  });
+  const last = nav.list[nav.list.length - 1];
+  check(`「通知」が左の並びのいちばん下（いまは「${last?.label ?? '?'}」）`,
+    last?.href === '/push', JSON.stringify(nav.list.map((x) => x.label)));
+
+  const push = nav.list.find((x) => x.href === '/push');
+  check('「通知」の印が、ヘッダーのベルと違う',
+    Boolean(push && nav.bellD && push.d !== nav.bellD),
+    `通知 ${push?.d?.slice(0, 40)} / ベル ${nav.bellD?.slice(0, 40)}`);
+
+  // --- 9. 細い画面 -----------------------------------------------------------
+  console.log('--- 細い画面（390×844） ---');
+  const spCtx = await browser.newContext({
+    locale: 'ja-JP',
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await spCtx.addCookies([{ name: 'kn_locale', value: 'ja', domain: HOST, path: '/' }]);
+  const sp = await spCtx.newPage();
+  await sp.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await sp.fill('input[name="email"]', ADMIN_MAIL);
+  await sp.fill('input[name="password"]', PASSWORD);
+  await sp.click('button[type="submit"]');
+  await sp.waitForFunction(() => !location.pathname.startsWith('/login'), { timeout: 30000 });
+  await sp.waitForLoadState('networkidle');
+  await sp.waitForTimeout(800);
+
+  /*
+    指で押して移る。覗き窓は出さない。
+
+    以前は押すと窓が開き、その窓が画面の左へはみ出して文字が
+    切れていた（ご報告 2026-09-14）。
+  */
+  await sp.tap('a[aria-label*="お知らせ"]');
+  await sp.waitForTimeout(1500);
+  check('指で押すと一覧へ移る',
+    new URL(sp.url()).pathname === '/notices', sp.url());
+
+  const peek = await sp.evaluate(() => document.querySelectorAll('[role="tooltip"]').length);
+  check('覗き窓は出ない（指で操作する端末）', peek === 0, `${peek} 個`);
+
+  /* 画面の外へ出ていないか。はみ出すと文字が切れる。 */
+  const over = await sp.evaluate(() => {
+    const w = document.documentElement.clientWidth;
+    const bad = [];
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.closest('svg')) continue;
+      const b = el.getBoundingClientRect();
+      if (b.width < 2 || b.height < 2) continue;
+      /*
+        右へのはみ出しだけを見る。
+
+        左の柱（aside）は、狭い画面では画面の外へ隠してある。
+        三本線を押すと出てくる作りで、これは正しい状態。
+        左を数えると、この引き出しを毎回「はみ出し」と呼ぶことになる。
+      */
+      if (b.right > w + 1) {
+        bad.push(`${el.tagName}.${(el.className || '').toString().slice(0, 26)} 左${Math.round(b.left)} 右${Math.round(b.right)}`);
+      }
+    }
+    return { w, bad: bad.slice(0, 4) };
+  });
+  check(`お知らせの一覧が画面に収まる（幅 ${over.w}px）`, over.bad.length === 0, over.bad.join(' | '));
+  await spCtx.close();
 
   await ctx.close();
 } finally {

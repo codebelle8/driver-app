@@ -98,6 +98,45 @@ export interface OpenNotice {
   /** payment のとき */
   memberNo?: number;
   plan?: 'monthly' | 'yearly';
+  /** 対応が済んだもののとき */
+  state?: AdminNotice['state'];
+  decidedAt?: string | null;
+  removed?: number;
+}
+
+/** 行を、画面へ渡す形へ直す。 */
+function shape(n: AdminNotice): OpenNotice {
+  const d = (n.detail ?? {}) as Record<string, unknown>;
+  return {
+    id: n.id,
+    kind: n.kind,
+    createdAt: n.created_at,
+    cutoff: typeof d.cutoff === 'string' ? d.cutoff : undefined,
+    count: typeof d.count === 'number' ? d.count : undefined,
+    memberNo: typeof d.member_no === 'number' ? d.member_no : undefined,
+    plan: d.plan === 'monthly' || d.plan === 'yearly' ? d.plan : undefined,
+    state: n.state,
+    decidedAt: n.decided_at,
+    removed: typeof d.removed === 'number' ? d.removed : undefined,
+  };
+}
+
+/**
+ * 対応が済んだ知らせを、新しい順に返す。
+ *
+ * 一覧の画面で「何をどうしたか」を後から辿れるようにする。
+ * 未対応が0件でも、この画面へ来た意味があるようにしておく。
+ */
+export async function fetchHandledNotices(limit = 30): Promise<OpenNotice[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('admin_notices')
+    .select('*')
+    .neq('state', 'open')
+    .order('decided_at', { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) return [];
+  return (data ?? []).map(shape);
 }
 
 /**
@@ -129,16 +168,5 @@ export async function fetchOpenNotices(limit = 20): Promise<OpenNotice[] | null>
   */
   if (error) return null;
 
-  return (data ?? []).map((n) => {
-    const d = (n.detail ?? {}) as Record<string, unknown>;
-    return {
-      id: n.id,
-      kind: n.kind,
-      createdAt: n.created_at,
-      cutoff: typeof d.cutoff === 'string' ? d.cutoff : undefined,
-      count: typeof d.count === 'number' ? d.count : undefined,
-      memberNo: typeof d.member_no === 'number' ? d.member_no : undefined,
-      plan: d.plan === 'monthly' || d.plan === 'yearly' ? d.plan : undefined,
-    };
-  });
+  return (data ?? []).map(shape);
 }
