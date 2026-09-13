@@ -194,7 +194,7 @@ export function LocaleSelect({
         aria-label={label}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-border bg-surface pl-2.5 pr-2 text-xs font-medium text-text transition-colors hover:border-accent focus:border-accent disabled:opacity-60 sm:pl-2.5"
+        className="flex h-9 cursor-pointer items-center gap-1 rounded-md border border-border bg-surface pl-1.5 pr-1 text-xs font-medium text-text transition-colors hover:border-accent focus:border-accent disabled:opacity-60 sm:gap-1.5 sm:pl-2.5 sm:pr-2"
       >
         {/*
           旗を出すので、地球の印は要らなくなった。

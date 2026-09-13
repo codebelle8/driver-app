@@ -175,6 +175,7 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
   node tools/test-contrast.mjs https://kurumayose-navi.vercel.app
   node tools/test-admin-contrast.mjs https://kurumayose-navi-admin.vercel.app
   node tools/check-palette.mjs
+  node tools/test-notices.mjs https://kurumayose-navi-admin.vercel.app
   node tools/check-account-guard.mjs
   node tools/check-bundle.mjs
   ```

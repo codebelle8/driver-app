@@ -74,7 +74,17 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
           狭い画面では横へ流れていた。
         */}
         <header className="z-20 shrink-0 border-b border-border bg-bg/85 backdrop-blur-md">
-          <div className="flex flex-nowrap items-center gap-2 px-3 py-3 sm:gap-3 sm:px-6">
+          {/*
+            **320px でも収まるように詰めてある。**
+
+            知らせのベルを足したところ、320px で36px はみ出した
+            （2026-09-14 実測）。操作が4つ並ぶと、この幅では
+            既定の余白では入らない。
+
+            削ったのは余白とロゴの大きさだけ。押せる部分（36px）は
+            そのまま残している。狭い画面ほど指は正確に狙えない。
+          */}
+          <div className="flex flex-nowrap items-center gap-1.5 px-2 py-3 sm:gap-3 sm:px-6">
             {/* 狭い画面だけに出る三本線。柱を重ねて開く。 */}
             <SideNavTrigger label={t.nav.menu} />
 
@@ -99,7 +109,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 alt={t.brand.name}
                 width={127}
                 height={44}
-                className="only-light h-[34px] w-auto shrink-0 sm:h-[44px]"
+                className="only-light h-7 w-auto shrink-0 min-[360px]:h-[34px] sm:h-[44px]"
                 priority
               />
               <Image
@@ -108,7 +118,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 aria-hidden
                 width={127}
                 height={44}
-                className="only-dark h-[34px] w-auto shrink-0 sm:h-[44px]"
+                className="only-dark h-7 w-auto shrink-0 min-[360px]:h-[34px] sm:h-[44px]"
                 priority
               />
               {/* 副題は場所を取るため lg 以上のみ */}
@@ -116,7 +126,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
             </Link>
 
             {/* ml-auto で操作ボタンを右端へ寄せる */}
-            <div className="ml-auto flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
               {isAdmin && notices !== null && (
                 <NoticeMenu
                   items={notices}

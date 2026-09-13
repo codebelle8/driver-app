@@ -152,10 +152,21 @@ export function NoticeMenu({
           印だけでは「何か出ている」しか伝わらず、開くまで量が分からない。
           2桁を超えると丸が横に伸びるため、99 で止める。
         */}
+        {/*
+          地は主役の色にする。
+
+          警告の赤（#d4736e）に白文字を乗せると 3.2:1 にしかならない。
+          10px の数字で、基準は 4.5:1。赤は暗い配色で明るく持ち上げて
+          あるため、白との差が足りない。
+
+          #008000 に白で 5.1:1。明るい配色でも同じ値で 5.1:1。
+          丸そのものの見分け（地との差）は、暗い地で 3.6:1・明るい地で
+          4.8:1 あり、操作部品の基準（3:1）を満たす。
+        */}
         {n > 0 && (
           <span
             aria-hidden
-            className="tabular absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-bg bg-danger px-1 text-[10px] font-bold leading-none text-white"
+            className="tabular absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-bg bg-accent px-1 text-[10px] font-bold leading-none text-accent-text"
           >
             {n > 99 ? '99+' : n}
           </span>
@@ -197,11 +208,21 @@ export function NoticeMenu({
                           消す側を目立たせない。押し間違いは戻せない。
                           見送るほうを先に置き、消すほうは警告の色で出す。
                         */}
+                        {/*
+                          **押したときに窓を閉じないこと。**
+
+                          閉じると、この窓ごと描き出しから外れる。form が
+                          消えてしまい、**送信そのものが始まらない。**
+                          実際に効かず、押しても何も起きなかった。
+
+                          返事が済むと、その行は一覧から消える（サーバー側で
+                          読み直すため）。窓は開いたままでよく、残りの知らせが
+                          そのまま見える。
+                        */}
                         <form action={decline}>
                           <input type="hidden" name="id" value={it.id} />
                           <button
                             type="submit"
-                            onClick={() => setOpen(false)}
                             className="cursor-pointer rounded-md border border-border-strong px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-accent"
                           >
                             {labels.purgeDecline}
@@ -211,7 +232,6 @@ export function NoticeMenu({
                           <input type="hidden" name="id" value={it.id} />
                           <button
                             type="submit"
-                            onClick={() => setOpen(false)}
                             className="cursor-pointer rounded-md border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
                           >
                             {labels.purgeApprove}
@@ -241,7 +261,6 @@ export function NoticeMenu({
                           <input type="hidden" name="id" value={it.id} />
                           <button
                             type="submit"
-                            onClick={() => setOpen(false)}
                             className="cursor-pointer rounded-md px-2 py-1.5 text-xs text-text-faint transition-colors hover:text-danger"
                           >
                             {labels.dismiss}
