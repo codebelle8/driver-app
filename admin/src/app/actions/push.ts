@@ -85,7 +85,7 @@ export async function sendPush(_prev: ActionState, formData: FormData): Promise<
   if (!title) errors.title = '件名を入力してください';
   else if (title.length > 40) errors.title = '40文字以内で入力してください';
   if (body.length > 120) errors.body = '120文字以内で入力してください';
-  if (Object.keys(errors).length > 0) return { errors };
+  if (Object.keys(errors).length > 0) return { errors, message: '入力内容をご確認ください。赤い欄をご覧ください。' };
 
   const admin = createAdminClient();
   const { data: settings } = await admin

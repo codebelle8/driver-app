@@ -79,7 +79,7 @@ export async function savePaymentSettings(
     errors.account_type = '種別をお選びください';
   }
 
-  if (Object.keys(errors).length > 0) return { errors };
+  if (Object.keys(errors).length > 0) return { errors, message: '入力内容をご確認ください。赤い欄をご覧ください。' };
 
   const admin = createAdminClient();
   const { error } = await admin

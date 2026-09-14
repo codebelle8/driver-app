@@ -75,7 +75,7 @@ export async function createCategory(
 
   const v = readForm(formData);
   const errors = validate(v, { requireCode: true });
-  if (Object.keys(errors).length) return { errors };
+  if (Object.keys(errors).length) return { errors, message: '入力内容をご確認ください。赤い欄をご覧ください。' };
 
   const supabase = await createClient();
 
@@ -102,7 +102,9 @@ export async function createCategory(
   });
 
   if (error) {
-    if (error.code === '23505') return { errors: describeConflict(error.message) };
+    if (error.code === '23505') {
+      return { errors: describeConflict(error.message), message: '入力内容をご確認ください。赤い欄をご覧ください。' };
+    }
     return { message: `追加できませんでした: ${error.message}` };
   }
 
@@ -121,7 +123,7 @@ export async function updateCategory(
   if (!v.id) return { message: 'カテゴリが特定できませんでした' };
 
   const errors = validate(v, { requireCode: false });
-  if (Object.keys(errors).length) return { errors };
+  if (Object.keys(errors).length) return { errors, message: '入力内容をご確認ください。赤い欄をご覧ください。' };
 
   const supabase = await createClient();
 
@@ -138,7 +140,9 @@ export async function updateCategory(
     .eq('id', v.id);
 
   if (error) {
-    if (error.code === '23505') return { errors: describeConflict(error.message) };
+    if (error.code === '23505') {
+      return { errors: describeConflict(error.message), message: '入力内容をご確認ください。赤い欄をご覧ください。' };
+    }
     return { message: `保存できませんでした: ${error.message}` };
   }
 

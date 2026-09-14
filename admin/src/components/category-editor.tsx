@@ -304,7 +304,7 @@ function AddForm({ t }: { t: Dictionary }) {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={c.name} hint={c.nameHint} error={state.errors?.name}>
-            <input name="name" required className={inputClass} placeholder="ホテル" />
+            <input name="name" className={inputClass} placeholder="ホテル" />
           </Field>
 
           {/* 英語表記。空欄なら日本語のまま出る。 */}
@@ -313,11 +313,11 @@ function AddForm({ t }: { t: Dictionary }) {
           </Field>
 
           <Field label={c.prefix} hint={c.prefixHint} error={state.errors?.code_prefix}>
-            <input name="code_prefix" required className={inputClass} placeholder="HTL" />
+            <input name="code_prefix" className={inputClass} placeholder="HTL" />
           </Field>
 
           <Field label={c.code} hint={c.codeHint} error={state.errors?.code}>
-            <input name="code" required className={inputClass} placeholder="hotel" />
+            <input name="code" className={inputClass} placeholder="hotel" />
           </Field>
         </div>
 

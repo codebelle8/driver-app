@@ -73,7 +73,6 @@ export function AccountForm({
           <Field label={a.displayName} required error={err('display_name')}>
             <input
               name="display_name"
-              required
               className={inputClass}
               placeholder="山田 太郎"
             />
@@ -83,7 +82,6 @@ export function AccountForm({
             <input
               name="email"
               type="email"
-              required
               className={inputClass}
               placeholder="driver@example.com"
             />

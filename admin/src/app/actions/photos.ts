@@ -93,7 +93,7 @@ export async function uploadPhoto(
 
   if (typeof facilityId !== 'string') return { message: '施設が特定できませんでした' };
   const fileError = checkFile(file);
-  if (fileError) return { errors: { file: fileError } };
+  if (fileError) return { errors: { file: fileError }, message: fileError };
 
   const supabase = await createClient();
 
@@ -270,7 +270,7 @@ export async function replacePhoto(
     return { message: '写真が特定できませんでした' };
   }
   const fileError = checkFile(file);
-  if (fileError) return { errors: { file: fileError } };
+  if (fileError) return { errors: { file: fileError }, message: fileError };
 
   const supabase = await createClient();
 

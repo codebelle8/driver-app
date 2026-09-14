@@ -76,7 +76,6 @@ export function EntryPointEditor({
             name="code"
             defaultValue={entryPoint?.code ?? suggestedCode ?? 'A'}
             maxLength={1}
-            required
             className={`${inputClass} text-center font-bold uppercase`}
           />
         </Field>
@@ -99,7 +98,6 @@ export function EntryPointEditor({
           <input
             name="name"
             defaultValue={entryPoint?.name}
-            required
             className={inputClass}
             placeholder="正面車寄せ（メインポーチ）"
           />

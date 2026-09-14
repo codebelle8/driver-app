@@ -40,7 +40,6 @@ export function FacilityForm({
             <input
               name="name"
               defaultValue={facility?.name}
-              required
               className={inputClass}
               placeholder="グランドホテル汐留"
             />
@@ -50,7 +49,6 @@ export function FacilityForm({
             <input
               name="name_kana"
               defaultValue={facility?.name_kana}
-              required
               className={inputClass}
               placeholder="ぐらんどほてるしおどめ"
             />
@@ -71,7 +69,6 @@ export function FacilityForm({
             <select
               name="category_id"
               defaultValue={facility?.category_id ?? ''}
-              required
               className={inputClass}
             >
               <option value="" disabled>
@@ -118,7 +115,6 @@ export function FacilityForm({
             <input
               name="prefecture"
               defaultValue={facility?.prefecture}
-              required
               className={inputClass}
               placeholder="東京都"
             />
@@ -138,7 +134,6 @@ export function FacilityForm({
           <input
             name="address_line"
             defaultValue={facility?.address_line}
-            required
             className={inputClass}
             placeholder="東新橋1-8-2"
           />

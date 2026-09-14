@@ -99,7 +99,10 @@ export async function saveCaution(
     return { message: '入口が特定できませんでした' };
   }
   if (typeof body !== 'string' || !body.trim()) {
-    return { errors: { body: '注意事項の本文を入力してください' } };
+    return {
+      errors: { body: '注意事項の本文を入力してください' },
+      message: '入力内容をご確認ください。赤い欄をご覧ください。',
+    };
   }
 
   const timeFrom = formData.get('time_from');

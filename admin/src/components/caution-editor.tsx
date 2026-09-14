@@ -123,7 +123,6 @@ export function CautionEditor({
             <textarea
               name="body"
               rows={2}
-              required
               className={inputClass}
               placeholder={c.bodyPlaceholder}
             />

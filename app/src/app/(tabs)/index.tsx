@@ -166,6 +166,25 @@ const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   station: 'train',
 };
 
+/**
+ * 印の無いカテゴリに使う印。
+ *
+ * **印が無いからといって、出さないのは誤り。**
+ *   以前はここに載っているカテゴリだけを出していた。管理画面で
+ *   新しいカテゴリを足しても、**アプリには一切出なかった**
+ *   （ご報告 2026-09-14）。発注元は追加したつもりでいるのに、
+ *   利用者からは存在しない。
+ *
+ *   カテゴリは管理画面から増やせる。増えるたびにこちらへ印を
+ *   足さなければ出ない作りは、**増やせる仕組みと噛み合っていない。**
+ *   決まった印が無いものは、この印で出す。
+ */
+const CATEGORY_ICON_FALLBACK: keyof typeof Ionicons.glyphMap = 'location';
+
+/** カテゴリの印。載っていなければ既定のものを返す。 */
+const iconOf = (code: string): keyof typeof Ionicons.glyphMap =>
+  CATEGORY_ICON[code] ?? CATEGORY_ICON_FALLBACK;
+
 export default function SearchScreen() {
   const c = useTheme();
   const t = useT();
@@ -404,7 +423,11 @@ export default function SearchScreen() {
   }, [categories, categoryId, query, t, locale]);
 
   const chips = useMemo(
-    () => categories.filter((cat) => CATEGORY_ICON[cat.code]),
+    /*
+      **すべて出す。** 以前は印のあるものだけに絞っており、管理画面で
+      増やしたカテゴリがアプリに出なかった。
+    */
+    () => categories,
     [categories],
   );
 
@@ -888,7 +911,7 @@ function CategoryCard({
       ]}
     >
       <View style={wide ? styles.cardIconWide : styles.cardIcon}>
-        <Ionicons name={CATEGORY_ICON[category.code]} size={wide ? 26 : 20} color={c.accent} />
+        <Ionicons name={iconOf(category.code)} size={wide ? 26 : 20} color={c.accent} />
       </View>
       <View style={styles.cardText}>
         <Text style={wide ? styles.cardTitleWide : styles.cardTitle}>
