@@ -46,6 +46,17 @@ export function SiteSettingsForm({
       {state.ok && state.message && <Alert tone="ok">{state.message}</Alert>}
       {!state.ok && state.message && <Alert tone="danger">{state.message}</Alert>}
 
+      {/*
+        **ブラウザ任せの検査（type="url" / type="email"）は使わない。**
+
+        「example.com/terms」のように https を付けずに打つと、ブラウザが
+        送信そのものを止め、英語の吹き出しを一瞬出して消える。画面には
+        何も残らないため、**保存を押しても無反応に見える。**
+        実際にご報告をいただいた（2026-09-14）。
+
+        形式の確認はこちら側で行い、日本語で、消えない形で出す。
+        入力の種類（inputMode）だけは残す。携帯で打つときの並びが変わる。
+      */}
       <form action={formAction} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={s.operatorName} hint={s.operatorNameHint}>
@@ -60,7 +71,7 @@ export function SiteSettingsForm({
           <Field label={s.contactEmail} hint={s.contactEmailHint} error={err('contact_email')}>
             <input
               name="contact_email"
-              type="email"
+              inputMode="email"
               defaultValue={initial.contact_email ?? ''}
               className={inputClass}
               placeholder="support@example.com"
@@ -71,7 +82,7 @@ export function SiteSettingsForm({
         <Field label={s.termsUrl} error={err('terms_url')}>
           <input
             name="terms_url"
-            type="url"
+            inputMode="url"
             defaultValue={initial.terms_url ?? ''}
             className={inputClass}
             placeholder="https://example.com/terms"
@@ -81,7 +92,7 @@ export function SiteSettingsForm({
         <Field label={s.privacyUrl} error={err('privacy_url')}>
           <input
             name="privacy_url"
-            type="url"
+            inputMode="url"
             defaultValue={initial.privacy_url ?? ''}
             className={inputClass}
             placeholder="https://example.com/privacy"
@@ -91,7 +102,7 @@ export function SiteSettingsForm({
         <Field label={s.lawUrl} error={err('law_url')}>
           <input
             name="law_url"
-            type="url"
+            inputMode="url"
             defaultValue={initial.law_url ?? ''}
             className={inputClass}
             placeholder="https://example.com/law"

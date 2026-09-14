@@ -373,7 +373,12 @@ const ja = {
       '入口・車寄せの情報と写真は、この施設を保存したあとに登録できます。分かっている範囲だけ入力して保存して問題ありません。',
     createdNotice: '施設を登録しました。続けて入口・車寄せの情報を追加してください。',
     submitCreate: '登録して次へ進む',
-    submitUpdate: '変更を保存',
+    /*
+      **何を保存する釦なのかを、文言に入れる。**
+      施設の画面には入口ごとの保存も並ぶ。どれも「変更を保存」だと、
+      押し間違えても気づけない。押した枠の中身だけが保存される。
+    */
+    submitUpdate: '施設の情報を保存',
     sectionBasic: '基本情報',
     sectionAddress: '所在地',
     sectionNote: '管理用メモ',
@@ -490,7 +495,8 @@ const ja = {
     noCoords: '座標未設定',
     photos: '写真',
     saveNew: '入口を追加',
-    saveEdit: '変更を保存',
+    /* 施設側の釦と同じ文言にしない。同じ画面に3つ並び、押し間違える。 */
+    saveEdit: '入口 {code} を保存',
   },
   caution: {
     heading: '注意事項',
@@ -930,7 +936,7 @@ const en: Dictionary = {
       'Entrances, drop-offs and photos can be added after saving this facility. It is fine to save with only what you know so far.',
     createdNotice: 'Facility created. Next, add the entrance and drop-off details.',
     submitCreate: 'Save and continue',
-    submitUpdate: 'Save changes',
+    submitUpdate: 'Save facility details',
     sectionBasic: 'Basic information',
     sectionAddress: 'Location',
     sectionNote: 'Internal note',
@@ -1037,7 +1043,7 @@ const en: Dictionary = {
     noCoords: 'No coordinates',
     photos: 'Photos',
     saveNew: 'Add entrance',
-    saveEdit: 'Save changes',
+    saveEdit: 'Save entrance {code}',
   },
   caution: {
     heading: 'Cautions',

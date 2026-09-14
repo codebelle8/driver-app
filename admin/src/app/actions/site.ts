@@ -33,12 +33,32 @@ export async function saveSiteSettings(
     return typeof v === 'string' ? v.trim() : '';
   };
 
+  /*
+    **「https://」の付け忘れは、こちらで補う。**
+
+    ブラウザのアドレス欄から写すと、頭の「https://」が落ちることがある。
+    そのたびに弾いていては、打ち直しになるだけで誰の得にもならない。
+    形が URL らしければ、こちらで付ける。
+
+    「http://」はそのままにしない。**この画面から出す先は、規約や
+    連絡先といった読ませるための頁**で、鍵の掛かっていない経路では
+    途中で書き換えられうる。付け替えて通すのではなく、理由を伝えて
+    直していただく（相手の頁が https に対応しているとは限らないため、
+    こちらの判断で差し替えない）。
+  */
+  const fixUrl = (raw: string): string => {
+    const t = raw.trim();
+    if (!t) return '';
+    if (t.startsWith('http://') || t.startsWith('https://')) return t;
+    return `https://${t}`;
+  };
+
   const v = {
     operatorName: get('operator_name'),
     contactEmail: get('contact_email'),
-    termsUrl: get('terms_url'),
-    privacyUrl: get('privacy_url'),
-    lawUrl: get('law_url'),
+    termsUrl: fixUrl(get('terms_url')),
+    privacyUrl: fixUrl(get('privacy_url')),
+    lawUrl: fixUrl(get('law_url')),
   };
 
   const errors: Record<string, string> = {};
@@ -47,15 +67,26 @@ export async function saveSiteSettings(
     ['privacy_url', v.privacyUrl],
     ['law_url', v.lawUrl],
   ] as const) {
-    if (value && !URL_PATTERN.test(value)) {
-      errors[key] = 'https:// で始まるURLを入力してください';
+    if (!value) continue;
+    if (value.startsWith('http://')) {
+      errors[key] = 'http:// ではなく https:// のURLをご指定ください';
+    } else if (!URL_PATTERN.test(value)) {
+      errors[key] = 'URLの形が正しくありません（例: https://example.com/terms）';
     }
   }
   if (v.contactEmail && !MAIL_PATTERN.test(v.contactEmail)) {
-    errors.contact_email = 'メールアドレスの形が正しくありません';
+    errors.contact_email = 'メールアドレスの形が正しくありません（例: info@example.com）';
   }
 
-  if (Object.keys(errors).length > 0) return { errors };
+  /*
+    **欄の下だけでなく、上にもまとめて出す。**
+
+    欄が画面の外にあると、赤い文字に気づけない。保存を押したのに
+    何も起きていないように見える。
+  */
+  if (Object.keys(errors).length > 0) {
+    return { errors, message: '入力を確かめてください。赤い欄をご覧ください。' };
+  }
 
   const admin = createAdminClient();
   const { error } = await admin

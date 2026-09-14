@@ -288,7 +288,17 @@ export function EntryPointEditor({
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? t.common.saving : entryPoint ? e.saveEdit : e.saveNew}
+          {pending
+            ? t.common.saving
+            : entryPoint
+              ? /*
+                  入口の記号（A・B…）を釦に入れる。
+
+                  施設の画面には入口ごとの保存が並ぶ。どれも同じ文言だと、
+                  どの枠を保存するのか押すまで分からない。
+                */
+                e.saveEdit.replace('{code}', entryPoint.code ?? '')
+              : e.saveNew}
         </Button>
         {onDone && (
           <Button type="button" variant="ghost" onClick={onDone}>
