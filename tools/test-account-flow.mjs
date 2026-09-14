@@ -483,8 +483,9 @@ try {
     await page.waitForTimeout(3500);
     const paid = await page.locator('body').innerText();
     check('押すとお支払いの画面が開く', paid.includes('いまのご利用状況'), paid.slice(0, 100));
-    check('その画面に月額 4,000 円がある', paid.includes('4,000 円 / 月'));
-    check('その画面に年額 40,000 円がある', paid.includes('40,000 円 / 年'));
+    /* 料金の刻みは4つになった（2026-09-14）。名前は「1か月」「1年」など。 */
+    check('その画面に 1か月 4,000 円がある', paid.includes('1か月') && paid.includes('4,000 円'));
+    check('その画面に 1年 40,000 円がある', paid.includes('1年') && paid.includes('40,000 円'));
     check('請求が起きないことを書いてある', paid.includes('まだお支払いは発生しません'));
     check('期間後どうなるかを書いてある', paid.includes('引き続きお使いいただけます'));
 
@@ -530,14 +531,14 @@ try {
 
     {
       const body = await page.locator('body').innerText();
-      check('月額 4,000 円が出ている', body.includes('4,000 円 / 月'), body.slice(0, 80));
-      check('年額 40,000 円が出ている', body.includes('40,000 円 / 年'));
+      check('1か月 4,000 円が出ている', body.includes('1か月') && body.includes('4,000 円'), body.slice(0, 120));
+      check('1年 40,000 円が出ている', body.includes('1年') && body.includes('40,000 円'));
 
       // 選ばないうちは申し込めない
       const submit = page.getByRole('button', { name: 'この内容で申し込む' });
       check('選ぶまで申し込めない', await submit.isDisabled());
 
-      await page.getByRole('radio', { name: '年額' }).click();
+      await page.getByRole('radio', { name: '1年' }).click();
       await page.waitForTimeout(400);
       await submit.click();
       await page.waitForTimeout(4000);

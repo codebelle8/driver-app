@@ -98,7 +98,19 @@ export async function fetchCatalog(): Promise<CatalogPayload> {
       ),
       fetchAll<EntryPoint>(
         'entry_points',
-        'id, facility_id, code, kind, name, name_en, approach_text, approach_text_en, approach_from, approach_from_en, nav_lat, nav_lng, dropoff_lat, dropoff_lng, height_limit_cm, is_roofed, is_24h, sort_order',
+        /*
+          is_active も取り込む。
+
+          **これが無くても隠れる。** データベース側の決まり
+          （entry_points_read_public）が、staff 以外には is_active の
+          立っている行しか返さない。取り込んだ時点で閉鎖中の入口は
+          含まれていない。
+
+          それでも持つのは、**画面側で「出す・出さない」を判じている
+          ことを、読む人に見えるようにするため。** 決まりが変わった
+          ときに、こちら側も気づける。
+        */
+        'id, facility_id, code, kind, name, name_en, approach_text, approach_text_en, approach_from, approach_from_en, nav_lat, nav_lng, dropoff_lat, dropoff_lng, height_limit_cm, is_roofed, is_24h, is_active, sort_order',
         'sort_order',
       ),
       fetchAll<Caution>(

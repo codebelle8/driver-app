@@ -160,7 +160,12 @@ try {
   await fill('city_en', 'Chiyoda-ku');
   await fill('address_line_en', '1-chome, Verification');
   await fill('summary_en', 'A hotel used only for verification.');
-  await facilityForm().getByRole('button', { name: '変更を保存' }).click();
+  /*
+    釦の名前は画面ごとに違う（施設は「施設の情報を保存」、入口は
+    「入口 A を保存」）。同じ画面に複数あり、押し分けられるよう
+    分けてある（2026-09-14）。枠の中から「保存」を含む釦を選ぶ。
+  */
+  await facilityForm().locator('button[type="submit"]').filter({ hasText: '保存' }).first().click();
   await page.waitForTimeout(3000);
 
   const saved = (await sb(`/rest/v1/facilities?select=name_en,prefecture_en,city_en,address_line_en,summary_en&id=eq.${facilityId}`)).body?.[0] ?? {};
@@ -179,7 +184,12 @@ try {
 
   // --- 空欄に戻す -------------------------------------------------------------------
   await facilityForm().locator('[name="name_en"]').fill('');
-  await facilityForm().getByRole('button', { name: '変更を保存' }).click();
+  /*
+    釦の名前は画面ごとに違う（施設は「施設の情報を保存」、入口は
+    「入口 A を保存」）。同じ画面に複数あり、押し分けられるよう
+    分けてある（2026-09-14）。枠の中から「保存」を含む釦を選ぶ。
+  */
+  await facilityForm().locator('button[type="submit"]').filter({ hasText: '保存' }).first().click();
   await page.waitForTimeout(3000);
   const cleared = (await sb(`/rest/v1/facilities?select=name_en&id=eq.${facilityId}`)).body?.[0] ?? {};
   check('空欄にすると null に戻る', cleared.name_en === null, JSON.stringify(cleared));
@@ -192,7 +202,7 @@ try {
   }
   await entryForm().locator('[name="approach_text_en"]').fill('Go up the ramp to the drop-off.');
   await entryForm().locator('[name="name_en"]').fill('Main drop-off');
-  await entryForm().getByRole('button', { name: '変更を保存' }).click();
+  await entryForm().locator('button[type="submit"]').filter({ hasText: '保存' }).first().click();
   await page.waitForTimeout(3000);
 
   const epSaved = (await sb(`/rest/v1/entry_points?select=name_en,approach_text_en&id=eq.${epId}`)).body?.[0] ?? {};

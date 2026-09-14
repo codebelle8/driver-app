@@ -273,13 +273,12 @@ function changesOf(
     if (before2.height_limit_cm !== after2.height_limit_cm) kinds.add('height');
     if (before2.is_roofed !== after2.is_roofed) kinds.add('roof');
     if (before2.is_24h !== after2.is_24h) kinds.add('hours');
-    /*
-      入口の名前や区分が変わった。
-
-      有効・無効（is_active）はここでは見ない。端末はその欄を
-      取り込んでいないため（sync.ts の select に無い）。
-    */
-    if (before2.name !== after2.name || before2.kind !== after2.kind) {
+    /* 入口の名前・区分・開いているかどうかが変わった */
+    if (
+      before2.name !== after2.name ||
+      before2.kind !== after2.kind ||
+      (before2.is_active ?? true) !== (after2.is_active ?? true)
+    ) {
       kinds.add('entry');
     }
   }

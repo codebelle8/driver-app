@@ -143,7 +143,7 @@ try {
   // --- 5. 受取口座が空のとき ---------------------------------------------------
   if (wasEmpty) {
     console.log('\n--- 受取口座が空のとき ---');
-    await page.getByRole('radio', { name: '月額' }).click();
+    await page.getByRole('radio', { name: '1か月' }).click();
     await page.waitForTimeout(400);
     await page.getByRole('button', { name: 'この内容で申し込む' }).click();
     await page.waitForTimeout(4000);
@@ -154,7 +154,7 @@ try {
     await writeSettings(TEST_BANK);
   } else {
     // 既に入っている場合は、料金だけ選んでおく
-    await page.getByRole('radio', { name: '月額' }).click();
+    await page.getByRole('radio', { name: '1か月' }).click();
     await page.waitForTimeout(400);
     await page.getByRole('button', { name: 'この内容で申し込む' }).click();
     await page.waitForTimeout(4000);
@@ -173,7 +173,9 @@ try {
     shown.includes(now.account_holder_kana ?? now.account_holder ?? ''),
     String(now.account_holder_kana ?? now.account_holder),
   );
-  check('お振込金額が出る', shown.includes('4,000 円 / 月'), '');
+  /* 料金の刻みは4つになった（2026-09-14）。金額と期間を別に出す。 */
+  check('お振込金額が出る', shown.includes('4,000 円'), shown.slice(0, 120));
+  check('何か月ぶんかが出る', shown.includes('1か月'), shown.slice(0, 120));
   check(
     'どの銀行からでも振り込める旨がある',
     shown.includes('どの銀行からでも'),

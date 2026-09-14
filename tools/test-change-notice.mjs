@@ -209,6 +209,41 @@ try {
     afterHeight.filter((x) => x.includes(facName) && x.includes('変わりました')).length === 1,
     JSON.stringify(afterHeight.filter((x) => x.includes(facName))).slice(0, 240));
 
+  // --- 閉じている入口 ---------------------------------------------------------
+  console.log(`${NL}--- 一時閉鎖中の入口 ---`);
+
+  await page.goto(`${BASE}/facility/${made.facilityId}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(4500);
+  await skipIntro(page);
+  const epShown = await page.evaluate(() => document.body.innerText);
+  check('はじめは、その入口が施設の画面に出ている',
+    epShown.includes('検査用の車寄せ'), epShown.slice(0, 160));
+
+  /*
+    管理画面の「この入口を有効にする」を外したのと同じ状態にする。
+    画面には「一時閉鎖中はチェックを外すとアプリに表示されません」と
+    書いてある。**書いてあるとおりに隠れること**を確かめる。
+  */
+  await rest(`entry_points?id=eq.${made.entryPointId}`, {
+    method: 'PATCH',
+    body: { is_active: false },
+  });
+
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(6000);
+  await skipIntro(page);
+  await page.goto(`${BASE}/facility/${made.facilityId}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(4000);
+  await skipIntro(page);
+  const epHidden = await page.evaluate(() => document.body.innerText);
+  check('**「一時閉鎖中」にすると、施設の画面から消える**',
+    !epHidden.includes('検査用の車寄せ'), epHidden.slice(0, 200));
+
+  await rest(`entry_points?id=eq.${made.entryPointId}`, {
+    method: 'PATCH',
+    body: { is_active: true },
+  });
+
   // --- カテゴリ ---------------------------------------------------------------
   console.log(`${NL}--- カテゴリ ---`);
 

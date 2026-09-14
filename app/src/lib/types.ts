@@ -130,6 +130,14 @@ export interface EntryPoint {
   height_limit_cm: number | null;
   is_roofed: boolean | null;
   is_24h: boolean | null;
+  /**
+   * アプリに出すかどうか。管理画面の「この入口を有効にする」。
+   *
+   * 工事などで一時的に閉じている入口を隠すためのもの。
+   * 古い控えには無いことがあるため、読み出す側で既定を決める。
+   * 無いものを「隠す」と扱うと、取り込み直すまで入口が消える。
+   */
+  is_active?: boolean;
   sort_order: number;
 }
 

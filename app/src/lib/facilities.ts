@@ -44,9 +44,14 @@ export async function fetchCategories(): Promise<Category[]> {
       /*
         「無効」にされたカテゴリは出さない。
 
-        管理画面の表示は「アプリに表示する」。外せば隠れるつもりで
-        操作される。以前は is_active を取り込んでいなかったため、
-        外しても出続けていた（ご報告 2026-09-14）。
+        **実際にはここまで届かない。** データベース側の決まり
+        （categories_read_public）が、staff 以外には is_active の
+        立っている行しか返さない（2026-09-14 実測）。
+        二重に守るために置いてある。
+
+        なお、**新しく足したカテゴリがアプリに出なかった**のは
+        別の理由だった。探す画面が、印を用意してある6つだけに
+        絞っていた（index.tsx の CATEGORY_ICON）。そちらが本体。
 
         **欄が無いときは出す。** 前の版で取り込んだ控えには
         is_active が入っていない。無いものを隠すと、取り込み直すまで
@@ -170,6 +175,17 @@ export async function fetchFacilityDetail(id: string): Promise<FacilityDetail | 
 
   const entryPoints = c.entryPoints
     .filter((e) => e.facility_id === id)
+    /*
+      閉じている入口は出さない。
+
+      **実際にはここまで届かない。** データベース側の決まりが、
+      staff 以外には閉鎖中の入口を返さない（2026-09-14 実測）。
+      二重に守るために置いてある。
+
+      欄が無いときは出す。前の版で取り込んだ控えには入っていない。
+      無いものを隠すと、取り込み直すまで入口が消える。
+    */
+    .filter((e) => e.is_active !== false)
     .sort((a, b) => a.sort_order - b.sort_order || a.code.localeCompare(b.code));
 
   const ids = new Set(entryPoints.map((e) => e.id));
@@ -227,6 +243,8 @@ export async function fetchPins(
 
   const first = new Map<string, { lat: number; lng: number }>();
   for (const e of [...c.entryPoints].sort((a, b) => a.sort_order - b.sort_order)) {
+    /* 地図の印も、閉じている入口は指さない */
+    if (e.is_active === false) continue;
     if (e.nav_lat === null || e.nav_lng === null) continue;
     if (first.has(e.facility_id)) continue;
     first.set(e.facility_id, { lat: e.nav_lat, lng: e.nav_lng });

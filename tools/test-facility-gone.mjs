@@ -16,7 +16,12 @@
  */
 import { chromium } from 'playwright';
 
-const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
+const rawArg = process.argv[2] ?? 'http://localhost:4190';
+const BASE = rawArg.endsWith('/') ? rawArg.slice(0, -1) : rawArg;
+
+const conn = connect();
 
 let pass = 0;
 const failures = [];
@@ -37,6 +42,7 @@ const GONE_NAME = '取り壊されたホテル';
 const GONE_NAME_EN = 'Demolished Hotel';
 
 let browser = null;
+let member = null;
 
 try {
   console.log(`消えた施設の扱いの検査: ${BASE}\n`);
@@ -61,7 +67,15 @@ try {
     }
   };
 
-  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  /*
+    **先にログインする。**
+
+    起動時にログイン画面を出す作りにしてから、この検査は入口で
+    止まったまま「不合格」を並べていた（2026-09-14 発見）。
+    画面へ入れていないだけで、何も確かめていなかった。
+  */
+  member = await createMember(conn, 'gone');
+  await signInOn(page, BASE, member, { goto: '/' });
   await page.waitForTimeout(8000);
   await skipIntro();
 
@@ -156,6 +170,7 @@ try {
   check('英語の知らせが出る', (await enToast.count()) === 1, `${await enToast.count()}個`);
 } finally {
   if (browser) await browser.close();
+  check('検査で作った会員を消した', await removeMember(conn, member));
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;
