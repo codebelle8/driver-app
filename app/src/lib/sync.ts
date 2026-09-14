@@ -78,7 +78,18 @@ export interface SyncResult {
  */
 export async function fetchCatalog(): Promise<CatalogPayload> {
   const [categories, facilities, entryPoints, cautions, photos] = await Promise.all([
-      fetchAll<Category>('categories', 'id, code, name, name_en, sort_order', 'sort_order'),
+      /*
+        is_active を取り込む。
+
+        **これが無いと、管理画面で「無効」にしても隠れない。**
+        管理画面には「アプリに表示する」と書いてあり、外せば隠れる
+        つもりで操作される。実際には出続けていた（ご報告 2026-09-14）。
+      */
+      fetchAll<Category>(
+        'categories',
+        'id, code, name, name_en, sort_order, is_active',
+        'sort_order',
+      ),
       fetchAll<Facility>(
         'facilities',
         'id, code, name, name_en, name_kana, aliases, category_id, prefecture, prefecture_en, city, city_en, address_line, address_line_en, summary, summary_en, lat, lng, sort_order, updated_at',

@@ -42,6 +42,14 @@ export interface Category {
   name: string;
   name_en: string | null;
   sort_order: number;
+  /**
+   * アプリに出すかどうか。管理画面の「アプリに表示する」。
+   *
+   * 古い控えには無いことがあるため、読み出す側で既定を決める
+   * （catalog.ts）。無いものを「隠す」と扱うと、取り込み直すまで
+   * カテゴリが1つも出なくなる。
+   */
+  is_active?: boolean;
 }
 
 export interface Facility {

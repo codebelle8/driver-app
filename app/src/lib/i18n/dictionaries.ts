@@ -486,6 +486,12 @@ const ja = {
     changeEntry: '入口',
     changeName: '施設名',
     changeAddress: '住所',
+
+    /* カテゴリの変わり目。ご指示 2026-09-14。 */
+    sectionCategory: 'カテゴリの変更',
+    categoryAdded: '「{name}」が増えました。',
+    categoryRenamed: 'カテゴリの名前が「{name}」に変わりました。',
+    categoryRemoved: '「{name}」は表示されなくなりました。',
   },
 
   sync: {
@@ -982,6 +988,11 @@ const en: Dictionary = {
     changeEntry: 'Entrances',
     changeName: 'Facility name',
     changeAddress: 'Address',
+
+    sectionCategory: 'Category changes',
+    categoryAdded: '“{name}” has been added.',
+    categoryRenamed: 'A category was renamed to “{name}”.',
+    categoryRemoved: '“{name}” is no longer shown.',
   },
 
   sync: {

@@ -28,6 +28,7 @@ const CATALOG_KEY = 'kn_catalog';
 const SYNCED_AT_KEY = 'kn_catalog_synced_at';
 const ADDED_KEY = 'kn_catalog_added';
 const CHANGED_KEY = 'kn_catalog_changed';
+const CATEGORY_KEY = 'kn_catalog_categories_changed';
 
 /**
  * 新着として控えておく上限。
@@ -62,6 +63,24 @@ export type ChangeKind =
   | 'entry' // 入口が増えた・減った・止まった・名前が変わった
   | 'name' // 施設名
   | 'address'; // 住所
+
+/**
+ * カテゴリに起きたこと。
+ *
+ *   added    … 増えた
+ *   renamed  … 名前が変わった
+ *   removed  … 出なくなった（消された、または「無効」にされた）
+ */
+export type CategoryChange = 'added' | 'renamed' | 'removed';
+
+/** カテゴリの変わり目。お知らせに使う。 */
+export interface ChangedCategory {
+  id: string;
+  at: string;
+  change: CategoryChange;
+  /** 気づいた時点の名前。消えたあとも出せるように控えておく。 */
+  name: string;
+}
 
 /** 案内の中身が変わった施設。お知らせに使う。 */
 export interface ChangedFacility {
@@ -336,6 +355,46 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
           return kinds.length > 0 ? [{ id: f.id, at: syncedAt, kinds }] : [];
         });
 
+  /*
+    カテゴリの変わり目。ご指示 2026-09-14。
+
+    「管理画面で直したのに、アプリにすぐ出ない」とのご報告による。
+    取り込みは起動時に1回で、開いたままでは変わらない。**変わったことを
+    お知らせで伝える。**
+
+    **「無効」にされたものは「出なくなった」として扱う。** 消すのと
+    区別しても、読む側にできることは変わらない。
+  */
+  const shown = (list: Category[]) => list.filter((x) => x.is_active !== false);
+  const wasCats = new Map(shown(before.categories).map((x) => [x.id, x]));
+  const nowCats = new Map(shown(payload.categories).map((x) => [x.id, x]));
+
+  const catChanges: ChangedCategory[] =
+    before.categories.length === 0
+      ? []
+      : [
+          ...[...nowCats.values()]
+            .filter((x) => !wasCats.has(x.id))
+            .map((x) => ({ id: x.id, at: syncedAt, change: 'added' as const, name: x.name })),
+          ...[...wasCats.values()]
+            .filter((x) => !nowCats.has(x.id))
+            .map((x) => ({ id: x.id, at: syncedAt, change: 'removed' as const, name: x.name })),
+          ...[...nowCats.values()]
+            .filter((x) => {
+              const was = wasCats.get(x.id);
+              return was && was.name !== x.name;
+            })
+            .map((x) => ({ id: x.id, at: syncedAt, change: 'renamed' as const, name: x.name })),
+        ];
+
+  const freshCatIds = new Set(catChanges.map((c) => c.id));
+  const categories = [
+    ...(await getChangedCategories()).filter((c) => !freshCatIds.has(c.id)),
+    ...catChanges,
+  ]
+    .filter((c) => c.at >= since)
+    .slice(-ADDED_LIMIT);
+
   const freshIds = new Set(modified.map((c) => c.id));
   const changed = [
     ...(await getChangedFacilities()).filter((c) => !freshIds.has(c.id)),
@@ -358,7 +417,25 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
     [SYNCED_AT_KEY, syncedAt],
     [ADDED_KEY, JSON.stringify(added)],
     [CHANGED_KEY, JSON.stringify(changed)],
+    [CATEGORY_KEY, JSON.stringify(categories)],
   ]);
+}
+
+/** カテゴリの変わり目。新しいものが後ろに来る。 */
+export async function getChangedCategories(): Promise<ChangedCategory[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CATEGORY_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list.filter(
+      (c): c is ChangedCategory =>
+        typeof c?.id === 'string' && typeof c?.at === 'string' && typeof c?.name === 'string',
+    );
+  } catch {
+    // 壊れていたら捨てる。お知らせが出なくなるだけで、害はない。
+    return [];
+  }
 }
 
 /** 案内の中身が変わった施設。新しいものが後ろに来る。 */

@@ -64,6 +64,7 @@ const READ_NOTICES = () =>
 let browser = null;
 let member = null;
 let epBefore = null;
+let catBefore = null;
 
 try {
   console.log(`直した内容がお知らせに出るかの検査: ${BASE}${NL}`);
@@ -145,6 +146,77 @@ try {
     afterHeight.filter((x) => x.includes('変わりました')).length === 1,
     JSON.stringify(afterHeight).slice(0, 240));
 
+  // --- カテゴリ ---------------------------------------------------------------
+  console.log(`${NL}--- カテゴリ ---`);
+
+  /*
+    **施設を持たないカテゴリを選ぶ。**
+    施設のあるカテゴリを一時的に隠すと、検査のあいだ本番のアプリから
+    その施設群が消える。空のカテゴリなら、見え方は何も変わらない。
+  */
+  const cats = (await rest('categories?select=id,name,is_active&order=sort_order')).body ?? [];
+  const facs = (await rest('facilities?select=category_id')).body ?? [];
+  const used = new Set(facs.map((f) => f.category_id));
+  catBefore = cats.find((x) => x.is_active !== false && !used.has(x.id)) ?? null;
+
+  if (!catBefore) {
+    check('空のカテゴリが見つかった（検査の前提）', false, JSON.stringify(cats));
+  } else {
+    console.log(`  対象  カテゴリ「${catBefore.name}」（施設なし）`);
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4500);
+    await skipIntro(page);
+    const shownBefore = await page.evaluate(() => document.body.innerText);
+    check('はじめは、そのカテゴリが探す画面に出ている',
+      shownBefore.includes(catBefore.name), catBefore.name);
+
+    /*
+      **名前を変える。**
+
+      先に「無効」にしてから戻すと、端末からは「消えて、また出た」と
+      見える。そのとき「増えました」と出るのは正しい挙動で、名前が
+      変わったこととは別。順番を取り違えると、正しい挙動を不具合と
+      読み違える（実際に一度そうなった）。
+    */
+    const renamedTo = `${catBefore.name}（検査）`;
+    await rest(`categories?id=eq.${catBefore.id}`, {
+      method: 'PATCH',
+      body: { name: renamedTo },
+    });
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(6000);
+    await skipIntro(page);
+    await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3500);
+    const renamed = await page.evaluate(() => document.body.innerText);
+    check('名前を変えると、お知らせに出る',
+      renamed.includes('カテゴリの変更') && renamed.includes('名前が「'),
+      renamed.slice(0, 240));
+    check('新しい名前が出ている', renamed.includes(renamedTo), renamedTo);
+
+    /* 名前を戻したうえで「アプリに表示する」を外す */
+    await rest(`categories?id=eq.${catBefore.id}`, {
+      method: 'PATCH',
+      body: { name: catBefore.name, is_active: false },
+    });
+
+    await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(6000);
+    await skipIntro(page);
+    const shownAfter = await page.evaluate(() => document.body.innerText);
+    check('**「無効」にすると、探す画面から消える**',
+      !shownAfter.includes(catBefore.name), catBefore.name);
+
+    await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3500);
+    const hidden = await page.evaluate(() => document.body.innerText);
+    check('「無効」にしたことも、お知らせに出る',
+      hidden.includes('表示されなくなりました'), hidden.slice(0, 240));
+    check('どのカテゴリかが出ている', hidden.includes(catBefore.name), catBefore.name);
+  }
+
   await ctx.close();
 } finally {
   console.log(`${NL}--- 後片付け ---`);
@@ -159,6 +231,16 @@ try {
     check('入口を元へ戻した',
       r.ok && back?.approach_text === epBefore.approach_text
         && back?.height_limit_cm === epBefore.height_limit_cm,
+      JSON.stringify(back));
+  }
+  if (catBefore) {
+    const r = await rest(`categories?id=eq.${catBefore.id}`, {
+      method: 'PATCH',
+      body: { name: catBefore.name, is_active: catBefore.is_active },
+    });
+    const back = (await rest(`categories?select=name,is_active&id=eq.${catBefore.id}`)).body?.[0];
+    check('カテゴリを元へ戻した',
+      r.ok && back?.name === catBefore.name && back?.is_active === catBefore.is_active,
       JSON.stringify(back));
   }
   check('検査で作った会員を消した', await removeMember(conn, member));

@@ -41,7 +41,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { daysLeft, type Account } from './account';
-import { getAddedFacilities, getChangedFacilities, type ChangeKind } from './catalog';
+import {
+  getAddedFacilities,
+  getChangedCategories,
+  getChangedFacilities,
+  type CategoryChange,
+  type ChangeKind,
+} from './catalog';
 import { isActiveNow } from './cautions';
 import { fetchCautionsWithFacility, fetchFacilitiesByIds } from './facilities';
 import type { Locale } from './i18n/dictionaries';
@@ -59,7 +65,7 @@ const READ_KEY = 'kn_notices_read';
  */
 const READ_LIMIT = 300;
 
-export type NoticeKind = 'caution' | 'added' | 'trial' | 'changed';
+export type NoticeKind = 'caution' | 'added' | 'trial' | 'changed' | 'category';
 
 export interface Notice {
   id: string;
@@ -77,6 +83,9 @@ export interface Notice {
   body?: string;
   /** 案内が変わった知らせだけが持つ。何が変わったか。 */
   changes?: ChangeKind[];
+  /** カテゴリの知らせだけが持つ */
+  categoryName?: string;
+  categoryChange?: CategoryChange;
   /** 並べ替えと「新着」の判定に使う */
   at: string;
   severity?: CautionSeverity;
@@ -193,9 +202,26 @@ export async function fetchNotices(
     // 新しいものを先に
     .reverse();
 
+  /*
+    カテゴリの変わり目。ご指示 2026-09-14。
+
+    施設に紐づかないため、押したときの行き先は探す画面になる。
+    施設のお知らせより後ろに置く。向かう先の判断は変えないため。
+  */
+  const catChanges = await getChangedCategories();
+  const categories: Notice[] = catChanges
+    .map((c) => ({
+      id: 'g:' + c.id + ':' + c.at,
+      kind: 'category' as const,
+      categoryName: c.name,
+      categoryChange: c.change,
+      at: c.at,
+    }))
+    .reverse();
+
   const trial = trialNotice(account);
 
-  return [...(trial ? [trial] : []), ...cautions, ...changed, ...added];
+  return [...(trial ? [trial] : []), ...cautions, ...changed, ...added, ...categories];
 }
 
 /** これまでに読んだお知らせの控え */

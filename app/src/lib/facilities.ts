@@ -39,7 +39,22 @@ export const PAGE_SIZE = 15;
 
 export async function fetchCategories(): Promise<Category[]> {
   const c = await getCatalog();
-  return [...c.categories].sort((a, b) => a.sort_order - b.sort_order);
+  return (
+    c.categories
+      /*
+        「無効」にされたカテゴリは出さない。
+
+        管理画面の表示は「アプリに表示する」。外せば隠れるつもりで
+        操作される。以前は is_active を取り込んでいなかったため、
+        外しても出続けていた（ご報告 2026-09-14）。
+
+        **欄が無いときは出す。** 前の版で取り込んだ控えには
+        is_active が入っていない。無いものを隠すと、取り込み直すまで
+        カテゴリが1つも出なくなる。
+      */
+      .filter((x) => x.is_active !== false)
+      .sort((a, b) => a.sort_order - b.sort_order)
+  );
 }
 
 /**

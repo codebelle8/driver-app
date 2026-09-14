@@ -116,6 +116,7 @@ export default function NoticesScreen() {
   const cautions = (notices ?? []).filter((n) => n.kind === 'caution');
   const added = (notices ?? []).filter((n) => n.kind === 'added');
   const changed = (notices ?? []).filter((n) => n.kind === 'changed');
+  const categories = (notices ?? []).filter((n) => n.kind === 'category');
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -224,6 +225,26 @@ export default function NoticesScreen() {
             </>
           )}
 
+          {/*
+            カテゴリの変わり目。施設に紐づかないため、押すと探す画面へ。
+            向かう先の判断は変えないので、施設の知らせより後ろに置く。
+          */}
+          {categories.length > 0 && (
+            <>
+              <Text style={styles.section}>{t.notices.sectionCategory}</Text>
+              {categories.map((n) => (
+                <CategoryRow
+                  key={n.id}
+                  notice={n}
+                  styles={styles}
+                  c={c}
+                  unread={!read.has(n.id)}
+                  onOpen={onOpen}
+                />
+              ))}
+            </>
+          )}
+
           <Text style={styles.foot}>
             {t.notices.addedNote}
           </Text>
@@ -283,6 +304,58 @@ function TrialRow({
               }),
             })}
           </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+      </Pressable>
+    </Link>
+  );
+}
+
+/**
+ * カテゴリの変わり目の1行。
+ *
+ * 施設を持たないため、行き先は探す画面。押した先で実際の並びを
+ * 見ていただくのがいちばん早い。
+ */
+function CategoryRow({
+  notice,
+  styles,
+  c,
+  unread,
+  onOpen,
+}: {
+  notice: Notice;
+  styles: ReturnType<typeof makeStyles>;
+  c: Palette;
+  unread: boolean;
+  onOpen: (id: string) => void;
+}) {
+  const t = useT();
+  const name = notice.categoryName ?? '';
+  const body =
+    notice.categoryChange === 'added'
+      ? fill(t.notices.categoryAdded, { name })
+      : notice.categoryChange === 'removed'
+        ? fill(t.notices.categoryRemoved, { name })
+        : fill(t.notices.categoryRenamed, { name });
+
+  return (
+    <Link href="/" asChild>
+      <Pressable onPress={() => onOpen(notice.id)} style={styles.row} accessibilityRole="link">
+        <View style={styles.icon}>
+          <Ionicons name="pricetags-outline" size={18} color={c.accent} />
+        </View>
+        <View style={styles.body}>
+          <View style={styles.nameRow}>
+            {unread && <View style={styles.dot} />}
+            <Text style={unread ? styles.nameUnread : styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+          </View>
+          <Text style={styles.text} numberOfLines={2}>
+            {body}
+          </Text>
+          <Text style={styles.when}>{describeWhen(notice.at, t)}</Text>
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
       </Pressable>
