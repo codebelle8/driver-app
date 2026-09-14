@@ -27,12 +27,21 @@
  *
  *   代わりに「新しく増えた施設」を出す。これは端末が前回持っていた
  *   一覧と比べて確実に判別でき、誤って出ることがない。
- *   進入方法の変更は、管理画面から注意事項として書けば伝わる。
+ *
+ * **「案内が変わりました」を入れ直した**（ご指示 2026-09-14）
+ *   日時ではなく、**中身そのものを突き合わせる。** 端末が前回持って
+ *   いた値と今回の値を比べ、違うものだけを出す。値が変わっていなければ、
+ *   何度入れ直してもお知らせは出ない。上の事故はこれで起きなくなる。
+ *
+ *   見るのは乗務員に関わるものだけ（進入方法・座標・高さ制限・屋根・
+ *   24時間・入口の増減・施設名・住所）。英語表記や並び順では出さない。
+ *   **何が変わったかまで伝える。** 「更新されました」だけでは、開いて
+ *   何を確かめればよいのか分からない。
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { daysLeft, type Account } from './account';
-import { getAddedFacilities } from './catalog';
+import { getAddedFacilities, getChangedFacilities, type ChangeKind } from './catalog';
 import { isActiveNow } from './cautions';
 import { fetchCautionsWithFacility, fetchFacilitiesByIds } from './facilities';
 import type { Locale } from './i18n/dictionaries';
@@ -50,7 +59,7 @@ const READ_KEY = 'kn_notices_read';
  */
 const READ_LIMIT = 300;
 
-export type NoticeKind = 'caution' | 'added' | 'trial';
+export type NoticeKind = 'caution' | 'added' | 'trial' | 'changed';
 
 export interface Notice {
   id: string;
@@ -66,6 +75,8 @@ export interface Notice {
    * 新しく増えた施設は決まった一言なので、画面側が辞書から引く。
    */
   body?: string;
+  /** 案内が変わった知らせだけが持つ。何が変わったか。 */
+  changes?: ChangeKind[];
   /** 並べ替えと「新着」の判定に使う */
   at: string;
   severity?: CautionSeverity;
@@ -157,9 +168,34 @@ export async function fetchNotices(
     // 新しいものを先に
     .reverse();
 
+  /*
+    案内の中身が変わった施設。ご指示 2026-09-14。
+
+    **新着より前に置く。** 行ったことのある施設の入り方が変わったほうが、
+    まだ行ったことのない施設が増えたことより切迫している。
+  */
+  const modified = await getChangedFacilities();
+  const modById = await fetchFacilitiesByIds(modified.map((c) => c.id));
+
+  const changed: Notice[] = modified
+    // 変わったあとに消された施設は控えに残る。名前が引けないものは出さない。
+    .filter((c) => modById.has(c.id))
+    .map((c) => ({
+      // 気づいた時刻まで含める。また変われば別の1件として未読に戻る。
+      id: 'u:' + c.id + ':' + c.at,
+      kind: 'changed' as const,
+      facilityId: c.id,
+      facilityName: pickName(modById.get(c.id)!, locale),
+      changes: c.kinds,
+      /* 文言は画面側で引く。ここは言語を知らない。 */
+      at: c.at,
+    }))
+    // 新しいものを先に
+    .reverse();
+
   const trial = trialNotice(account);
 
-  return [...(trial ? [trial] : []), ...cautions, ...added];
+  return [...(trial ? [trial] : []), ...cautions, ...changed, ...added];
 }
 
 /** これまでに読んだお知らせの控え */

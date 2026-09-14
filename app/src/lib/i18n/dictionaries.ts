@@ -469,6 +469,23 @@ const ja = {
       '{date} を過ぎると、お支払いいただくまで設定より先へ進めなくなります。押してお手続きへ。',
     addedNote: '前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。',
     addedBody: '新しく追加されました。',
+
+    /*
+      案内の中身が変わった知らせ。ご指示 2026-09-14。
+
+      **何が変わったかまで出す。**「更新されました」だけでは、開いて
+      何を確かめればよいのか分からない。
+    */
+    sectionChanged: '案内が変わった施設',
+    changedBody: '{items} が変わりました。向かう前にご確認ください。',
+    changeApproach: '進入方法',
+    changeCoords: 'ナビの目的地',
+    changeHeight: '高さ制限',
+    changeRoof: '屋根',
+    changeHours: '利用できる時間',
+    changeEntry: '入口',
+    changeName: '施設名',
+    changeAddress: '住所',
   },
 
   sync: {
@@ -954,6 +971,17 @@ const en: Dictionary = {
       'After {date}, only the settings screen stays available until payment is made. Tap to continue.',
     addedNote: 'Facilities added since this device last downloaded, for up to 14 days.',
     addedBody: 'Newly added.',
+
+    sectionChanged: 'Guidance that changed',
+    changedBody: '{items} changed. Please check before you go.',
+    changeApproach: 'How to approach',
+    changeCoords: 'Navigation target',
+    changeHeight: 'Height limit',
+    changeRoof: 'Roof',
+    changeHours: 'Opening hours',
+    changeEntry: 'Entrances',
+    changeName: 'Facility name',
+    changeAddress: 'Address',
   },
 
   sync: {

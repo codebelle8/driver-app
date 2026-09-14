@@ -27,6 +27,7 @@ import type { Caution, Category, EntryPoint, Facility, Photo } from './types';
 const CATALOG_KEY = 'kn_catalog';
 const SYNCED_AT_KEY = 'kn_catalog_synced_at';
 const ADDED_KEY = 'kn_catalog_added';
+const CHANGED_KEY = 'kn_catalog_changed';
 
 /**
  * 新着として控えておく上限。
@@ -44,6 +45,31 @@ export interface AddedFacility {
   id: string;
   /** 端末が気づいた時刻 */
   at: string;
+}
+
+/**
+ * 変わった点の種類。
+ *
+ * **文面はここに入れない。** 画面が辞書から組み立てる。
+ * ここは表示の言語を知らない。
+ */
+export type ChangeKind =
+  | 'approach' // 進入方法・進入元
+  | 'coords' // ナビ投入座標・停車位置
+  | 'height' // 高さ制限
+  | 'roof' // 屋根
+  | 'hours' // 24時間の可否
+  | 'entry' // 入口が増えた・減った・止まった・名前が変わった
+  | 'name' // 施設名
+  | 'address'; // 住所
+
+/** 案内の中身が変わった施設。お知らせに使う。 */
+export interface ChangedFacility {
+  id: string;
+  /** 端末が気づいた時刻 */
+  at: string;
+  /** 何が変わったか。1件に複数入る。 */
+  kinds: ChangeKind[];
 }
 
 export interface CatalogPayload {
@@ -166,6 +192,93 @@ export function getCatalog(): Promise<Catalog> {
  * 一部だけを更新する仕組みは持たない。150件を丸ごと書いても
  * 一瞬で終わり、half-updated な状態が生まれないほうが安全。
  */
+/**
+ * 2つの控えを突き合わせて、**何が変わったか**を返す。
+ *
+ * **日時（updated_at）では判じない。**
+ *   以前はそれで「更新されました」を出していたが、データを一括で
+ *   入れ直すと全件の更新日時が同じになり、**一度も見たことのない
+ *   施設について30件が並んだ**（2026-09-04 に取り下げ）。
+ *   表記の統一や住所の補完でも更新日時は動く。
+ *
+ *   **中身そのものを比べる。** 値が変わっていなければ、何度入れ直しても
+ *   お知らせは出ない。
+ *
+ * **乗務員に関わるものだけを見る。**
+ *   英語表記・並び順・記号は、向かう先の判断を変えない。ここで拾うと
+ *   「変わりました」と言われて開いても、何も違わないことになる。
+ */
+function changesOf(
+  before: Facility,
+  after: Facility,
+  beforeEntries: EntryPoint[],
+  afterEntries: EntryPoint[],
+): ChangeKind[] {
+  const kinds = new Set<ChangeKind>();
+
+  if (before.name !== after.name) kinds.add('name');
+  if (
+    before.prefecture !== after.prefecture ||
+    before.city !== after.city ||
+    before.address_line !== after.address_line
+  ) {
+    kinds.add('address');
+  }
+
+  const was = new Map(beforeEntries.map((e) => [e.id, e]));
+  const now = new Map(afterEntries.map((e) => [e.id, e]));
+
+  /* 入口そのものが増えた・減った */
+  if (was.size !== now.size || [...now.keys()].some((id) => !was.has(id))) {
+    kinds.add('entry');
+  }
+
+  for (const [id, after2] of now) {
+    const before2 = was.get(id);
+    if (!before2) continue;
+
+    if (
+      before2.approach_text !== after2.approach_text ||
+      before2.approach_from !== after2.approach_from
+    ) {
+      kinds.add('approach');
+    }
+    if (
+      before2.nav_lat !== after2.nav_lat ||
+      before2.nav_lng !== after2.nav_lng ||
+      before2.dropoff_lat !== after2.dropoff_lat ||
+      before2.dropoff_lng !== after2.dropoff_lng
+    ) {
+      kinds.add('coords');
+    }
+    if (before2.height_limit_cm !== after2.height_limit_cm) kinds.add('height');
+    if (before2.is_roofed !== after2.is_roofed) kinds.add('roof');
+    if (before2.is_24h !== after2.is_24h) kinds.add('hours');
+    /*
+      入口の名前や区分が変わった。
+
+      有効・無効（is_active）はここでは見ない。端末はその欄を
+      取り込んでいないため（sync.ts の select に無い）。
+    */
+    if (before2.name !== after2.name || before2.kind !== after2.kind) {
+      kinds.add('entry');
+    }
+  }
+
+  return [...kinds];
+}
+
+/** 施設ごとに入口をまとめる */
+function byFacility(list: EntryPoint[]): Map<string, EntryPoint[]> {
+  const m = new Map<string, EntryPoint[]>();
+  for (const e of list) {
+    const got = m.get(e.facility_id);
+    if (got) got.push(e);
+    else m.set(e.facility_id, [e]);
+  }
+  return m;
+}
+
 export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
   const syncedAt = new Date().toISOString();
   const before = await getCatalog();
@@ -194,6 +307,43 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
     .filter((a) => a.at >= since)
     .slice(-ADDED_LIMIT);
 
+  /*
+    案内の中身が変わった施設を控える。ご指示 2026-09-14。
+
+    **新しく増えたものはここに入れない。** そちらは「新着」として
+    別に出る。両方に出すと、同じ施設が2件並ぶ。
+
+    **同じ施設は1件にまとめる。** 前の控えが残っていれば置き換える。
+    5回直された施設が5件並んでも、読む側には「いまどう違うのか」しか
+    要らない。控えの時刻が変わるため、読み直しの対象にもなる。
+  */
+  const wasById = new Map(before.facilities.map((f) => [f.id, f]));
+  const wasEntries = byFacility(before.entryPoints);
+  const nowEntries = byFacility(payload.entryPoints);
+
+  const modified: ChangedFacility[] =
+    known.size === 0
+      ? []
+      : payload.facilities.flatMap((f) => {
+          const was = wasById.get(f.id);
+          if (!was) return [];
+          const kinds = changesOf(
+            was,
+            f,
+            wasEntries.get(f.id) ?? [],
+            nowEntries.get(f.id) ?? [],
+          );
+          return kinds.length > 0 ? [{ id: f.id, at: syncedAt, kinds }] : [];
+        });
+
+  const freshIds = new Set(modified.map((c) => c.id));
+  const changed = [
+    ...(await getChangedFacilities()).filter((c) => !freshIds.has(c.id)),
+    ...modified,
+  ]
+    .filter((c) => c.at >= since)
+    .slice(-ADDED_LIMIT);
+
   memory = {
     categories: payload.categories,
     facilities: index(payload.facilities, payload.categories),
@@ -207,7 +357,25 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
     [CATALOG_KEY, JSON.stringify(payload)],
     [SYNCED_AT_KEY, syncedAt],
     [ADDED_KEY, JSON.stringify(added)],
+    [CHANGED_KEY, JSON.stringify(changed)],
   ]);
+}
+
+/** 案内の中身が変わった施設。新しいものが後ろに来る。 */
+export async function getChangedFacilities(): Promise<ChangedFacility[]> {
+  try {
+    const raw = await AsyncStorage.getItem(CHANGED_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list.filter(
+      (c): c is ChangedFacility =>
+        typeof c?.id === 'string' && typeof c?.at === 'string' && Array.isArray(c?.kinds),
+    );
+  } catch {
+    // 壊れていたら捨てる。お知らせが出なくなるだけで、害はない。
+    return [];
+  }
 }
 
 /** 後から増えた施設。新しいものが後ろに来る。 */

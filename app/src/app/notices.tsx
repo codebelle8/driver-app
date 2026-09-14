@@ -14,7 +14,45 @@ import {
 import { useAccount } from '@/lib/account-context';
 import { describeWhen } from '@/lib/when';
 import { useLocale, useT } from '@/lib/i18n/context';
-import { fill } from '@/lib/i18n/dictionaries';
+import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
+import type { ChangeKind } from '@/lib/catalog';
+
+/**
+ * 「何が変わったか」を文にする。
+ *
+ * **「更新されました」だけでは足りない。** 開いて何を確かめればよいのか
+ * 分からず、結局すべて読み直すことになる。変わった項目を並べる。
+ *
+ * 並びは決め打ちにする。拾った順に出すと、同じ内容でも回によって
+ * 語順が変わり、読み比べにくい。
+ */
+const CHANGE_ORDER: ChangeKind[] = [
+  'approach',
+  'coords',
+  'entry',
+  'height',
+  'roof',
+  'hours',
+  'name',
+  'address',
+];
+
+function changedText(notice: Notice, t: Dictionary): string {
+  const label: Record<ChangeKind, string> = {
+    approach: t.notices.changeApproach,
+    coords: t.notices.changeCoords,
+    height: t.notices.changeHeight,
+    roof: t.notices.changeRoof,
+    hours: t.notices.changeHours,
+    entry: t.notices.changeEntry,
+    name: t.notices.changeName,
+    address: t.notices.changeAddress,
+  };
+  const got = new Set(notice.changes ?? []);
+  const items = CHANGE_ORDER.filter((k) => got.has(k)).map((k) => label[k]);
+  if (items.length === 0) return t.notices.addedBody;
+  return fill(t.notices.changedBody, { items: items.join('・') });
+}
 import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
@@ -77,6 +115,7 @@ export default function NoticesScreen() {
   const trials = (notices ?? []).filter((n) => n.kind === 'trial');
   const cautions = (notices ?? []).filter((n) => n.kind === 'caution');
   const added = (notices ?? []).filter((n) => n.kind === 'added');
+  const changed = (notices ?? []).filter((n) => n.kind === 'changed');
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -142,6 +181,26 @@ export default function NoticesScreen() {
                   styles={styles}
                   c={c}
                   urgent
+                  unread={!read.has(n.id)}
+                  onOpen={onOpen}
+                />
+              ))}
+            </>
+          )}
+
+          {/*
+            案内が変わった施設。**新着より前に置く。**
+            行ったことのある施設の入り方が変わったほうが切迫している。
+          */}
+          {changed.length > 0 && (
+            <>
+              <Text style={styles.section}>{t.notices.sectionChanged}</Text>
+              {changed.map((n) => (
+                <NoticeRow
+                  key={n.id}
+                  notice={n}
+                  styles={styles}
+                  c={c}
                   unread={!read.has(n.id)}
                   onOpen={onOpen}
                 />
@@ -270,7 +329,7 @@ function NoticeRow({
             </Text>
           </View>
           <Text style={styles.text} numberOfLines={2}>
-            {notice.body ?? t.notices.addedBody}
+            {notice.body ?? (notice.kind === 'changed' ? changedText(notice, t) : t.notices.addedBody)}
           </Text>
           {!urgent && <Text style={styles.when}>{describeWhen(notice.at, t)}</Text>}
         </View>
