@@ -484,6 +484,7 @@ const ja = {
     changeRoof: '屋根',
     changeHours: '利用できる時間',
     changeEntry: '入口',
+    changePhoto: '写真',
     changeName: '施設名',
     changeAddress: '住所',
 
@@ -986,6 +987,7 @@ const en: Dictionary = {
     changeRoof: 'Roof',
     changeHours: 'Opening hours',
     changeEntry: 'Entrances',
+    changePhoto: 'Photos',
     changeName: 'Facility name',
     changeAddress: 'Address',
 

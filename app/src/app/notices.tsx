@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link, Stack, useRouter } from 'expo-router';
+import { onCatalogChanged } from '@/lib/sync';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ const CHANGE_ORDER: ChangeKind[] = [
   'approach',
   'coords',
   'entry',
+  'photo',
   'height',
   'roof',
   'hours',
@@ -45,6 +47,7 @@ function changedText(notice: Notice, t: Dictionary): string {
     roof: t.notices.changeRoof,
     hours: t.notices.changeHours,
     entry: t.notices.changeEntry,
+    photo: t.notices.changePhoto,
     name: t.notices.changeName,
     address: t.notices.changeAddress,
   };
@@ -78,6 +81,15 @@ export default function NoticesScreen() {
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [read, setRead] = useState<Set<string>>(new Set());
 
+  /*
+    取り込み直されたら、この一覧も並べ直す。
+
+    **開いたまま待っていることがある。** 管理画面で直したあと、
+    アプリを開いたままでも出るように（ご報告 2026-09-15）。
+  */
+  const [syncMark, setSyncMark] = useState(0);
+  useEffect(() => onCatalogChanged(() => setSyncMark((n) => n + 1)), []);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -91,7 +103,7 @@ export default function NoticesScreen() {
     };
     // 言語を変えたら取り直す。施設名は取った時点の言語で控えている。
     // 会員の状態が変わったら（お支払いが済んだら）、期限の知らせも消す。
-  }, [locale, account]);
+  }, [locale, account, syncMark]);
 
   /*
     開いただけでは既読にしない。

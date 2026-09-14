@@ -61,6 +61,7 @@ export type ChangeKind =
   | 'roof' // 屋根
   | 'hours' // 24時間の可否
   | 'entry' // 入口が増えた・減った・止まった・名前が変わった
+  | 'photo' // 写真が増えた・減った・差し替わった
   | 'name' // 施設名
   | 'address'; // 住所
 
@@ -232,6 +233,8 @@ function changesOf(
   after: Facility,
   beforeEntries: EntryPoint[],
   afterEntries: EntryPoint[],
+  beforePhotos: Photo[],
+  afterPhotos: Photo[],
 ): ChangeKind[] {
   const kinds = new Set<ChangeKind>();
 
@@ -283,7 +286,44 @@ function changesOf(
     }
   }
 
+  /*
+    写真。ご指示 2026-09-15。
+
+    **差し替えも数える。** 仮画像から実際の写真に替わったときが
+    いちばん知らせたい場面で、枚数は変わらない。枚数だけを見ると
+    取りこぼす。
+
+    見るのは、置き場所・説明・仮画像かどうか・種類。並び順は見ない。
+    並べ替えただけで「変わりました」と出しても、向かう先の判断は
+    変わらない。
+  */
+  const mark = (list: Photo[]) =>
+    list
+      .map((x) => `${x.id}:${x.storage_path}:${x.caption ?? ''}:${x.is_placeholder}:${x.kind}`)
+      .sort()
+      .join('|');
+  if (mark(beforePhotos) !== mark(afterPhotos)) kinds.add('photo');
+
   return [...kinds];
+}
+
+/**
+ * 写真を施設ごとにまとめる。
+ *
+ * 写真は入口に付くものと施設に付くものがある。入口に付いたものは
+ * facility_id を持たないため、入口から辿って施設へ寄せる。
+ */
+function photosByFacility(photos: Photo[], entries: EntryPoint[]): Map<string, Photo[]> {
+  const owner = new Map(entries.map((e) => [e.id, e.facility_id]));
+  const m = new Map<string, Photo[]>();
+  for (const x of photos) {
+    const facilityId = x.facility_id ?? (x.entry_point_id ? owner.get(x.entry_point_id) : null);
+    if (!facilityId) continue;
+    const got = m.get(facilityId);
+    if (got) got.push(x);
+    else m.set(facilityId, [x]);
+  }
+  return m;
 }
 
 /** 施設ごとに入口をまとめる */
@@ -338,6 +378,8 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
   const wasById = new Map(before.facilities.map((f) => [f.id, f]));
   const wasEntries = byFacility(before.entryPoints);
   const nowEntries = byFacility(payload.entryPoints);
+  const wasPhotos = photosByFacility(before.photos, before.entryPoints);
+  const nowPhotos = photosByFacility(payload.photos, payload.entryPoints);
 
   const modified: ChangedFacility[] =
     known.size === 0
@@ -350,6 +392,8 @@ export async function replaceCatalog(payload: CatalogPayload): Promise<void> {
             f,
             wasEntries.get(f.id) ?? [],
             nowEntries.get(f.id) ?? [],
+            wasPhotos.get(f.id) ?? [],
+            nowPhotos.get(f.id) ?? [],
           );
           return kinds.length > 0 ? [{ id: f.id, at: syncedAt, kinds }] : [];
         });

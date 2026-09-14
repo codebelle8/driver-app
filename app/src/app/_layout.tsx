@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View } from 'react-native';
+import { AppState, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -16,7 +16,7 @@ import { TopBar } from '@/components/top-bar';
 import { AccountProvider } from '@/lib/account-context';
 import { LocaleProvider } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
-import { ensureSynced } from '@/lib/sync';
+import { ensureSynced, refreshIfStale } from '@/lib/sync';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -54,6 +54,43 @@ export default function RootLayout() {
   */
   useEffect(() => {
     void ensureSynced();
+  }, []);
+
+  /*
+    **画面へ戻ってきたら、取り込み直す。**
+
+    起動時の1回だけだと、開いたままの端末には新しい内容が届かない。
+    管理画面で直したことが、アプリを開き直すまで出なかった
+    （ご報告 2026-09-15）。
+
+    しばらく経っているときだけ取りに行く（sync.ts の refreshIfStale）。
+    画面を切り替えるたびに通信すると、走行前の電波で無駄が出る。
+
+    **web と端末で合図が違う。**
+      web  … 別のタブから戻る（visibilitychange）、窓へ焦点が戻る
+      端末 … 裏から表へ戻る（AppState）
+    両方を見る。片方だけだと、どちらかの環境で効かない。
+  */
+  useEffect(() => {
+    const wake = () => void refreshIfStale();
+
+    if (Platform.OS === 'web') {
+      if (typeof document === 'undefined') return;
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') wake();
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      window.addEventListener('focus', wake);
+      return () => {
+        document.removeEventListener('visibilitychange', onVisible);
+        window.removeEventListener('focus', wake);
+      };
+    }
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') wake();
+    });
+    return () => sub.remove();
   }, []);
 
   return (

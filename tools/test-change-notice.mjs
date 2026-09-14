@@ -66,7 +66,7 @@ const READ_NOTICES = () =>
 let browser = null;
 let member = null;
 /** 検査のために作ったもの。最後に必ず消す。 */
-const made = { categoryId: null, facilityId: null, entryPointId: null };
+const made = { categoryId: null, facilityId: null, entryPointId: null, photoId: null };
 
 try {
   console.log(`直した内容がお知らせに出るかの検査: ${BASE}${NL}`);
@@ -209,6 +209,105 @@ try {
     afterHeight.filter((x) => x.includes(facName) && x.includes('変わりました')).length === 1,
     JSON.stringify(afterHeight.filter((x) => x.includes(facName))).slice(0, 240));
 
+  // --- 写真 -------------------------------------------------------------------
+  console.log(`${NL}--- 写真 ---`);
+
+  const shot = await rest('photos', {
+    method: 'POST',
+    body: {
+      entry_point_id: made.entryPointId,
+      kind: 'dropoff',
+      storage_path: 'ZZZ-0000/A/check.jpg',
+      is_placeholder: true,
+      sort_order: 1,
+    },
+  });
+  made.photoId = shot.body?.[0]?.id ?? null;
+  check('検査用の写真を足せた', made.photoId !== null, JSON.stringify(shot.body).slice(0, 160));
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(6000);
+  await skipIntro(page);
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(3500);
+  const afterPhoto = await page.evaluate(READ_NOTICES);
+  const photoHit = afterPhoto.find((x) => x.includes(facName) && x.includes('変わりました'));
+  check('写真を足すと、お知らせに出る', Boolean(photoHit && photoHit.includes('写真')),
+    String(photoHit).slice(0, 160));
+
+  /*
+    **差し替えも数える。** 仮画像から実際の写真に替わったときが
+    いちばん知らせたい場面で、枚数は変わらない。
+  */
+  if (made.photoId) {
+    await rest(`photos?id=eq.${made.photoId}`, {
+      method: 'PATCH',
+      body: { storage_path: 'ZZZ-0000/A/real.jpg', is_placeholder: false },
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(6000);
+    await skipIntro(page);
+    await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3500);
+    const afterSwap = await page.evaluate(READ_NOTICES);
+    const swapHit = afterSwap.find((x) => x.includes(facName) && x.includes('変わりました'));
+    check('**枚数が変わらない差し替えでも、お知らせに出る**',
+      Boolean(swapHit && swapHit.includes('写真')), String(swapHit).slice(0, 160));
+  }
+
+  // --- 開いたままで反映されるか -------------------------------------------------
+  console.log(`${NL}--- 開いたままで反映されるか ---`);
+
+  /*
+    **画面を開き直さずに確かめる。** 開き直せば必ず出るため、それでは
+    「開いたままでも出る」ことを見たことにならない（ご報告 2026-09-15）。
+
+    取り込み直すのは「しばらく経っていれば」なので、前回の取り込み時刻を
+    古くしておく。3分待つ代わり。
+  */
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(3000);
+  await skipIntro(page);
+  const before開いたまま = (await page.evaluate(READ_NOTICES))
+    .find((x) => x.includes(facName)) ?? '';
+
+  await rest(`entry_points?id=eq.${made.entryPointId}`, {
+    method: 'PATCH',
+    body: { approach_from: '検査：進入元を足しました' },
+  });
+
+  /*
+    **取り込み時刻は書き換えられない。**
+
+    端末の記憶（getCatalog の控え）から読むため、localStorage を
+    書き換えても効かない。一度そう試して、**アプリ側が壊れていると
+    読み違えた。** 素直に待つ。
+
+    間隔は1分なので、70秒待てば「しばらく経った」状態になる。
+  */
+  await page.waitForTimeout(70_000);
+
+  /*
+    画面へ戻ってきた合図を起こす。
+
+    **見出しの無いブラウザでは、タブを切り替えても本物の焦点は
+    動かない。** ブラウザが出すのと同じ合図（window の focus）を
+    自分で起こす。アプリ側はこの合図を聞いている（_layout.tsx）。
+  */
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(12000);
+
+  const after開いたまま = (await page.evaluate(READ_NOTICES))
+    .find((x) => x.includes(facName)) ?? '';
+
+  /*
+    同じ施設は1件にまとめる作りなので、**件数は増えない。**
+    中身が変わることで確かめる。進入元は画面では「進入方法」と出る。
+  */
+  check('**画面を開き直さずに、お知らせの中身が変わる**',
+    !after開いたまま.includes('進入方法') === false && after開いたまま !== before開いたまま,
+    `前「${before開いたまま.trim().slice(0, 70)}」→ 後「${after開いたまま.trim().slice(0, 70)}」`);
+
   // --- 閉じている入口 ---------------------------------------------------------
   console.log(`${NL}--- 一時閉鎖中の入口 ---`);
 
@@ -308,6 +407,9 @@ try {
     作った順と逆に消す。施設を消すと入口も一緒に消える（外部キー）が、
     念のため明示的に消してから施設を消す。
   */
+  if (made.photoId) {
+    await rest(`photos?id=eq.${made.photoId}`, { method: 'DELETE' });
+  }
   if (made.entryPointId) {
     await rest(`entry_points?id=eq.${made.entryPointId}`, { method: 'DELETE' });
   }

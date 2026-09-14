@@ -186,5 +186,62 @@ export function ensureSynced(): Promise<SyncResult> {
 /** 利用者が明示的に更新したときに使う。前回の結果は捨てる。 */
 export function resync(): Promise<SyncResult> {
   pending = syncCatalog();
+  const done = pending;
+  void done.then((r) => {
+    if (r.ok) announce();
+  });
   return pending;
+}
+
+// --- 取り込み直したことを知らせる ---------------------------------------------
+
+/**
+ * 取り込みが終わったときに呼ぶ相手。
+ *
+ * **なぜ要るか**
+ *   お知らせの数は、画面が開かれたときに数えている。取り込み直しても
+ *   数え直す合図が無く、**画面を開き直すまで古い数のままだった**
+ *   （ご報告 2026-09-15）。管理画面で直した内容がアプリに出るのに
+ *   一手間かかっていた。
+ *
+ *   取り込みが終わったことを、見ている画面へ伝える。
+ */
+const listeners = new Set<() => void>();
+
+function announce(): void {
+  for (const f of [...listeners]) {
+    try {
+      f();
+    } catch {
+      // 1つが落ちても、他へは伝える
+    }
+  }
+}
+
+/** 取り込み直されたら呼ばれる。戻り値を呼ぶと外れる。 */
+export function onCatalogChanged(f: () => void): () => void {
+  listeners.add(f);
+  return () => listeners.delete(f);
+}
+
+/**
+ * しばらく取り込んでいなければ、取り込み直す。
+ *
+ * **画面へ戻ってきたときに呼ぶ。** 起動時の1回だけだと、開いたままの
+ * 端末には新しい内容が届かない。かといって画面を開くたびに取りに行くと、
+ * 走行中の電波で無駄な通信を繰り返す。
+ *
+ * 取り込みは35KB（圧縮後）。1分に1度までなら負担にならない。
+ *
+ * **1分にしてある理由**
+ *   管理画面で直したことが、アプリを開いたままでも1分ほどで出る。
+ *   これより長いと「直したのに出ない」と映る（ご報告 2026-09-15）。
+ *   短くしても、画面へ戻ってくる回数より多くは走らない。
+ */
+const STALE_AFTER = 60 * 1000;
+
+export async function refreshIfStale(now: number = Date.now()): Promise<void> {
+  const at = await getSyncedAt();
+  if (at && now - at.getTime() < STALE_AFTER) return;
+  await resync().catch(() => undefined);
 }

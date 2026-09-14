@@ -13,7 +13,7 @@ import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { PAGE_MAX, PAGE_PAD, useLayout } from '@/lib/layout';
 import { countUnread, fetchNotices, getRead } from '@/lib/notices';
-import { ensureSynced } from '@/lib/sync';
+import { ensureSynced, onCatalogChanged } from '@/lib/sync';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -61,7 +61,21 @@ export function TopBar() {
     void ensureSynced();
   }, []);
 
-  /* 未読の数。画面を移るたびに数え直す。 */
+  /*
+    未読の数。
+
+    数え直す合図は3つ。
+      * 画面を移ったとき（道筋の変化）
+      * 会員の状態が変わったとき（払った時点で期限の知らせは消える）
+      * **取り込み直されたとき**
+
+    3つめが無く、**画面を開き直すまで古い数のままだった**
+    （ご報告 2026-09-15）。管理画面で直した内容がアプリに出るのに
+    一手間かかっていた。
+  */
+  const [syncMark, setSyncMark] = useState(0);
+  useEffect(() => onCatalogChanged(() => setSyncMark((n) => n + 1)), []);
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -71,8 +85,7 @@ export function TopBar() {
     return () => {
       alive = false;
     };
-    // 会員の状態が変わったら数え直す。払った時点で期限の知らせは消える。
-  }, [pathname, locale, account]);
+  }, [pathname, locale, account, syncMark]);
 
 
 
