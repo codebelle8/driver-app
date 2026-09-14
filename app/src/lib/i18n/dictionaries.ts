@@ -391,10 +391,19 @@ const ja = {
     bodyLeft: '無料期間はあと {n} 日です',
     open: '料金プランを見る',
     close: '閉じる',
-    monthly: '月額',
-    yearly: '年額',
-    priceMonth: '{yen} 円 / 月',
-    priceYear: '{yen} 円 / 年',
+    /*
+      刻みの名前。id で引く。
+
+      画面の側で「月額か年額か」を判じない。刻みを増やすたびに
+      画面を1つずつ直すことになる（2026-09-14 に4つへ増やした）。
+    */
+    names: {
+      monthly: '1か月',
+      quarterly: '3か月',
+      half: '6か月',
+      yearly: '1年',
+    },
+    price: '{yen} 円',
     choose: 'この内容で申し込む',
     chosen: 'ご希望を承りました',
     chosenBody: 'お支払い方法が整い次第、ご案内いたします。それまでは引き続きお使いいただけます。',
@@ -881,10 +890,13 @@ const en: Dictionary = {
     bodyLeft: '{n} days left in your free month',
     open: 'See the plans',
     close: 'Close',
-    monthly: 'Monthly',
-    yearly: 'Yearly',
-    priceMonth: '¥{yen} / month',
-    priceYear: '¥{yen} / year',
+    names: {
+      monthly: '1 month',
+      quarterly: '3 months',
+      half: '6 months',
+      yearly: '1 year',
+    },
+    price: '¥{yen}',
     choose: 'Choose this plan',
     chosen: 'Thank you',
     chosenBody: 'We will be in touch once payment is set up. You can keep using the app until then.',

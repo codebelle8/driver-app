@@ -157,8 +157,16 @@ const ja = {
     colPlan: 'ご希望の料金',
     statePaid: 'ご利用中',
     stateTrial: '無料期間',
-    planMonthly: '月額',
-    planYearly: '年額',
+    /*
+      料金の刻みの名前。id で引く。
+      刻みは4つ（2026-09-14）。画面の側で書き分けない。
+    */
+    planNames: {
+      monthly: '1か月',
+      quarterly: '3か月',
+      half: '6か月',
+      yearly: '1年',
+    },
     markPaid: '入金を確認した',
     undoPaid: '無料期間へ戻す',
     stateBlocked: '停止中',
@@ -247,8 +255,12 @@ const ja = {
     paymentBody: '会員番号 {no} の方から、{plan}のお振込みを済ませたとご報告がありました。',
     paymentGo: '会員・お支払いへ',
     dismiss: '取り下げる',
-    monthly: '月額',
-    yearly: '年額',
+    planNames: {
+      monthly: '1か月ぶん',
+      quarterly: '3か月ぶん',
+      half: '6か月ぶん',
+      yearly: '1年ぶん',
+    },
     /* ヘッダーのベル。押すと一覧へ移る。重ねると中身が覗ける。 */
     hover: '押すと一覧をご覧いただけます',
     pageTitle: 'お知らせ',
@@ -572,12 +584,18 @@ const ja = {
  * `as const` によって ja の各値はリテラル型（"保存" など）になる。
  * そのままだと en 側が代入できないため、値の型を string へ広げる。
  * キーの過不足は引き続き検出されるので、訳し忘れは型エラーになる。
+ *
+ * **入れ子の深さを決め打ちにしない。**
+ *   以前は2階層までしか辿らず、3階層目（planNames の中など）が
+ *   まるごと string になっていた。辞書に入れ子を作った時点で
+ *   型が壊れ、使う側で「string に添字は引けない」と言われる。
+ *   文字のところだけを広げ、構造はそのまま残す。
  */
-type Dictionary = {
-  [K in keyof typeof ja]: {
-    -readonly [K2 in keyof (typeof ja)[K]]: string;
-  };
+type Widen<T> = {
+  -readonly [K in keyof T]: T[K] extends string ? string : Widen<T[K]>;
 };
+
+type Dictionary = Widen<typeof ja>;
 
 const en: Dictionary = {
   brand: {
@@ -717,8 +735,12 @@ const en: Dictionary = {
     colPlan: 'Chosen plan',
     statePaid: 'Active',
     stateTrial: 'Free month',
-    planMonthly: 'Monthly',
-    planYearly: 'Yearly',
+    planNames: {
+      monthly: '1 month',
+      quarterly: '3 months',
+      half: '6 months',
+      yearly: '1 year',
+    },
     markPaid: 'Payment received',
     undoPaid: 'Back to free month',
     stateBlocked: 'Suspended',
@@ -800,8 +822,12 @@ const en: Dictionary = {
     paymentBody: 'Member {no} reports they have made the {plan} transfer.',
     paymentGo: 'Go to members',
     dismiss: 'Dismiss',
-    monthly: 'monthly',
-    yearly: 'annual',
+    planNames: {
+      monthly: 'the 1-month',
+      quarterly: 'the 3-month',
+      half: 'the 6-month',
+      yearly: 'the 1-year',
+    },
     hover: 'Open the list',
     pageTitle: 'Notifications',
     pageDescription: 'Requests to clear the activity log, and payments reported by members.',

@@ -98,7 +98,8 @@ export function PlanPrompt({
     }
   }
 
-  const name = (id: PlanId) => (id === 'monthly' ? t.plan.monthly : t.plan.yearly);
+  /* 名前も金額も、刻みの表と辞書から引く。ここで書き分けない。 */
+  const name = (id: PlanId) => t.plan.names[id];
 
   return (
     <View style={[s.box, over ? s.boxOver : s.boxSoft, isPage && s.boxPage, style]}>
@@ -157,11 +158,7 @@ export function PlanPrompt({
                 />
                 <View style={s.choiceBody}>
                   <Text style={s.choiceName}>{name(p.id)}</Text>
-                  <Text style={s.choicePrice}>
-                    {p.id === 'monthly'
-                      ? fill(t.plan.priceMonth, { yen: yen(p.yen) })
-                      : fill(t.plan.priceYear, { yen: yen(p.yen) })}
-                  </Text>
+                  <Text style={s.choicePrice}>{fill(t.plan.price, { yen: yen(p.yen) })}</Text>
                 </View>
               </Pressable>
             );

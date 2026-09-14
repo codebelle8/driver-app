@@ -213,7 +213,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        {p.plan ? (p.plan === 'monthly' ? m.planMonthly : m.planYearly) : '—'}
+                        {p.plan ? m.planNames[p.plan] : '—'}
                         {p.plan_chosen_at && (
                           <span className="ml-2 text-xs text-text-faint">
                             {day(p.plan_chosen_at)}

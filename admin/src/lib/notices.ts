@@ -11,7 +11,10 @@
  */
 import 'server-only';
 
-import type { AdminNotice } from '@/lib/supabase/database.types';
+import type { AdminNotice, PlanId } from '@/lib/supabase/database.types';
+
+/** 料金の刻み。増えたときは、ここへ足せば画面まで通る。 */
+const PLAN_IDS: readonly PlanId[] = ['monthly', 'quarterly', 'half', 'yearly'];
 import { createAdminClient } from '@/lib/supabase/server';
 
 /**
@@ -97,7 +100,7 @@ export interface OpenNotice {
   count?: number;
   /** payment のとき */
   memberNo?: number;
-  plan?: 'monthly' | 'yearly';
+  plan?: PlanId;
   /** 対応が済んだもののとき */
   state?: AdminNotice['state'];
   decidedAt?: string | null;
@@ -114,7 +117,7 @@ function shape(n: AdminNotice): OpenNotice {
     cutoff: typeof d.cutoff === 'string' ? d.cutoff : undefined,
     count: typeof d.count === 'number' ? d.count : undefined,
     memberNo: typeof d.member_no === 'number' ? d.member_no : undefined,
-    plan: d.plan === 'monthly' || d.plan === 'yearly' ? d.plan : undefined,
+    plan: PLAN_IDS.includes(d.plan as PlanId) ? (d.plan as PlanId) : undefined,
     state: n.state,
     decidedAt: n.decided_at,
     removed: typeof d.removed === 'number' ? d.removed : undefined,

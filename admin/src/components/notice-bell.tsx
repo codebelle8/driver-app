@@ -30,7 +30,7 @@ export interface NoticeItem {
   cutoff?: string;
   count?: number;
   memberNo?: number;
-  plan?: 'monthly' | 'yearly';
+  plan?: 'monthly' | 'quarterly' | 'half' | 'yearly';
 }
 
 export interface BellLabels {
@@ -43,8 +43,7 @@ export interface BellLabels {
   purgeBody: string;
   paymentTitle: string;
   paymentBody: string;
-  monthly: string;
-  yearly: string;
+  planNames: Record<'monthly' | 'quarterly' | 'half' | 'yearly', string>;
 }
 
 function fill(template: string, values: Record<string, string | number>): string {
@@ -161,7 +160,7 @@ export function NoticeBell({
           title: labels.paymentTitle,
           body: fill(labels.paymentBody, {
             no: it.memberNo ?? '—',
-            plan: it.plan === 'yearly' ? labels.yearly : labels.monthly,
+            plan: it.plan ? labels.planNames[it.plan] : '',
           }),
         };
 

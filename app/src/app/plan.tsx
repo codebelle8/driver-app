@@ -160,11 +160,7 @@ export default function PlanScreen() {
             <View style={styles.cardRow}>
               <Text style={styles.cardLabel}>{t.plan.chosenLabel}</Text>
               <Text style={styles.cardValue}>
-                {account.plan
-                  ? account.plan === 'monthly'
-                    ? t.plan.monthly
-                    : t.plan.yearly
-                  : t.plan.notChosen}
+                {account.plan ? t.plan.names[account.plan] : t.plan.notChosen}
               </Text>
               {!!account.planChosenAt && (
                 <Text style={styles.cardNote}>
@@ -197,10 +193,10 @@ export default function PlanScreen() {
                   <View style={styles.cardRow}>
                     <Text style={styles.cardLabel}>{t.plan.transferAmount}</Text>
                     <Text style={styles.cardValue}>
-                      {account.plan === 'monthly'
-                        ? fill(t.plan.priceMonth, { yen: yen(planOf('monthly').yen) })
-                        : fill(t.plan.priceYear, { yen: yen(planOf('yearly').yen) })}
+                      {fill(t.plan.price, { yen: yen(planOf(account.plan).yen) })}
                     </Text>
+                    {/* いくらぶんの期間か。金額だけでは何か月ぶんか分からない */}
+                    <Text style={styles.cardNote}>{t.plan.names[account.plan]}</Text>
                   </View>
 
                   <View style={styles.cardRow}>

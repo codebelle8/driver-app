@@ -30,6 +30,9 @@ export type PhotoKind =
 
 export type AdminRole = 'admin' | 'editor' | 'surveyor';
 
+/** 料金の刻み。1か月・3か月・6か月・1年。 */
+export type PlanId = 'monthly' | 'quarterly' | 'half' | 'yearly';
+
 export type Category = {
   id: string;
   code: string;
@@ -143,7 +146,8 @@ export type DriverProfile = {
   trial_ends_at: string;
   avatar_path: string | null;
   /** ご希望の料金。支払い済みの意味ではない。 */
-  plan: 'monthly' | 'yearly' | null;
+  /** 料金の刻み。4つ（2026-09-14）。金額はアプリ側の plans.ts が持つ。 */
+  plan: PlanId | null;
   plan_chosen_at: string | null;
   /** 振込名義の前に付けていただく番号 */
   member_no: number;
@@ -193,7 +197,7 @@ export type NoticeState = 'open' | 'done' | 'dismissed';
  *
  * detail の中身は種類ごとに違う。
  *   purge_request … { cutoff: string; count: number }
- *   payment       … { plan: 'monthly' | 'yearly'; member_no: number }
+ *   payment       … { plan: PlanId; member_no: number }
  */
 export type AdminNotice = {
   id: number;

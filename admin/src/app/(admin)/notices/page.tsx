@@ -46,8 +46,7 @@ export default async function NoticesPage() {
     return out;
   };
 
-  const planLabel = (plan?: 'monthly' | 'yearly') =>
-    plan === 'yearly' ? n.yearly : n.monthly;
+  const planLabel = (plan?: keyof typeof n.planNames) => (plan ? n.planNames[plan] : '—');
 
   return (
     <div className="space-y-6">
