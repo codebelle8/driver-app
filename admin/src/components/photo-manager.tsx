@@ -7,6 +7,7 @@ import type { ActionState } from '@/app/actions/facilities';
 import { deletePhoto, movePhoto, replacePhoto, uploadPhoto } from '@/app/actions/photos';
 import { BulkCheck, BulkDelete } from '@/components/bulk-delete';
 import { DeleteButton } from '@/components/delete-button';
+import { shrinkImage } from '@/lib/shrink-image';
 import { Alert, Badge, Button, Field, inputClass } from '@/components/ui';
 import { bulkLabels, type Dictionary } from '@/lib/i18n/dictionaries';
 import { thumbUrlOf } from '@/lib/photos';
@@ -42,6 +43,34 @@ export function PhotoManager({
   );
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [shrinking, setShrinking] = useState(false);
+
+  /*
+    選ばれた写真を、**送る前にブラウザの中で縮める。**
+
+    いまのスマートフォンの写真は 3〜12MB ある。そのまま送ると、
+    サーバー側の受け取れる大きさを超え、「An unexpected response was
+    received from the server」とだけ出て終わる（ご報告 2026-09-14）。
+
+    縮めた結果を入力欄へ戻すため、送る経路は選んだときと同じ。
+  */
+  async function accept(picked: File | null) {
+    if (!picked || !fileRef.current) {
+      setFileName(null);
+      return;
+    }
+    setFileName(picked.name);
+    setShrinking(true);
+    try {
+      const small = await shrinkImage(picked);
+      const box = new DataTransfer();
+      box.items.add(small);
+      if (fileRef.current) fileRef.current.files = box.files;
+      setFileName(small.name);
+    } finally {
+      setShrinking(false);
+    }
+  }
   const fileRef = useRef<HTMLInputElement>(null);
   const p = t.photo;
 
@@ -185,10 +214,7 @@ export function PhotoManager({
             onDrop={(e) => {
               e.preventDefault();
               setDragging(false);
-              const dropped = e.dataTransfer.files?.[0];
-              if (!dropped || !fileRef.current) return;
-              fileRef.current.files = e.dataTransfer.files;
-              setFileName(dropped.name);
+              void accept(e.dataTransfer.files?.[0] ?? null);
             }}
             className={
               'rounded-lg border-2 border-dashed p-3 transition-colors ' +
@@ -201,7 +227,7 @@ export function PhotoManager({
               name="file"
               accept="image/jpeg,image/png,image/webp"
               required
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+              onChange={(e) => void accept(e.target.files?.[0] ?? null)}
               className="w-full text-sm text-text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface file:px-4 file:py-2 file:text-sm file:font-medium file:text-text hover:file:bg-border"
             />
             <p className="mt-2 text-xs text-text-faint">{p.dropHint}</p>
@@ -214,8 +240,8 @@ export function PhotoManager({
           </p>
         )}
 
-        <Button type="submit" variant="secondary" disabled={pending}>
-          {pending ? p.uploading : p.upload}
+        <Button type="submit" variant="secondary" disabled={pending || shrinking}>
+          {shrinking ? p.shrinking : pending ? p.uploading : p.upload}
         </Button>
       </form>
       )}

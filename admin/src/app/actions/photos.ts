@@ -70,11 +70,23 @@ async function removeFiles(
   return { ok: true };
 }
 
+/**
+ * ここへ届く大きさの上限（next.config.ts と合わせる）。
+ *
+ * 超えるとサーバーが受け取る前に切れるため、本来ここまで来ない。
+ * それでも書いておくのは、**理由を日本語で返せる最後の場所**だから。
+ */
+const MAX_BYTES = 4 * 1024 * 1024;
+
 /** 受け取ったものが画像として扱えるか */
 function checkFile(file: FormDataEntryValue | null): string | null {
   if (!(file instanceof File) || file.size === 0) return '画像ファイルを選択してください';
   if (!file.type.startsWith('image/')) {
     return '画像ファイルを選択してください（JPEG / PNG / WebP）';
+  }
+  if (file.size > MAX_BYTES) {
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    return `写真が大きすぎます（${mb}MB）。4MB までにしてください`;
   }
   return null;
 }

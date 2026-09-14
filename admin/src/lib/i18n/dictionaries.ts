@@ -529,6 +529,8 @@ const ja = {
     file: '画像ファイル',
     fileHint: '長辺1600px以上を推奨。アップロード時に自動で圧縮・リサイズされます',
     selected: '選択中',
+    /* 送る前にブラウザの中で縮めている間の表示 */
+    shrinking: '写真を整えています…',
     upload: '写真を追加',
     uploading: 'アップロードしています…',
     placeholder: '仮画像',
@@ -1078,6 +1080,7 @@ const en: Dictionary = {
     fileHint:
       'At least 1600px on the long edge is recommended. Images are compressed and resized on upload',
     selected: 'Selected',
+    shrinking: 'Preparing the photo…',
     upload: 'Add photo',
     uploading: 'Uploading…',
     placeholder: 'Placeholder',
