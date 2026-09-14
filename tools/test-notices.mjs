@@ -170,6 +170,7 @@ let adminId = null;
 let editorId = null;
 let driverId = null;
 let seededAudit = null;
+const peekDrivers = [];
 
 try {
   console.log(`管理画面のお知らせの検査: ${BASE}${NL}`);
@@ -482,6 +483,99 @@ try {
   check(`お知らせの一覧が画面に収まる（幅 ${over.w}px）`, over.bad.length === 0, over.bad.join(' | '));
   await spCtx.close();
 
+  // --- 10. 覗き窓と、数の即時反映 ---------------------------------------------
+  console.log('--- 覗き窓と、数の即時反映 ---');
+
+  /*
+    未対応を3件そろえる。
+
+    未対応のお支払いの報告は**会員ひとりにつき1件まで**に縛ってある
+    ため、3件出すには3人要る。ここで使い捨ての会員を3人作る。
+  */
+  for (let i = 0; i < 3; i += 1) {
+    const mail = `ui-notice-peek${i}@kurumayose.invalid`;
+    const id = await makeUser(mail);
+    peekDrivers.push(id);
+    await sb('/rest/v1/driver_profiles', {
+      method: 'POST',
+      body: {
+        user_id: id,
+        trial_ends_at: new Date(Date.now() + 86400000).toISOString(),
+        plan: i % 2 === 0 ? 'monthly' : 'yearly',
+      },
+    });
+    await callRpc(await driverToken(mail), 'report_payment');
+  }
+
+  await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  let b3 = await page.evaluate(BELL);
+  check('3件たまると、ベルに 3 と出る', b3.数 === '3', JSON.stringify(b3));
+
+  await page.hover('a[aria-label*="お知らせ"]');
+  await page.waitForTimeout(700);
+  const peek3 = await page.evaluate(() => {
+    const box = document.querySelector('[role="tooltip"] ul');
+    if (!box) return null;
+    return {
+      件: box.children.length,
+      中: box.scrollHeight,
+      枠: box.clientHeight,
+      送れる: box.scrollHeight > box.clientHeight + 1,
+    };
+  });
+  check('3件のときは覗き窓に送りが出る',
+    Boolean(peek3 && peek3.送れる && peek3.件 === 3), JSON.stringify(peek3));
+
+  /* 窓の中へ指を移しても閉じない（閉じると送れない） */
+  const stay = await (async () => {
+    const box = await page.locator('[role="tooltip"] ul').boundingBox();
+    if (!box) return false;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(500);
+    return (await page.locator('[role="tooltip"]').count()) === 1;
+  })();
+  check('窓の中へ指を移しても閉じない', stay);
+
+  /* 送ってみて、実際に下まで届くか */
+  const scrolled = await page.evaluate(() => {
+    const box = document.querySelector('[role="tooltip"] ul');
+    if (!box) return null;
+    box.scrollTop = box.scrollHeight;
+    return box.scrollTop > 0;
+  });
+  check('覗き窓を下まで送れる', scrolled === true);
+
+  await page.mouse.move(10, 400);
+  await page.waitForTimeout(500);
+
+  /*
+    **読んだら、その場で数が変わること。**
+
+    画面を読み込み直さずに確かめる。読み込み直せば必ず合うので、
+    それでは「その場で変わる」ことを見たことにならない。
+  */
+  await page.goto(`${BASE}/notices`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+  const before数 = (await page.evaluate(BELL)).数;
+  await page.click('button:has-text("取り下げる")');
+  await page.waitForTimeout(2500);
+  const after数 = (await page.evaluate(BELL)).数;
+  check(`取り下げると、その場で数が減る（${before数} → ${after数}）`,
+    before数 === '3' && after数 === '2',
+    `読み込み直さずに ${before数} → ${after数}`);
+
+  /*
+    未対応の欄だけを数える。
+
+    画面の下には「対応が済んだもの」も並ぶ。画面全体の文字を数えると、
+    取り下げた分がそちらに現れて数が合わなくなる。実際に合わなかった。
+  */
+  const openRows = await page.evaluate(
+    () => document.querySelectorAll('ul li')[0]?.parentElement?.children.length ?? -1,
+  );
+  check('未対応の欄から、その行が消えている', openRows === 2, `未対応 ${openRows} 行`);
+
   await ctx.close();
 } finally {
   console.log(`${NL}--- 後片付け ---`);
@@ -490,7 +584,7 @@ try {
   if (seededAudit !== null) {
     await sb(`/rest/v1/audit_logs?id=eq.${seededAudit}`, { method: 'DELETE' });
   }
-  for (const id of [adminId, editorId, driverId]) {
+  for (const id of [adminId, editorId, driverId, ...peekDrivers]) {
     if (!id) continue;
     await sb(`/rest/v1/admin_notices?member_id=eq.${id}`, { method: 'DELETE' });
     await sb(`/rest/v1/audit_logs?actor_id=eq.${id}`, { method: 'DELETE' });
@@ -500,7 +594,7 @@ try {
   }
   /* 検査で作った整理のお伺いを消す（本番の履歴に残さない） */
   await sb('/rest/v1/admin_notices?kind=eq.purge_request', { method: 'DELETE' });
-  const purged = await purgeAuditLogs(sb, [adminId, editorId, driverId]);
+  const purged = await purgeAuditLogs(sb, [adminId, editorId, driverId, ...peekDrivers]);
   console.log(`  片付け  検査用のアカウントを消しました（操作履歴 ${purged} 件）`);
 
   console.log(`${NL}合格 ${pass} / 不合格 ${failures.length}`);

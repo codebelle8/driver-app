@@ -53,8 +53,25 @@ function fill(template: string, values: Record<string, string | number>): string
   return out;
 }
 
-/** 覗き窓に並べる上限。多いときは一覧で見ていただく。 */
-const PEEK = 3;
+/**
+ * 覗き窓の高さの上限。
+ *
+ * ご指示（2026-09-14）により、**3件以上のときは送れるようにする。**
+ * 1件ぶんの高さは、見出し(20) + 本文2行(32) + 余白(10) で約62px。
+ * 2件（132px）までは収まり、3件（194px）から送りが出る高さにしてある。
+ *
+ * 打ち切って「残り◯件」と書く形もあるが、それでは何が届いているかが
+ * 分からない。全部を並べて、送って見ていただく。
+ */
+const PEEK_MAX_H = '8.5rem';
+
+/**
+ * ベルから覗き窓へ指を移すあいだ、閉じないでおく時間 (ms)。
+ *
+ * ベルと窓のあいだには隙間がある。離れた瞬間に閉じると、窓の中へ
+ * たどり着けず、送ることができない。
+ */
+const LEAVE_DELAY = 180;
 
 export function NoticeBell({
   items,
@@ -69,6 +86,21 @@ export function NoticeBell({
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const linkRef = useRef<HTMLAnchorElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openPeek = useCallback(() => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    setShow(true);
+  }, []);
+
+  const closePeek = useCallback(() => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+    leaveTimer.current = setTimeout(() => setShow(false), LEAVE_DELAY);
+  }, []);
+
+  useEffect(() => () => {
+    if (leaveTimer.current) clearTimeout(leaveTimer.current);
+  }, []);
 
   const day = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === 'en' ? 'en-GB' : 'ja-JP', {
@@ -115,7 +147,6 @@ export function NoticeBell({
   }, [show, place]);
 
   const n = items.length;
-  const peek = items.slice(0, PEEK);
 
   const line = (it: NoticeItem) =>
     it.kind === 'purge_request'
@@ -143,12 +174,12 @@ export function NoticeBell({
         aria-label={n > 0 ? `${labels.open}（${fill(labels.unread, { n })}）` : labels.open}
         /* 指で触る端末では覗き窓を出さない。重ねるという操作が無い。 */
         onPointerEnter={(e) => {
-          if (e.pointerType === 'mouse') setShow(true);
+          if (e.pointerType === 'mouse') openPeek();
         }}
-        onPointerLeave={() => setShow(false)}
+        onPointerLeave={closePeek}
         /* キーボードで辿る方にも、同じ中身が見えるようにする */
-        onFocus={() => setShow(true)}
-        onBlur={() => setShow(false)}
+        onFocus={openPeek}
+        onBlur={closePeek}
         onClick={() => setShow(false)}
         className="relative flex size-9 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:border-border hover:text-accent focus-visible:border-border focus-visible:text-accent"
       >
@@ -182,15 +213,21 @@ export function NoticeBell({
             left: pos?.left ?? -9999,
             visibility: pos ? 'visible' : 'hidden',
           }}
-          className="pointer-events-none fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-lg border border-border bg-surface p-3 shadow-lg"
+          /* 窓の中でも送れるように、指を受け取る。離れたら閉じる。 */
+          onPointerEnter={openPeek}
+          onPointerLeave={closePeek}
+          className="fixed z-50 w-[min(20rem,calc(100vw-1rem))] rounded-lg border border-border bg-surface p-3 shadow-lg"
         >
           <p className="text-xs font-semibold text-text-muted">{labels.title}</p>
 
           {n === 0 ? (
             <p className="mt-2 text-sm text-text-faint">{labels.empty}</p>
           ) : (
-            <ul className="mt-2 space-y-2">
-              {peek.map((it) => {
+            <ul
+              style={{ maxHeight: PEEK_MAX_H }}
+              className="mt-2 space-y-2 overflow-y-auto overscroll-contain pr-1"
+            >
+              {items.map((it) => {
                 const l = line(it);
                 return (
                   <li key={it.id}>
@@ -201,9 +238,6 @@ export function NoticeBell({
                   </li>
                 );
               })}
-              {n > PEEK && (
-                <li className="text-xs text-text-faint">{fill(labels.unread, { n: n - PEEK })}</li>
-              )}
             </ul>
           )}
 
