@@ -274,6 +274,8 @@ const ja = {
     handledAt: '{date} に対応',
   },
   common: {
+    /* まだ保存していない枠に出す印。ご報告 2026-09-14。 */
+    unsaved: 'まだ保存していません',
     save: '保存',
     saving: '保存しています…',
     prev: '前へ',
@@ -846,6 +848,7 @@ const en: Dictionary = {
     handledAt: 'Handled {date}',
   },
   common: {
+    unsaved: 'Not saved yet',
     save: 'Save',
     saving: 'Saving…',
     prev: 'Previous',

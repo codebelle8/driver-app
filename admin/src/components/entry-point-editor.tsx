@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { UnsavedMark } from '@/components/unsaved-mark';
 
 import { saveEntryPoint } from '@/app/actions/entry-points';
 import type { ActionState } from '@/app/actions/facilities';
@@ -298,6 +299,7 @@ export function EntryPointEditor({
                 e.saveEdit.replace('{code}', entryPoint.code ?? '')
               : e.saveNew}
         </Button>
+        <UnsavedMark label={t.common.unsaved} />
         {onDone && (
           <Button type="button" variant="ghost" onClick={onDone}>
             {t.common.close}

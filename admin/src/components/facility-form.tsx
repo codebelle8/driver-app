@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 
 import { Alert, Button, Card, Field, inputClass } from '@/components/ui';
+import { UnsavedMark } from '@/components/unsaved-mark';
 import type { ActionState } from '@/app/actions/facilities';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
 import type { Category, Facility } from '@/lib/supabase/database.types';
@@ -250,6 +251,11 @@ export function FacilityForm({
         <Button type="submit" disabled={pending}>
           {pending ? t.common.saving : submitLabel}
         </Button>
+        {/*
+          直したのに、別の枠の釦を押してしまうことがある。
+          直した枠にだけ印を出す。
+        */}
+        <UnsavedMark label={t.common.unsaved} />
         {state.ok && <span className="text-sm text-ok">{t.common.saved}</span>}
       </div>
     </form>

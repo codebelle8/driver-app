@@ -48,13 +48,14 @@ const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
 const EMAIL = 'ui-save-check@kurumayose.invalid';
 const PASSWORD = 'Vb3nMk7wQz9xTr';
 
-const sb = async (path, { method = 'GET', body } = {}) => {
+const sb = async (path, { method = 'GET', body, prefer } = {}) => {
   const r = await fetch(`${SB}${path}`, {
     method,
     headers: {
       apikey: KEY,
       Authorization: `Bearer ${KEY}`,
       'Content-Type': 'application/json',
+      ...(prefer ? { Prefer: prefer } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -118,8 +119,8 @@ let browser = null;
 let userId = null;
 let siteBefore = null;
 let payBefore = null;
-let facBefore = null;
-let epBefore = null;
+let madeFacilityId = null;
+let madeEntryPointId = null;
 
 try {
   console.log(`管理画面の上書きの検査: ${BASE}${NL}`);
@@ -282,11 +283,50 @@ try {
 
   // --- 施設と入口 -------------------------------------------------------------
   console.log('--- 施設と入口 ---');
-  const one = await sb('/rest/v1/facilities?select=*&order=sort_order.asc&limit=1');
-  facBefore = one.body?.[0] ?? null;
 
-  if (facBefore) {
-    await page.goto(`${BASE}/facilities/${facBefore.id}`, { waitUntil: 'networkidle' });
+  /*
+    **発注元の施設は触らない。**
+
+    以前は実在の施設を書き換えて元へ戻していた。発注元が同じ時間に
+    編集していると、**こちらの「元へ戻す」がその編集を消してしまう。**
+    検査のために自前の施設を作り、終わったら消す。
+
+    下書きのままにする。アプリへは届かないため、検査のあいだ利用者の
+    画面に現れない。
+  */
+  const cat = (await sb('/rest/v1/categories?select=id&limit=1')).body?.[0];
+  const made = await sb('/rest/v1/facilities', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: {
+      code: `ZZS-${String(Math.floor(1000 + Math.random() * 8999))}`,
+      name: '保存の検査用（自動で消えます）',
+      name_kana: 'けんさ',
+      category_id: cat?.id,
+      prefecture: '東京都',
+      address_line: '検査町',
+      status: 'draft',
+      sort_order: 9998,
+    },
+  });
+  madeFacilityId = made.body?.[0]?.id ?? null;
+  check('検査用の施設を作れた', madeFacilityId !== null, JSON.stringify(made.body).slice(0, 160));
+
+  if (madeFacilityId) {
+    const ep = await sb('/rest/v1/entry_points', {
+      method: 'POST',
+      prefer: 'return=representation',
+      body: {
+        facility_id: madeFacilityId,
+        code: 'A',
+        kind: 'dropoff',
+        name: '検査用の車寄せ',
+        sort_order: 1,
+      },
+    });
+    madeEntryPointId = ep.body?.[0]?.id ?? null;
+
+    await page.goto(`${BASE}/facilities/${madeFacilityId}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(2500);
 
     /*
@@ -299,40 +339,49 @@ try {
         .map((b) => b.textContent.trim())
         .filter((x) => x.includes('保存')),
     );
-    /*
-      入口が2つあれば「入口 A を保存」「入口 B を保存」と分かれる。
-      施設のものは、どの入口とも違う文言になっていること。
-    */
     const facLabel = labels.find((x) => x.includes('施設'));
     check('施設の保存と、入口の保存が見分けられる',
       Boolean(facLabel) && labels.filter((x) => x === facLabel).length === 1,
       JSON.stringify(labels));
-    check('入口の釦は、入口ごとに違う文言になっている',
-      new Set(labels).size === labels.length, JSON.stringify(labels));
 
     /* 施設の枠は「別名（aliases）」を持つ。入口の枠には無い。 */
     const facForm = page.locator('form:has([name="aliases"])').first();
     const mark = `検査 ${Date.now()}`;
     await facForm.locator('[name="note_internal"]').first().fill(mark);
+
+    /*
+      **直した枠にだけ「まだ保存していません」が出ること。**
+      これが出ていれば、押すべき釦がその場で分かる。
+    */
+    const dirty = await page.evaluate(() =>
+      [...document.querySelectorAll('form')].map((f) =>
+        f.innerText.includes('まだ保存していません'),
+      ),
+    );
+    check('直した枠にだけ「まだ保存していません」が出る',
+      dirty.filter(Boolean).length === 1, JSON.stringify(dirty));
+
     await facForm.locator('button[type="submit"]').filter({ hasText: '保存' }).first().click();
     await page.waitForTimeout(4000);
 
-    const after = (await sb(`/rest/v1/facilities?select=note_internal&id=eq.${facBefore.id}`))
+    const after = (await sb(`/rest/v1/facilities?select=note_internal&id=eq.${madeFacilityId}`))
       .body?.[0];
-    check('施設の情報を上書きできる', after?.note_internal === mark,
-      JSON.stringify(after));
+    check('施設の情報を上書きできる', after?.note_internal === mark, JSON.stringify(after));
 
-    /* 入口の枠も同じように保存できるか */
-    const epForm = page.locator('form:has([name="approach_text"])').first();
-    if (await epForm.count()) {
-      const epId = await epForm.locator('[name="id"]').first().inputValue();
-      epBefore = (await sb(`/rest/v1/entry_points?select=*&id=eq.${epId}`)).body?.[0] ?? null;
+    const cleared = await page.evaluate(() =>
+      document.body.innerText.includes('まだ保存していません'),
+    );
+    check('保存したら、その印が消える', cleared === false);
+
+    if (madeEntryPointId) {
+      const epForm = page.locator('form:has([name="approach_text"])').first();
       const mark2 = `検査 入口 ${Date.now()}`;
-      await epForm.locator('[name="note_internal"]').first().fill(mark2);
+      await epForm.locator('[name="approach_text"]').first().fill(mark2);
       await epForm.locator('button[type="submit"]').filter({ hasText: '保存' }).first().click();
       await page.waitForTimeout(4000);
-      const ep = (await sb(`/rest/v1/entry_points?select=note_internal&id=eq.${epId}`)).body?.[0];
-      check('入口の情報を上書きできる', ep?.note_internal === mark2, JSON.stringify(ep));
+      const ep2 = (await sb(`/rest/v1/entry_points?select=approach_text&id=eq.${madeEntryPointId}`))
+        .body?.[0];
+      check('入口の情報を上書きできる', ep2?.approach_text === mark2, JSON.stringify(ep2));
     }
   }
 
@@ -355,17 +404,13 @@ try {
     check('受取口座を元へ戻した', r.ok);
   }
 
-  if (facBefore) {
-    const { id, created_at, updated_at, search_text, ...rest } = facBefore;
-    void created_at; void updated_at; void search_text;
-    const r = await sb(`/rest/v1/facilities?id=eq.${id}`, { method: 'PATCH', body: rest });
-    check('施設を元へ戻した', r.ok);
+  if (madeEntryPointId) {
+    await sb(`/rest/v1/entry_points?id=eq.${madeEntryPointId}`, { method: 'DELETE' });
   }
-  if (epBefore) {
-    const { id, created_at, updated_at, ...rest } = epBefore;
-    void created_at; void updated_at;
-    const r = await sb(`/rest/v1/entry_points?id=eq.${id}`, { method: 'PATCH', body: rest });
-    check('入口を元へ戻した', r.ok);
+  if (madeFacilityId) {
+    await sb(`/rest/v1/facilities?id=eq.${madeFacilityId}`, { method: 'DELETE' });
+    const left = (await sb(`/rest/v1/facilities?select=id&id=eq.${madeFacilityId}`)).body;
+    check('検査で作った施設を消した', Array.isArray(left) && left.length === 0);
   }
 
   if (userId) {
@@ -373,7 +418,7 @@ try {
     await sb(`/rest/v1/admin_profiles?user_id=eq.${userId}`, { method: 'DELETE' });
     await sb(`/auth/v1/admin/users/${userId}`, { method: 'DELETE' });
   }
-  const purged = await purgeAuditLogs(sb, [userId, facBefore?.id, epBefore?.id]);
+  const purged = await purgeAuditLogs(sb, [userId, madeFacilityId, madeEntryPointId]);
   console.log(`  片付け  検査用のアカウントを消しました（操作履歴 ${purged} 件）`);
 
   console.log(`${NL}合格 ${pass} / 不合格 ${failures.length}`);
