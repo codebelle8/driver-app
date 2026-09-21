@@ -1060,28 +1060,158 @@ function showAnswer() {
     .call(() => answerFader?.show(), [], 0.2);
 }
 
-/* --- できること（横へ送る） -------------------------------------------------- */
+/* --- できること：カードが左へ流れ続ける ---------------------------------------- */
 
+/**
+ * ご指示（2026-09-21）「カードが左へ流れて、ぐるぐる回るように」
+ * 「上の矢印も効くように」。
+ *
+ * **同じ並びをもう一組うしろに足し、一組ぶん進んだら位置を戻す。** 戻す
+ * 瞬間には同じ絵が並んでいるので、切れ目が見えない。
+ *
+ * **流すのも、矢印で送るのも、この描き直しが1か所で受け持つ。** ブラウザの
+ * なめらかな送り（scrollBy の smooth）と混ぜると、流れと送りが引っ張り合う。
+ *
+ * 触っているあいだ（指・マウス・キーボードの移動）と、画面の外にあるあいだは
+ * 止める。動きを減らす場合は流さない（矢印は効く）。
+ */
 const cards = $('#cards');
 const prev = $('[data-carousel="prev"]');
 const next = $('[data-carousel="next"]');
 
+/** 1秒に流れる量。読みながら追える速さ */
+const FLOW_SPEED = 45;
+/** 矢印で送ったあと、流れに戻るまでの間 */
+const FLOW_HOLD = 700;
+
+/* もう一組足す。読み上げからは外す（同じ中身を2回読ませない） */
+const firstCopy = cards.children.length;
+for (const card of [...cards.children]) {
+  const copy = card.cloneNode(true);
+  copy.setAttribute('aria-hidden', 'true');
+  copy.classList.add('is-copy');
+  /* 元の絵はもう読み込んである。写しは待たずに出す */
+  for (const img of $$('img', copy)) img.loading = 'eager';
+  cards.append(copy);
+}
+
+/** 一組ぶんの長さ。1枚目と、その写しの左端の差 */
+let loopWidth = 0;
+const measureLoop = () => {
+  const a = cards.children[0];
+  const b = cards.children[firstCopy];
+  loopWidth = a && b ? b.offsetLeft - a.offsetLeft : 0;
+};
+measureLoop();
+
+/** 矢印1回ぶん（カード1枚と、その間） */
 function step() {
   const card = cards.querySelector('.card');
   if (!card) return 300;
   const gap = parseFloat(getComputedStyle(cards).columnGap || '24') || 24;
   return card.getBoundingClientRect().width + gap;
 }
-function paintArrows() {
-  const max = cards.scrollWidth - cards.clientWidth - 2;
-  prev.disabled = cards.scrollLeft <= 2;
-  next.disabled = cards.scrollLeft >= max;
+
+let pos = cards.scrollLeft;
+let target = null;
+let holdUntil = 0;
+let touching = false;
+let seen = true;
+let running = false;
+let lastSet = pos;
+let prevTime = 0;
+
+/** 一組ぶん進んだら戻す（戻したことが見えないように） */
+function wrapAround() {
+  if (loopWidth <= 0) return;
+  if (pos >= loopWidth) {
+    pos -= loopWidth;
+    if (target !== null) target -= loopWidth;
+  } else if (pos < 0) {
+    pos += loopWidth;
+    if (target !== null) target += loopWidth;
+  }
 }
-prev.addEventListener('click', () => cards.scrollBy({ left: -step(), behavior: reduceMotion ? 'auto' : 'smooth' }));
-next.addEventListener('click', () => cards.scrollBy({ left: step(), behavior: reduceMotion ? 'auto' : 'smooth' }));
-cards.addEventListener('scroll', paintArrows, { passive: true });
-window.addEventListener('resize', paintArrows);
-paintArrows();
+
+function frame(now) {
+  const dt = prevTime ? Math.min((now - prevTime) / 1000, 0.05) : 0;
+  prevTime = now;
+
+  if (target !== null) {
+    if (reduceMotion) {
+      pos = target;
+      target = null;
+      holdUntil = now + FLOW_HOLD;
+    } else {
+      pos += (target - pos) * Math.min(1, dt * 7);
+      if (Math.abs(target - pos) < 0.5) {
+        pos = target;
+        target = null;
+        holdUntil = now + FLOW_HOLD;
+      }
+    }
+  } else if (lively && seen && !touching && now > holdUntil) {
+    pos += FLOW_SPEED * dt;
+  }
+
+  wrapAround();
+  cards.scrollLeft = pos;
+  lastSet = cards.scrollLeft;
+
+  if (lively || target !== null) requestAnimationFrame(frame);
+  else running = false;
+}
+
+function kick() {
+  if (running) return;
+  running = true;
+  prevTime = 0;
+  requestAnimationFrame(frame);
+}
+
+/** 矢印。端でも止まらない（一組ぶんで戻るため、いつでも押せる） */
+const go = (dir) => {
+  target = (target ?? pos) + dir * step();
+  kick();
+};
+prev.addEventListener('click', () => go(-1));
+next.addEventListener('click', () => go(1));
+prev.disabled = false;
+next.disabled = false;
+
+/* 指やマウスで送られたら、その位置に合わせて、しばらく流さない */
+cards.addEventListener(
+  'scroll',
+  () => {
+    if (Math.abs(cards.scrollLeft - lastSet) < 2) return;
+    pos = cards.scrollLeft;
+    target = null;
+    holdUntil = performance.now() + 1200;
+  },
+  { passive: true },
+);
+
+/* 触っているあいだは止める。読んでいる最中に流れると読みにくい */
+for (const on of ['pointerenter', 'focusin', 'pointerdown', 'touchstart']) {
+  cards.addEventListener(on, () => (touching = true), { passive: true });
+}
+for (const off of ['pointerleave', 'focusout', 'touchend', 'touchcancel']) {
+  cards.addEventListener(off, () => (touching = false), { passive: true });
+}
+
+window.addEventListener('resize', () => {
+  measureLoop();
+  wrapAround();
+});
+
+if (canAnimate) {
+  /* 画面の外では流さない */
+  new IntersectionObserver(([entry]) => {
+    seen = entry.isIntersecting;
+    if (seen) kick();
+  }).observe(cards);
+}
+if (lively) kick();
 
 /* =========================================================================
    ここから下は、送りに合わせた動き。動きを付けない場合は何もしない

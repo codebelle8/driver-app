@@ -17,7 +17,8 @@
  *   文面     … 発注元の文面が、そのまま載っている
  *   リンク   … 「アプリを開く」がすべて同じ住所／ページ内の飛び先がある
  *   崩れ     … 5つの幅で横にはみ出さない／画像がすべて読める
- *   操作     … 横送り・メニュー・よくある質問
+ *   操作     … 横送り（左へ流れ続ける・切れ目なくつながる・矢印・触ると止まる）／
+ *              メニュー・よくある質問
  *   動き     … 参考サイトに倣った動き。目印がロゴから次の節の絵へ収まる／
  *              ヘッダーが隠れて戻る／UP／**どこで止めても、画面の中に透明の
  *              まま残るものが無い**（パソコンとスマートフォンの両方）
@@ -974,14 +975,70 @@ try {
     await page.goto(BASE, { waitUntil: 'networkidle' });
     await page.locator('#features').scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
-    const prevOff = await page.locator('[data-carousel="prev"]').isDisabled();
-    check('横送り：最初は「前へ」が押せない', prevOff);
-    const before = await page.evaluate(() => document.getElementById('cards').scrollLeft);
+    /*
+      ご指示（2026-09-21）「カードが左へ流れて、ぐるぐる回るように」
+      「上の矢印も効くように」。
+    */
+    const at = () => page.evaluate(() => document.getElementById('cards').scrollLeft);
+    const flowA = await at();
+    await page.waitForTimeout(2000);
+    const flowB = await at();
+    check('横送り：カードが左へ流れ続ける', flowB - flowA > 50, `${Math.round(flowA)} → ${Math.round(flowB)}`);
+
+    /* 一組ぶん進んだところ（つなぎ目）。切れ目なく先頭へつながるか */
+    const loop = await page.evaluate(() => {
+      const c = document.getElementById('cards');
+      return c.children[c.children.length / 2].offsetLeft - c.children[0].offsetLeft;
+    });
+    await page.evaluate((l) => {
+      document.getElementById('cards').scrollLeft = l - 40;
+    }, loop);
+    /* 触ったあとは少し止まる。流れに戻るまで待つ */
+    await page.waitForTimeout(2600);
+    const wrapped = await at();
+    const gaps = await page.evaluate(() => {
+      const cs = [...document.querySelectorAll('#cards .card')].map((el) => el.getBoundingClientRect());
+      const out = [];
+      for (let i = 1; i < cs.length; i++) out.push(Math.round(cs[i].left - cs[i - 1].right));
+      return out;
+    });
+    check('横送り：端まで行っても、切れ目なく先頭へつながる', wrapped < loop * 0.5, `つなぎ目 ${loop} → ${Math.round(wrapped)}`);
+    check(
+      '横送り：つながったところに、すき間ができない',
+      gaps.every((g) => Math.abs(g - gaps[0]) <= 1),
+      gaps.join(' '),
+    );
+
+    /* 矢印。端でも止まらないので、どちらも押せる */
+    check(
+      '横送り：矢印は、どちらも押せる',
+      !(await page.locator('[data-carousel="prev"]').isDisabled()) &&
+        !(await page.locator('[data-carousel="next"]').isDisabled()),
+    );
+    const card = await page.evaluate(() => {
+      const c = document.getElementById('cards');
+      const gap = parseFloat(getComputedStyle(c).columnGap) || 24;
+      return c.querySelector('.card').getBoundingClientRect().width + gap;
+    });
+    let from = await at();
     await page.locator('[data-carousel="next"]').click();
+    await page.waitForTimeout(900);
+    let to = await at();
+    check('横送り：「次へ」でカード1枚ぶん送られる', to - from > card * 0.7, `${Math.round(to - from)}px / 1枚 ${Math.round(card)}px`);
+    from = to;
+    await page.locator('[data-carousel="prev"]').click();
+    await page.waitForTimeout(900);
+    to = await at();
+    check('横送り：「前へ」で1枚ぶん戻る', from - to > card * 0.6, `${Math.round(from - to)}px`);
+
+    /* 読んでいるあいだ（触っているあいだ）は止まる */
+    await page.locator('#cards').hover();
     await page.waitForTimeout(700);
-    const after = await page.evaluate(() => document.getElementById('cards').scrollLeft);
-    check('横送り：「次へ」でカードが送られる', after > before, `${before} → ${after}`);
-    check('横送り：送ると「前へ」が押せる', !(await page.locator('[data-carousel="prev"]').isDisabled()));
+    const holdA = await at();
+    await page.waitForTimeout(1200);
+    const holdB = await at();
+    check('横送り：触っているあいだは止まる', Math.abs(holdB - holdA) <= 2, `${Math.round(holdA)} → ${Math.round(holdB)}`);
+    await page.mouse.move(10, 10);
 
     const qa = page.locator('.qa').first();
     await qa.locator('summary').click();
@@ -1265,6 +1322,17 @@ try {
     await page.waitForTimeout(1200);
     const ph = await phoneState(page);
     check(`${label}：端末は動画を流さず、はじめから画面を見せる`, ph.app && !ph.boot && ph.paused, JSON.stringify(ph));
+
+    /* カードは流さない。矢印は効く */
+    await page.locator('#features').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1200);
+    const still = await page.evaluate(() => document.getElementById('cards').scrollLeft);
+    await page.waitForTimeout(1500);
+    const still2 = await page.evaluate(() => document.getElementById('cards').scrollLeft);
+    await page.locator('[data-carousel="next"]').click();
+    await page.waitForTimeout(700);
+    const moved = await page.evaluate(() => document.getElementById('cards').scrollLeft);
+    check(`${label}：カードは流さない（矢印は効く）`, Math.abs(still2 - still) <= 2 && moved - still2 > 100, `${still} → ${still2} → ${moved}`);
     check(`${label}：画面に誤りが出ない`, errors.length === 0, errors.join(' / '));
     await ctx.close();
   }

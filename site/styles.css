@@ -1199,8 +1199,8 @@ a {
   padding: 8px max(var(--gutter), calc((100% - 1180px) / 2)) 24px;
   list-style: none;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: max(var(--gutter), calc((100% - 1180px) / 2));
+  /* 1枚ずつ吸い付く指定（scroll-snap）は入れない。左へ流し続ける動き
+     （main.js）と引っ張り合い、送りが詰まる */
   scrollbar-width: none;
 }
 .cards::-webkit-scrollbar {
@@ -1208,7 +1208,6 @@ a {
 }
 .card {
   flex: 0 0 clamp(270px, 30vw, 360px);
-  scroll-snap-align: start;
   padding: 16px 16px 28px;
   border-radius: 26px;
   background: var(--white);
