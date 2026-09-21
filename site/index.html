@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ja" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>車寄せナビ｜プロドライバーのための車寄せ・エントランス案内</title>
+<meta name="description" content="車寄せナビはプロドライバーに寄り添った車寄せやエントランスの案内をナビの案内を正確に導くお手伝いをします。">
+<meta name="theme-color" content="#0B192F">
+<!-- 作業中のあいだは検索に載せない。公開時にこの行と vercel.json・robots.txt の指定を外す -->
+<meta name="robots" content="noindex, nofollow">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="車寄せナビ｜プロドライバーのための車寄せ・エントランス案内">
+<meta property="og:description" content="車寄せナビはプロドライバーに寄り添った車寄せやエントランスの案内をナビの案内を正確に導くお手伝いをします。">
+<!-- 共有の画像は、住所から始まる形でないと SNS や LINE が読まない。公開先が変わったら直す -->
+<meta property="og:url" content="https://kurumayose-navi-site.vercel.app/">
+<meta property="og:image" content="https://kurumayose-navi-site.vercel.app/assets/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="assets/brand/icon.png">
+<link rel="apple-touch-icon" href="assets/brand/icon.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+
+<link rel="stylesheet" href="styles.css">
+<script>
+  document.documentElement.classList.replace('no-js', 'js');
+  /*
+    開き直したとき、ブラウザが元の位置へ戻そうとする動きを止める。
+    送りに合わせた動きがあるため、戻す基準の要素が動いてしまい、
+    先頭にいたのに 176px 下へずれて開いていた（最初の画面が半分消えた状態）。
+    開き直したら先頭から。ページ内の飛び先（#faq など）は、これでも効く。
+  */
+  try { history.scrollRestoration = 'manual'; } catch (e) {}
+</script>
+
+<!--
+  アプリの住所は、このページの中で「data-app」の付いたリンクだけが
+  使っています。住所が変わったら main.js の APP_URL を1か所直せば、
+  すべてのリンクが追従します（JavaScript が止まっている環境向けに、
+  href にも同じ住所を書いてあります）。
+-->
+</head>
+<body>
+
+<a class="skip-link" href="#about">本文へ移動</a>
+
+<!-- ===================================================================== -->
+<!-- ヘッダー                                                              -->
+<!-- ===================================================================== -->
+<header class="site-header" id="site-header">
+  <a class="site-header__logo" href="#top" aria-label="車寄せナビ トップへ">
+    <img src="assets/brand/logo.png" alt="車寄せナビ Driver Entrance Navi" width="470" height="160">
+  </a>
+
+  <nav class="site-nav" id="site-nav" aria-label="ページ内">
+    <ul>
+      <li><a href="#about">車寄せナビとは</a></li>
+      <li><a href="#features">できること</a></li>
+      <li><a href="#flow">ご利用の流れ</a></li>
+      <li><a href="#area">対応エリア</a></li>
+      <li><a href="#faq">よくあるご質問</a></li>
+    </ul>
+    <a class="pill pill--small" data-app href="https://kurumayose-navi.vercel.app/">
+      アプリを開く<span class="pill__arrow" aria-hidden="true"></span>
+    </a>
+  </nav>
+
+  <button class="menu-button" id="menu-button" type="button"
+          aria-controls="site-nav" aria-expanded="false">
+    <span class="menu-button__bars" aria-hidden="true"></span>
+    <span class="menu-button__label">メニュー</span>
+  </button>
+</header>
+
+<main>
+
+<!-- ===================================================================== -->
+<!-- 最初の画面                                                            -->
+<!-- ===================================================================== -->
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="hero__sky" aria-hidden="true">
+    <!-- 舞う目印。参考サイトの「葉」にあたる、このアプリの記号。
+         中央の文字に掛からないよう、左右の余白と上下の帯にだけ置く -->
+    <span class="pin pin--green pin--xl pin--mobile" style="--x:5%;  --y:14%; --xm:-6%; --ym:84%; --r:-14deg; --d:0s"></span>
+    <span class="pin pin--navy  pin--s"             style="--x:11%; --y:48%; --r:-6deg;  --d:-4s"></span>
+    <span class="pin pin--amber pin--m pin--mobile"  style="--x:17%; --y:72%; --xm:86%; --ym:13%; --r:10deg;  --d:-2s"></span>
+    <span class="pin pin--mint  pin--m  pin--edge"  style="--x:3%;  --y:86%; --r:18deg;  --d:-2.5s"></span>
+    <span class="pin pin--mint  pin--l pin--mobile"  style="--x:84%; --y:13%; --xm:80%; --ym:86%; --r:12deg;  --d:-1s"></span>
+    <span class="pin pin--navy  pin--xs pin--edge"  style="--x:88%; --y:36%; --r:-20deg; --d:-3.5s"></span>
+    <span class="pin pin--green pin--m"             style="--x:92%; --y:58%; --r:-10deg; --d:-3s"></span>
+    <span class="pin pin--amber pin--s  pin--edge"  style="--x:81%; --y:84%; --r:6deg;   --d:-5s"></span>
+    <span class="dot"            style="--x:14%; --y:34%; --d:-1s"></span>
+    <span class="dot dot--edge"  style="--x:34%; --y:92%; --d:-3s"></span>
+    <span class="dot"            style="--x:64%; --y:91%; --d:-2s"></span>
+    <span class="dot dot--edge"  style="--x:79%; --y:44%; --d:-4s"></span>
+    <span class="dot"            style="--x:90%; --y:92%; --d:-.5s"></span>
+    <span class="dot dot--green" style="--x:22%; --y:58%; --d:-2.2s"></span>
+    <span class="dot dot--green dot--edge" style="--x:77%; --y:66%; --d:-4.4s"></span>
+    <span class="road road--a"></span>
+    <span class="road road--b"></span>
+  </div>
+
+  <!--
+    案内役（ご指示 2026-09-21）。空いている左側に置く。写真は立ち上がりの
+    動画のコマ（tools/make-guide-photos.mjs で切り出す）。
+  -->
+  <figure class="guide guide--hero reveal">
+    <img src="assets/people/guide-stand.jpg" width="372" height="496"
+         alt="車寄せナビの案内役。建物の車寄せへ歩いてくる女性">
+  </figure>
+
+  <div class="hero__body">
+    <p class="hero__tagline reveal"><span>スムーズな到着を、もっと快適に。</span></p>
+    <!--
+      ロゴを「目印」と「文字」に分けて置く。参考サイトと同じく、下へ送ると
+      文字はぼやけて消え、目印だけが離れて次の節の大きな絵になる。
+    -->
+    <h1 class="hero__logo reveal" id="hero-title">
+      <span class="hero__emblem"><img src="assets/brand/emblem.png" alt="" width="116" height="160"></span>
+      <span class="hero__wordmark"><img src="assets/brand/wordmark.png" alt="車寄せナビ Driver Entrance Navi" width="319" height="160"></span>
+    </h1>
+
+    <!-- 発注元からいただいた文面（2026-09-19）。そのまま載せています -->
+    <div class="hero__copy">
+      <p class="hero__question reveal">
+        ナビアプリによる車寄せやエントランスの位置情報が<br class="br-wide">実際の送迎先とずれている事があり、<br class="br-wide">お客様からお𠮟りを受けてしまったり<br class="br-wide">送迎時間が長く成ったりする事がありませんか？
+      </p>
+      <p class="hero__answer reveal">
+        <strong>車寄せナビ</strong>はプロドライバーに寄り添った<br class="br-wide">車寄せやエントランスの案内をナビの案内を<br class="br-wide">正確に導くお手伝いをします。
+      </p>
+    </div>
+
+  </div>
+
+  <a class="scroll-cue" href="#about" aria-label="下へ進む">
+    <span>SCROLL</span>
+    <i></i><i></i><i></i>
+  </a>
+</section>
+
+<!-- ===================================================================== -->
+<!-- 車寄せナビとは                                                        -->
+<!-- ===================================================================== -->
+<section class="about" id="about" aria-labelledby="about-title">
+  <p class="giant" aria-hidden="true">ENTRANCE</p>
+
+  <div class="wrap">
+    <div class="message">
+      <!-- 最初の画面の目印が、送るにつれてここへ移ってくる -->
+      <div class="message__mark" id="message-mark">
+        <img src="assets/brand/app-icon.jpg" alt="" width="480" height="480" loading="lazy">
+      </div>
+      <div class="message__text">
+        <p class="eyebrow">ABOUT</p>
+        <h2 class="section-title" id="about-title">
+          ナビの目的地と、<br>本当の車寄せは、<br class="br-narrow">違うことがある。
+        </h2>
+        <p class="message__lead">ナビが案内するのは、建物の住所です。けれど車を着けられる場所は、裏手や地下、2階にあることも少なくありません。車寄せナビは、<strong>実際に車を着けられる場所</strong>と、<strong>そこへの入り方</strong>をお伝えします。</p>
+      </div>
+    </div>
+
+    <ul class="pains" data-anime="fade-right">
+      <li class="pain">
+        <span class="pain__icon pain__icon--pin" aria-hidden="true"></span>
+        <h3>案内先が、送迎先とずれている</h3>
+        <p>ナビが示すのは建物の住所。車を着けられる場所は、裏手や地下、2階にあることも少なくありません。</p>
+      </li>
+      <li class="pain">
+        <span class="pain__icon pain__icon--clock" aria-hidden="true"></span>
+        <h3>入口を探して、周回してしまう</h3>
+        <p>一方通行や右折禁止があると、一度通り過ぎただけで数分を失います。送迎の時間が延びていきます。</p>
+      </li>
+      <li class="pain">
+        <span class="pain__icon pain__icon--guest" aria-hidden="true"></span>
+        <h3>お客様を、お待たせしてしまう</h3>
+        <p>荷物の多いお客様、急いでいるお客様ほど、到着の数分が印象を左右します。</p>
+      </li>
+    </ul>
+
+    <!-- 実例。発注元の文面にある「ずれ」を、実際の施設で示す -->
+    <div class="case" data-anime="fade-right">
+      <div class="case__text">
+        <p class="case__label">たとえば</p>
+        <h3 class="case__title">浦安ブライトンホテル</h3>
+        <p class="case__quote">「１Fはバス専用、<br>スロープを上がって２Fに車寄せ」</p>
+        <p class="case__note">住所へ向かうだけでは、バス専用の1階へ着いてしまいます。車寄せナビなら、<strong>2階の車寄せへの上がり方</strong>まで、出発前に確かめられます。</p>
+        <a class="pill" href="#features">
+          できることを見る<span class="pill__arrow" aria-hidden="true"></span>
+        </a>
+      </div>
+      <figure class="phone phone--tilt" id="case-phone">
+        <img src="assets/screens/detail.png" width="780" height="1688" loading="lazy"
+             alt="車寄せナビの施設画面。浦安ブライトンホテルの地図と、『１Fはバス専用、スロープを上がって２Fに車寄せ』という進入方法が表示されている">
+        <!--
+          アプリの立ち上がり。送ってこの端末が見えたら、アプリと同じ動画3本と
+          ロゴを流し、終わったら上の画面を見せる（main.js）。
+        -->
+        <div class="phone__boot" aria-hidden="true">
+          <video class="phone__video" muted playsinline preload="none" poster="assets/intro/poster.jpg"></video>
+          <img class="phone__logo" src="assets/brand/splash.png" alt="" width="1024" height="1024" loading="lazy">
+        </div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- できること（緑の帯）                                                   -->
+<!-- ===================================================================== -->
+<section class="features" id="features" aria-labelledby="features-title">
+  <!-- 緑の帯の縁。海の波のように、3枚が違う速さで流れる（styles.css の .sea） -->
+  <div class="sea sea--top" aria-hidden="true">
+    <svg class="sea__layer sea__layer--back" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 36Q360 0 720 36T1440 36T2160 36T2880 36V90H0Z"/></svg>
+    <svg class="sea__layer sea__layer--mid" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 43Q120 25 240 43T480 43T720 43T960 43T1200 43T1440 43T1680 43T1920 43T2160 43T2400 43T2640 43T2880 43V90H0Z"/></svg>
+    <svg class="sea__layer sea__layer--front" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 52Q180 26 360 52T720 52T1080 52T1440 52T1800 52T2160 52T2520 52T2880 52V90H0Z"/></svg>
+  </div>
+
+  <div class="deco" aria-hidden="true">
+    <span class="pin pin--amber pin--m"  data-depth="1.2" style="--x:6%;  --y:-4%; --r:-12deg; --d:-1.3s"></span>
+    <span class="pin pin--mint  pin--l"  data-depth="0.6" style="--x:88%; --y:-7%; --r:14deg;  --d:-4.2s"></span>
+    <span class="dot"                    data-depth="1.6" style="--x:22%; --y:2%"></span>
+    <span class="dot dot--white"         data-depth="0.9" style="--x:74%; --y:4%"></span>
+    <span class="pin pin--white pin--s"  data-depth="1.0" style="--x:94%; --y:92%; --r:-8deg;  --d:-2.6s"></span>
+    <span class="dot"                    data-depth="1.4" style="--x:10%; --y:96%"></span>
+  </div>
+
+  <div class="features__inner">
+    <div class="features__head">
+      <div>
+        <p class="eyebrow eyebrow--light" data-reveal>FEATURES</p>
+        <h2 class="section-title section-title--light split" id="features-title">車寄せナビで、できること。</h2>
+      </div>
+      <div class="carousel-nav" data-reveal>
+        <button class="round-button round-button--ghost" type="button" data-carousel="prev" aria-label="前へ">
+          <span class="round-button__arrow round-button__arrow--left" aria-hidden="true"></span>
+        </button>
+        <button class="round-button round-button--ghost" type="button" data-carousel="next" aria-label="次へ">
+          <span class="round-button__arrow" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+
+    <ul class="cards" id="cards" data-anime="fade-right">
+      <li class="card">
+        <div class="card__media card__media--screen">
+          <img src="assets/screens/search.png" width="780" height="1688" loading="lazy"
+               alt="車寄せナビの『探す』画面。検索欄と、ホテル・レジデンス・商業施設などのカテゴリが並んでいる">
+        </div>
+        <p class="card__kicker">探す</p>
+        <h3>施設名・よみがな・住所で、すぐ見つかる</h3>
+        <p>漢字を思い出せなくても、よみがなで引けます。ホテル、病院、駅・空港など、行き先の種類からも探せます。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--screen card__media--top">
+          <img src="assets/screens/detail.png" width="780" height="1688" loading="lazy"
+               alt="施設の画面。地図の上に、車寄せの位置を示す赤い目印が立っている">
+        </div>
+        <p class="card__kicker">確かめる</p>
+        <h3>車寄せの位置を、地図で</h3>
+        <p>建物の住所ではなく、車を着ける場所そのものに目印を立てています。入口が複数ある施設は、ひとつずつ分けて載せています。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--icon">
+          <span class="big-icon big-icon--route" aria-hidden="true"></span>
+        </div>
+        <p class="card__kicker">向かう</p>
+        <h3>「経路」を押せば、ナビへそのまま</h3>
+        <p>車寄せの位置を目的地にして、Googleマップなどの地図アプリへ渡します。住所を打ち直す必要はありません。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--icon">
+          <span class="big-icon big-icon--note" aria-hidden="true"></span>
+        </div>
+        <p class="card__kicker">入り方</p>
+        <h3>進入方法と注意事項を、言葉で</h3>
+        <p>「スロープを上がって2階へ」「夜間は地下入口が閉鎖」。地図だけでは分からない入り方を、文章でお伝えします。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--icon">
+          <span class="big-icon big-icon--offline" aria-hidden="true"></span>
+        </div>
+        <p class="card__kicker">圏外でも</p>
+        <h3>電波の届かない地下でも、開ける</h3>
+        <p>施設の情報は端末に保存されています。地下駐車場や高架下など、目的地の手前で電波が途切れても表示できます。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--icon">
+          <span class="big-icon big-icon--bell" aria-hidden="true"></span>
+        </div>
+        <p class="card__kicker">いつもの場所</p>
+        <h3>お気に入り・履歴・お知らせ</h3>
+        <p>よく行く施設はお気に入りに。入り方が変わったときは、お知らせでお伝えします。</p>
+      </li>
+    </ul>
+
+    <div class="features__foot" data-reveal>
+      <a class="pill pill--white" data-app href="https://kurumayose-navi.vercel.app/">
+        アプリを開いてみる<span class="pill__arrow" aria-hidden="true"></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="sea sea--bottom" aria-hidden="true">
+    <svg class="sea__layer sea__layer--back" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 36Q360 0 720 36T1440 36T2160 36T2880 36V90H0Z"/></svg>
+    <svg class="sea__layer sea__layer--mid" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 43Q120 25 240 43T480 43T720 43T960 43T1200 43T1440 43T1680 43T1920 43T2160 43T2400 43T2640 43T2880 43V90H0Z"/></svg>
+    <svg class="sea__layer sea__layer--front" viewBox="0 0 2880 90" preserveAspectRatio="none"><path d="M0 52Q180 26 360 52T720 52T1080 52T1440 52T1800 52T2160 52T2520 52T2880 52V90H0Z"/></svg>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- ご利用の流れ                                                          -->
+<!-- ===================================================================== -->
+<section class="flow" id="flow" aria-labelledby="flow-title">
+  <div class="wrap flow__grid">
+    <div class="flow__head">
+      <p class="eyebrow" data-reveal>HOW TO USE</p>
+      <h2 class="section-title split" id="flow-title">ご利用の流れ</h2>
+      <p class="flow__lead">インストールは要りません。<br>スマートフォンでも、パソコンでも。</p>
+      <a class="pill" data-reveal data-app href="https://kurumayose-navi.vercel.app/">
+        アプリを開く<span class="pill__arrow" aria-hidden="true"></span>
+      </a>
+    </div>
+
+    <ol class="steps" data-anime="fade-right">
+      <li class="step">
+        <span class="step__no">01</span>
+        <div>
+          <h3>行き先を探す</h3>
+          <p>施設名・よみがな・住所を入れるか、カテゴリから選びます。</p>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step__no">02</span>
+        <div>
+          <h3>車寄せと入り方を確かめる</h3>
+          <p>地図の目印と進入方法で、どこへ、どう入るかを出発前に確かめます。</p>
+        </div>
+      </li>
+      <li class="step">
+        <span class="step__no">03</span>
+        <div>
+          <h3>「経路」でナビへ</h3>
+          <p>車寄せの位置を目的地にして、いつもの地図アプリで向かいます。</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- 対応エリア                                                            -->
+<!-- ===================================================================== -->
+<section class="area" id="area" aria-labelledby="area-title">
+  <p class="giant giant--center" aria-hidden="true">COVERAGE</p>
+
+  <figure class="guide guide--area-left" data-reveal>
+    <img src="assets/people/guide-walk.jpg" width="372" height="496" loading="lazy"
+         alt="案内役の女性が、送迎先の建物へ向かって歩いている">
+  </figure>
+  <figure class="guide guide--area-right" data-reveal>
+    <img src="assets/people/guide-show.jpg" width="496" height="496" loading="lazy"
+         alt="案内役の女性が、車の中で車寄せナビの地図を見せている">
+  </figure>
+
+  <div class="wrap wrap--narrow area__body">
+    <p class="eyebrow" data-reveal>AREA</p>
+    <h2 class="section-title section-title--center split" id="area-title">
+      東京都外の、<br><span class="count">193</span>施設から。
+    </h2>
+    <p class="area__note">2026年9月時点。対応する施設は、順に増やしています。</p>
+
+    <ul class="chips" aria-label="対応している施設の種類" data-anime="fade-right">
+      <li>ホテル</li>
+      <li>レジデンス</li>
+      <li>商業施設</li>
+      <li>オフィスビル</li>
+      <li>病院・クリニック</li>
+      <li>駅・空港</li>
+    </ul>
+
+    <div class="notice-box" data-reveal>
+      <p class="notice-box__title">ただいま試験提供中です</p>
+      <p>試験提供の期間中は、無料でお使いいただけます。有料での提供を始める際は、事前にお知らせします。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- よくあるご質問                                                        -->
+<!-- ===================================================================== -->
+<section class="faq" id="faq" aria-labelledby="faq-title">
+  <div class="wrap faq__grid">
+    <div class="faq__head">
+      <p class="eyebrow" data-reveal>FAQ</p>
+      <h2 class="section-title split" id="faq-title">よくあるご質問</h2>
+
+      <!-- 案内役。ここでは、説明しているところを見せる -->
+      <figure class="guide guide--faq" data-reveal>
+        <img src="assets/people/guide-show.jpg" width="496" height="496" loading="lazy"
+             alt="案内役の女性が、車寄せナビの地図を見せながら説明している">
+        <figcaption class="guide__say">ご質問には、ここでお答えします。</figcaption>
+      </figure>
+    </div>
+
+    <div class="faq__list" data-anime="fade-right">
+      <details class="qa">
+        <summary>アプリのインストールは必要ですか？</summary>
+        <p>必要ありません。ブラウザでそのまま開けます。ブラウザのメニューから「ホーム画面に追加」を選ぶと、ふつうのアプリと同じようにアイコンから開けます（iPhone は共有ボタンの中にあります）。</p>
+      </details>
+      <details class="qa">
+        <summary>料金はかかりますか？</summary>
+        <p>試験提供の期間中は無料です。有料での提供を始める際は、事前にお知らせします。お知らせだけで自動的に有料へ切り替わることはありません。</p>
+      </details>
+      <details class="qa">
+        <summary>どの地域に対応していますか？</summary>
+        <p>2026年9月時点で、東京都外の193施設に対応しています。対応する施設は順に増やしています。</p>
+      </details>
+      <details class="qa">
+        <summary>電波が届かない場所でも使えますか？</summary>
+        <p>使えます。施設の情報は端末に保存されているため、地下駐車場などで電波が途切れても表示できます。表示されるのは、最後に取り込んだ時点の内容です。</p>
+      </details>
+      <details class="qa">
+        <summary>どの地図アプリで案内されますか？</summary>
+        <p>「経路」を押すと、車寄せの位置を目的地にして Google マップなどの地図アプリが開きます。</p>
+      </details>
+      <details class="qa">
+        <summary>1つのアカウントを、複数の端末で使えますか？</summary>
+        <p>同時に使えるのは1台です。別の端末でログインすると、前の端末はログアウトされます。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- 締め                                                                  -->
+<!-- ===================================================================== -->
+<section class="closing" aria-labelledby="closing-title">
+  <div class="deco" aria-hidden="true">
+    <span class="pin pin--green pin--l"  data-depth="1.4" style="--x:8%;  --y:18%; --r:-16deg; --d:-5.1s"></span>
+    <span class="pin pin--amber pin--s"  data-depth="0.8" style="--x:20%; --y:70%; --r:10deg;  --d:-0.7s"></span>
+    <span class="pin pin--mint  pin--xl" data-depth="0.5" style="--x:82%; --y:10%; --r:12deg;  --d:-3.4s"></span>
+    <span class="pin pin--navy  pin--xs" data-depth="1.8" style="--x:90%; --y:62%; --r:-20deg; --d:-6s"></span>
+    <span class="dot"                    data-depth="1.2" style="--x:30%; --y:12%"></span>
+    <span class="dot dot--green"         data-depth="1.6" style="--x:72%; --y:78%"></span>
+  </div>
+  <div class="wrap wrap--narrow closing__body">
+    <h2 class="closing__title" id="closing-title">次の送迎から、<br class="br-narrow">迷わない。</h2>
+    <p class="closing__lead">インストール不要。試験提供中は無料でお使いいただけます。</p>
+    <a class="pill pill--large" data-reveal data-app href="https://kurumayose-navi.vercel.app/">
+      車寄せナビを開く<span class="pill__arrow" aria-hidden="true"></span>
+    </a>
+  </div>
+</section>
+
+</main>
+
+<!-- ===================================================================== -->
+<!-- フッター                                                              -->
+<!-- ===================================================================== -->
+<footer class="site-footer">
+  <span class="pin pin--green pin--l footer-pin footer-pin--left" style="--r:-12deg; --d:-2.1s" aria-hidden="true"></span>
+  <span class="pin pin--amber pin--m footer-pin footer-pin--right" style="--r:14deg; --d:-4.8s" aria-hidden="true"></span>
+  <svg class="wave wave--footer" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 90V46C200 8 420 4 620 26s380 52 560 40 200-30 260-40v84Z"/>
+  </svg>
+  <div class="site-footer__inner" data-reveal>
+    <img class="site-footer__logo" src="assets/brand/logo-white.png" alt="車寄せナビ Driver Entrance Navi" width="470" height="160" loading="lazy">
+    <nav aria-label="サイト内">
+      <ul class="site-footer__nav">
+        <li><a href="#about">車寄せナビとは</a></li>
+        <li><a href="#features">できること</a></li>
+        <li><a href="#flow">ご利用の流れ</a></li>
+        <li><a href="#area">対応エリア</a></li>
+        <li><a href="#faq">よくあるご質問</a></li>
+        <li><a data-app href="https://kurumayose-navi.vercel.app/">アプリを開く</a></li>
+      </ul>
+    </nav>
+    <!--
+      利用規約・プライバシーポリシー・特定商取引法に基づく表記は、
+      掲載先が決まり次第ここへ並べます（docs/17-legal-final.md）。
+    -->
+    <p class="site-footer__copy">© 2026 車寄せナビ</p>
+  </div>
+</footer>
+
+<!-- 先頭へ戻る（UP）。下へ送ると現れ、押すと先頭までなめらかに戻る -->
+<a class="page-up" id="page-up" href="#top" aria-label="ページの先頭へ戻る">
+  <span class="page-up__chev" aria-hidden="true"></span>
+  <span class="page-up__label" aria-hidden="true">UP</span>
+</a>
+
+<!-- 最初の画面の目印が、次の節へ移っていくための層（動きのある場合だけ使う） -->
+<div class="flyer" id="flyer" aria-hidden="true">
+  <img class="flyer__emblem" src="assets/brand/emblem.png" alt="">
+  <img class="flyer__icon" src="assets/brand/app-icon.jpg" alt="">
+</div>
+
+<!-- 動きの部品。参考サイトと同じもの（GSAP・ScrollTrigger・Lenis）。外から読まず、手元に置いてある -->
+<script src="assets/vendor/gsap.min.js" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js" defer></script>
+<script src="assets/vendor/lenis.min.js" defer></script>
+<script src="main.js" defer></script>
+</body>
+</html>
