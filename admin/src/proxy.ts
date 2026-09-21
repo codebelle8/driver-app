@@ -61,11 +61,38 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  /*
+    既に入っている方が入口を開いたら、中へ送る。
+
+    **ただし職員に限る。**（2026-09-17 に直した）
+      職員でない方まで送っていた。アプリの会員は同じ認証を使うため、
+      アプリにログインしたままこの住所を開くと、次のことが起きていた。
+
+        /login → （ここで中へ送る）→ / → 職員でないので /login へ戻す
+              → （また中へ送る）→ … 果てしなく往復する
+
+      ブラウザは ERR_TOO_MANY_REDIRECTS で諦める。**入口にすら
+      たどり着けない。** 職員として入り直すことも、出ることもできない。
+      中身は requireStaff() が守っているので漏れてはいないが、
+      画面が壊れて見える。
+
+      自分の行は読める（admin_profiles_read_self）。職員でなければ
+      行が無く、そのまま入口を出す。停止中の方も同じで、入口に
+      「権限がありません」と出る。
+  */
   if (user && isLoginPage) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.search = '';
-    return NextResponse.redirect(url);
+    const { data: profile } = await supabase
+      .from('admin_profiles')
+      .select('is_active')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profile?.is_active) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

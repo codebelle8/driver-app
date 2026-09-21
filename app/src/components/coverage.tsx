@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { fetchCoverage } from '@/lib/facilities';
-import { useT } from '@/lib/i18n/context';
+import { useLocale, useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { describePlace } from '@/lib/place';
 import { ensureSynced } from '@/lib/sync';
@@ -27,6 +27,7 @@ import { useTheme } from '@/theme-context';
 export function Coverage({ wide = false }: { wide?: boolean }) {
   const c = useTheme();
   const t = useT();
+  const { locale } = useLocale();
   const s = makeStyles(c);
 
   const [coverage, setCoverage] = useState<{
@@ -36,22 +37,28 @@ export function Coverage({ wide = false }: { wide?: boolean }) {
   }>({ prefectures: [], cities: 0, total: 0 });
   const [place, setPlace] = useState<string | null>(null);
 
-  /* 端末にあるものを先に出し、取り込みの後で読み直す。 */
+  /*
+    端末にあるものを先に出し、取り込みの後で読み直す。
+
+    **言語を切り替えたら読み直す。** 地名もその言語で出すため
+    （2026-09-17）、切り替えたのに前の言語のまま残ると、そこだけ
+    日本語が取り残される。
+  */
   useEffect(() => {
     let alive = true;
     (async () => {
-      const first = await fetchCoverage();
+      const first = await fetchCoverage(locale);
       if (!alive) return;
       setCoverage(first);
 
       await ensureSynced();
-      const after = await fetchCoverage();
+      const after = await fetchCoverage(locale);
       if (alive) setCoverage(after);
     })();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [locale]);
 
   /* 現在地。断られたら、案内できる範囲のままにする。 */
   useEffect(() => {

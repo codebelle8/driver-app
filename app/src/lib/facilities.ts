@@ -67,8 +67,17 @@ export async function fetchCategories(): Promise<Category[]> {
  *
  * 端末に入っている施設の所在地から求める。決め打ちの地名を出すと、
  * 対応していない場所にいても案内できるように見えてしまう。
+ *
+ * **地名も、その言語で出す**（2026-09-17 に直した）。
+ *   ここだけ prefecture_en を見ていなかったため、英語の画面に
+ *   「東京都 and others (193)」と出ていた。施設名も住所も英語に
+ *   なっているのに、上の帯だけ日本語が残る。
+ *
+ *   まとめるのは日本語の名前のまま行い、**出すときだけ差し替える。**
+ *   英語名で束ねると、英語名が入っていない施設が別の県として
+ *   数えられてしまう（実際に1件、空のものがある）。
  */
-export async function fetchCoverage(): Promise<{
+export async function fetchCoverage(locale: Locale = 'ja'): Promise<{
   prefectures: string[];
   cities: number;
   /** 端末に入っている総数。通信を待たずに件数を出すために使う。 */
@@ -91,9 +100,17 @@ export async function fetchCoverage(): Promise<{
     counts.set(f.prefecture, (counts.get(f.prefecture) ?? 0) + 1);
   }
 
-  const prefectures = [...byPref.keys()].sort(
-    (a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0),
-  );
+  /* 日本語の県名 → その言語での出し方。空のものは日本語のまま。 */
+  const shown = new Map<string, string>();
+  for (const f of facilities) {
+    if (!f.prefecture || shown.has(f.prefecture)) continue;
+    const en = f.prefecture_en;
+    if (locale === 'en' && en && en.trim() !== '') shown.set(f.prefecture, en);
+  }
+
+  const prefectures = [...byPref.keys()]
+    .sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0))
+    .map((p) => shown.get(p) ?? p);
 
   return {
     prefectures,

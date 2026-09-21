@@ -13,10 +13,17 @@
  *
  * 4 が要点。端末に残らないと、起動のたびに日本語へ戻る。
  * 戻し方が読めなくなった利用者は、そこで行き止まりになる。
+ *
+ * **検査用の会員を作ってから入る。** 起動時にログインを求める作りに
+ * なったため、入らないと入口の画面しか見られない。**以前はそれに
+ * 気づかないまま、入口の画面を見て緑になっていた。**
  */
 import { chromium } from 'playwright';
 
+import { connect, createMember, removeMember, signInOn } from './lib/member.mjs';
+
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
+const conn = connect();
 
 let pass = 0;
 const failures = [];
@@ -35,6 +42,7 @@ function check(label, ok, detail = '') {
 const hasJapanese = (s) => /[぀-ゟ゠-ヿ一-鿿]/.test(s);
 
 let browser = null;
+let member = null;
 
 try {
   console.log(`アプリの言語切り替えの検査: ${BASE}\n`);
@@ -42,6 +50,17 @@ try {
   browser = await chromium.launch();
   const context = await browser.newContext({ locale: 'ja-JP', viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
+
+  /*
+    **先にログインする。**
+
+    起動時にログインを求める作りへ変えたあと、この検査は入口の画面を
+    見たまま「日本語が出ている」と判じていた。**言語の切り替えその
+    ものを一度も見ていなかった。** 同じことが test-facility-gone でも
+    起きている（2026-09-14 に直した）。
+  */
+  member = await createMember(conn, 'locale');
+  await signInOn(page, BASE, member, { goto: '/mypage' });
 
   const skipIntro = async () => {
     for (const name of ['導入を飛ばす', 'Skip the intro']) {
@@ -173,6 +192,7 @@ try {
   check('日本語へ戻せる', back.includes('マイページ'), back.slice(0, 120));
 } finally {
   if (browser) await browser.close();
+  if (member) check('検査で作った会員を消した', await removeMember(conn, member));
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);
   process.exitCode = failures.length ? 1 : 0;

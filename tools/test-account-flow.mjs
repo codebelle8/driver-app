@@ -33,6 +33,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
+
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
 import sharp from 'sharp';
 
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
@@ -257,8 +259,9 @@ try {
     const mypage = await page.locator('body').innerText();
     check('マイページにメールアドレスが出ている', mypage.includes(EMAIL));
     check(
-      'マイページに残り日数が出ている',
-      /無料期間 残り \d+ 日/.test(mypage),
+      'マイページに残りが出ている',
+      /* 「11か月 20日」「28日」。**月だけで丸めない**（ご指摘 2026-09-15） */
+      /無料期間 残り (\d+か月 )?\d+日/.test(mypage),
       (mypage.match(/無料期間[^\n]*/) ?? ['なし'])[0],
     );
 
@@ -504,7 +507,11 @@ try {
     await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(5000);
     const near = await page.locator('body').innerText();
-    check('切れる前から知らせが出る', /無料期間はあと \d+ 日です/.test(near), near.slice(0, 90));
+    check(
+      '切れる前から知らせが出る',
+      /無料期間はあと\s*(\d+か月\s*)?\d+日です/.test(near),
+      near.slice(0, 90),
+    );
 
     // 無料期間を切らせる（鍵で過去日にする）
     await fetch(`${URL_}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
@@ -595,6 +602,32 @@ try {
   if (userId) {
     const row = await profileOf(userId);
     check('名簿の行も一緒に消えた', !row, row ? JSON.stringify(row) : '');
+  }
+
+  /*
+    自動で書かれた操作履歴を消す。**いちばん最後。**
+    上の削除そのものが、また記録を作るため。これを怠ると、発注元の
+    操作履歴に検査用の名前が残り続ける。
+  */
+  if (userId) {
+    const gone = await purgeAuditLogs(
+      async (path, init = {}) => {
+        const r = await fetch(`${URL_}${path}`, {
+          method: init.method ?? 'GET',
+          headers: { ...svc, ...(init.prefer ? { Prefer: init.prefer } : {}) },
+        });
+        const t = await r.text();
+        let b = null;
+        try {
+          b = t ? JSON.parse(t) : null;
+        } catch {
+          b = t;
+        }
+        return { ok: r.ok, body: b };
+      },
+      [userId],
+    );
+    console.log(`  片付け  操作履歴を ${gone} 件消しました`);
   }
 
   if (browser) await browser.close();

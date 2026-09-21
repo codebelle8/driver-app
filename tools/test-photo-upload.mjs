@@ -24,6 +24,8 @@ import { createRequire } from 'node:module';
 
 import { chromium } from 'playwright';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 const sharp = createRequire(import.meta.url)('./../admin/node_modules/sharp');
 
 const raw = process.argv[2] ?? 'http://localhost:3000';
@@ -212,7 +214,17 @@ try {
   for (const f of [SMALL, BIG]) {
     try { unlinkSync(f); } catch { /* 無ければよい */ }
   }
+  /*
+    消す前に、ぶら下がっている行の id を控える。
+    施設を消すと入口も写真も一緒に消え、そのたびに記録が1件ずつ増える。
+    id を知らないと、あとで拾えない。
+  */
+  const touched = [facilityId, adminId].filter(Boolean);
   if (facilityId) {
+    for (const table of ['entry_points', 'photos']) {
+      const kids = await get(`${table}?select=id&facility_id=eq.${facilityId}`);
+      for (const k of Array.isArray(kids) ? kids : []) touched.push(k.id);
+    }
     await send(`entry_points?facility_id=eq.${facilityId}`, { method: 'DELETE' });
     await send(`facilities?id=eq.${facilityId}`, { method: 'DELETE' });
     const left = await get(`facilities?select=id&id=eq.${facilityId}`);
@@ -223,6 +235,31 @@ try {
     await fetch(`${SB}/rest/v1/admin_profiles?user_id=eq.${adminId}`, { method: 'DELETE', headers: h });
     await fetch(`${SB}/auth/v1/admin/users/${adminId}`, { method: 'DELETE', headers: h });
   }
+
+  /*
+    自動で書かれた記録を消す。**いちばん最後。**
+    上の削除そのものが、また記録を作るため。
+    actor_id で消す方法では、service_role の操作（actor_id が空）が
+    残る。触った行の id で消す。
+  */
+  const goneLogs = await purgeAuditLogs(
+    async (path, init = {}) => {
+      const r = await fetch(`${SB}${path}`, {
+        method: init.method ?? 'GET',
+        headers: { ...h, ...(init.prefer ? { Prefer: init.prefer } : {}) },
+      });
+      const t = await r.text();
+      let b = null;
+      try {
+        b = t ? JSON.parse(t) : null;
+      } catch {
+        b = t;
+      }
+      return { ok: r.ok, body: b };
+    },
+    touched,
+  );
+  console.log(`  片付け  操作履歴を ${goneLogs} 件消しました`);
 
   console.log(`${NL}合格 ${pass} / 不合格 ${failures.length}`);
   for (const f of failures) console.error(`  - ${f}`);

@@ -11,6 +11,8 @@
  */
 import { readFileSync } from 'node:fs';
 
+import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+
 function loadEnv(path) {
   const env = {};
   for (const line of readFileSync(path, 'utf8').split('\n')) {
@@ -220,6 +222,19 @@ try {
   // --- 後片付け ---------------------------------------------------------------
   console.log('\n--- 後片付け ---');
 
+  /*
+    消す前に、ぶら下がっている行の id を控える。
+    施設を消すと入口も写真も一緒に消え、そのたびに記録が1件ずつ増える。
+    id を知らないと、あとで拾えない。
+  */
+  const touched = [facilityId, publishedId, userId].filter(Boolean);
+  for (const id of [facilityId, publishedId].filter(Boolean)) {
+    for (const table of ['entry_points', 'photos']) {
+      const kids = await api(`/rest/v1/${table}?select=id&facility_id=eq.${id}`);
+      for (const k of Array.isArray(kids.body) ? kids.body : []) touched.push(k.id);
+    }
+  }
+
   for (const [label, id] of [
     ['下書きの施設', facilityId],
     ['公開済みの施設', publishedId],
@@ -237,22 +252,22 @@ try {
     console.log(`  ${res.ok ? '削除' : '削除失敗'}  検証用アカウント`);
   }
 
-  // service_role で行った操作の履歴は actor_id が空になるため、
-  // 上の actor_id 指定では消えない。検証用の記録を名前で拾って消す。
-  // これを怠ると、本番の操作履歴に「検証用_...」が残り続ける。
-  const leftovers = await api(
-    '/rest/v1/audit_logs?select=id,diff&actor_id=is.null&order=id',
-  );
-  const testIds = (Array.isArray(leftovers.body) ? leftovers.body : [])
-    .filter((row) => JSON.stringify(row.diff ?? '').includes('検証用'))
-    .map((row) => row.id);
+  /*
+    service_role で行った操作の履歴は actor_id が空になるため、
+    上の actor_id 指定では消えない。
 
-  if (testIds.length) {
-    const res = await api(`/rest/v1/audit_logs?id=in.(${testIds.join(',')})`, {
-      method: 'DELETE',
-    });
-    console.log(`  ${res.ok ? '削除' : '削除失敗'}  検証用の操作履歴 ${testIds.length} 件`);
-  }
+    **以前はここで、actor_id が空の記録を全部読んで名前で拾っていた。**
+    ところが一度に読める数には上限（1000件）があり、**操作履歴が
+    1000件を超えた時点で、今日の記録が読めなくなった。** 黙って
+    片付けたつもりになり、「検証用_公開済み」が本番に残り続けた。
+
+    触った行の id で消す。読み込みの上限に左右されない。
+  */
+  const gone = await purgeAuditLogs(
+    (path, init) => api(path, init).then((r) => ({ ok: r.ok, body: r.body })),
+    touched,
+  );
+  console.log(`  削除  検証用の操作履歴 ${gone} 件`);
 }
 
 console.log('');
