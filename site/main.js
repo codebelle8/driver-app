@@ -877,7 +877,9 @@ if (lively) {
         }
       }
     },
-    { rootMargin: '0px 0px -22% 0px' },
+    /* 画面に入って少ししたら弾ませる。深く入るまで待つと、通り過ぎてから
+       弾んでいるように見える（ご指摘 2026-09-21） */
+    { rootMargin: '0px 0px -12% 0px' },
   );
   const rearm = new IntersectionObserver((entries) => {
     for (const entry of entries) if (!entry.isIntersecting) armed.add(entry.target);
@@ -1072,8 +1074,14 @@ function showAnswer() {
  * **流すのも、矢印で送るのも、この描き直しが1か所で受け持つ。** ブラウザの
  * なめらかな送り（scrollBy の smooth）と混ぜると、流れと送りが引っ張り合う。
  *
- * 触っているあいだ（指・マウス・キーボードの移動）と、画面の外にあるあいだは
- * 止める。動きを減らす場合は流さない（矢印は効く）。
+ * **止めるのは、読もうとしているときだけ。** マウスを動かしたとき・押したとき・
+ * 指で触ったとき・キーボードで入ったときは止め、動かさなくなれば流れに戻る。
+ * 送っているあいだ、カーソルは画面の中で止まったままなので、カードがその下に
+ * 入っただけでは止めない（止めていたため、通り過ぎるまで流れなかった。
+ * ご指摘 2026-09-21）。
+ *
+ * **画面に入る少し手前から流し始める**（下から現れたときには、もう流れている）。
+ * 画面の外にあるあいだは止める。動きを減らす場合は流さない（矢印は効く）。
  */
 const cards = $('#cards');
 const prev = $('[data-carousel="prev"]');
@@ -1083,6 +1091,8 @@ const next = $('[data-carousel="next"]');
 const FLOW_SPEED = 45;
 /** 矢印で送ったあと、流れに戻るまでの間 */
 const FLOW_HOLD = 700;
+/** マウスを動かしたあと、流れに戻るまでの間 */
+const POINTER_HOLD = 1500;
 
 /* もう一組足す。読み上げからは外す（同じ中身を2回読ませない） */
 const firstCopy = cards.children.length;
@@ -1115,6 +1125,7 @@ function step() {
 let pos = cards.scrollLeft;
 let target = null;
 let holdUntil = 0;
+let moveHold = 0;
 let touching = false;
 let seen = true;
 let running = false;
@@ -1150,7 +1161,7 @@ function frame(now) {
         holdUntil = now + FLOW_HOLD;
       }
     }
-  } else if (lively && seen && !touching && now > holdUntil) {
+  } else if (lively && seen && !touching && now > holdUntil && now > moveHold) {
     pos += FLOW_SPEED * dt;
   }
 
@@ -1191,12 +1202,27 @@ cards.addEventListener(
   { passive: true },
 );
 
-/* 触っているあいだは止める。読んでいる最中に流れると読みにくい */
-for (const on of ['pointerenter', 'focusin', 'pointerdown', 'touchstart']) {
+/*
+  読もうとしているあいだは止める。
+  **マウスは「動かしたとき」だけ。** 送っているあいだカーソルは止まったままで、
+  カードがその下に入っただけでは、読もうとしているとは限らない。
+*/
+cards.addEventListener(
+  'pointermove',
+  (e) => {
+    if (e.pointerType !== 'mouse') return;
+    moveHold = performance.now() + POINTER_HOLD;
+  },
+  { passive: true },
+);
+for (const on of ['pointerdown', 'touchstart', 'focusin']) {
   cards.addEventListener(on, () => (touching = true), { passive: true });
 }
-for (const off of ['pointerleave', 'focusout', 'touchend', 'touchcancel']) {
-  cards.addEventListener(off, () => (touching = false), { passive: true });
+for (const off of ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'focusout']) {
+  cards.addEventListener(off, () => {
+    touching = false;
+    kick();
+  }, { passive: true });
 }
 
 window.addEventListener('resize', () => {
@@ -1205,11 +1231,14 @@ window.addEventListener('resize', () => {
 });
 
 if (canAnimate) {
-  /* 画面の外では流さない */
-  new IntersectionObserver(([entry]) => {
-    seen = entry.isIntersecting;
-    if (seen) kick();
-  }).observe(cards);
+  /* 画面に入る少し手前から流し始め、出たら止める */
+  new IntersectionObserver(
+    ([entry]) => {
+      seen = entry.isIntersecting;
+      if (seen) kick();
+    },
+    { rootMargin: '25% 0px' },
+  ).observe(cards);
 }
 if (lively) kick();
 

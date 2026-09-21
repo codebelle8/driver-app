@@ -343,32 +343,54 @@ async function checkClickRings(page, label) {
 /**
  * 最初の画面を、開いた直後から 12秒ほど見続ける。標語の文字と、問いかけの
  * 打ち込みと、答えの出方を、同じ時間の並びで取る。
+ *
+ * **測るのはページの中で、描くたびに（1コマずつ）。** 検査の側から1回ずつ
+ * 取りに行くと、その往復が遅れた回に、とどまっている時間を短く見誤る
+ * （確認用の住所で落ちた。2026-09-21）。
  */
 async function watchHero(page) {
-  const t0 = Date.now();
-  const out = [];
-  while (Date.now() - t0 < 12000) {
-    const s = await page.evaluate(() => {
+  return page.evaluate(async () => {
+    const out = [];
+    const t0 = performance.now();
+    const read = (el) => {
+      const cs = getComputedStyle(el);
+      const m = cs.transform === 'none' ? [1, 0] : cs.transform.slice(7, -1).split(',').map(Number);
+      return {
+        o: Number(cs.opacity),
+        turned: Math.abs(m[1]) > 0.2,
+        still: cs.transform === 'none' || (m[0] === 1 && m[1] === 0),
+      };
+    };
+    /*
+      **一巡（出そろう → 引っ込む → また出る）を見届けるまで測る。**
+      写真の読み込みで始まりが遅れると、決め打ちの時間では取りこぼす
+      （携帯の幅で落ちた。2026-09-21）。打ち終えて答えが出るまでも待つ。
+    */
+    let phase = 0;
+    let typed = false;
+    while (performance.now() - t0 < 18000 && !(phase === 3 && typed)) {
+      await new Promise(requestAnimationFrame);
       const ch = [...document.querySelectorAll('.hero__tagline .ch')];
       const pick = ch.length ? [ch[0], ch[Math.floor(ch.length / 2)], ch[ch.length - 1]] : [];
-      const read = (el) => {
-        const cs = getComputedStyle(el);
-        const m = cs.transform === 'none' ? [1, 0] : cs.transform.slice(7, -1).split(',').map(Number);
-        return { o: Number(cs.opacity), turned: Math.abs(m[1]) > 0.2, still: cs.transform === 'none' || (m[0] === 1 && m[1] === 0) };
-      };
-      return {
+      const tag = pick.map(read);
+      const vis = tag.length === 3 && tag.every((c) => c.o > 0.99 && c.still);
+      const hid = tag.length === 3 && tag.every((c) => c.o < 0.05);
+      if (phase === 0 && vis) phase = 1;
+      else if (phase === 1 && hid) phase = 2;
+      else if (phase === 2 && vis) phase = 3;
+      if (Number(getComputedStyle(document.querySelector('.hero__answer')).opacity) > 0.95) typed = true;
+      out.push({
+        t: Math.round(performance.now() - t0),
         chars: ch.length,
-        tag: pick.map(read),
+        tag,
         typed: document.querySelectorAll('.hero__question .tw.is-on').length,
         total: document.querySelectorAll('.hero__question .tw').length,
         carets: document.querySelectorAll('.hero__question .tw.is-caret').length,
         answer: Number(getComputedStyle(document.querySelector('.hero__answer')).opacity),
-      };
-    });
-    out.push({ t: Date.now() - t0, ...s });
-    await page.waitForTimeout(60);
-  }
-  return out;
+      });
+    }
+    return out;
+  });
 }
 
 /** 標語：両脇から回り込み、出そろって3秒とどまり、引っ込み、また出る */
@@ -511,21 +533,31 @@ async function checkLines(page, label) {
   const qa = page.locator('.qa').nth(1);
   await qa.scrollIntoViewIfNeeded();
   await page.waitForTimeout(1500);
+  /* 押す前から、ページの中で測り始める（押してから測りに行くと、出そろった
+     あとの値しか取れないことがある） */
+  const opening = page.evaluate(async () => {
+    const d = document.querySelectorAll('.qa')[1];
+    const out = [];
+    const t0 = performance.now();
+    while (performance.now() - t0 < 1400) {
+      await new Promise(requestAnimationFrame);
+      out.push([...d.querySelectorAll('p .ln__in')].map((el) => Number(getComputedStyle(el).opacity)));
+    }
+    await new Promise((done) => setTimeout(done, 1200));
+    return {
+      steps: out,
+      shown: [...d.querySelectorAll('p .ln__in')].every((el) => Number(getComputedStyle(el).opacity) > 0.98),
+    };
+  });
   await qa.locator('summary').click();
-  const opened = [];
-  for (let i = 0; i < 14; i++) {
-    opened.push(
-      await qa.evaluate((d) => [...d.querySelectorAll('p .ln__in')].map((el) => Number(getComputedStyle(el).opacity))),
-    );
-    await page.waitForTimeout(50);
-  }
-  await page.waitForTimeout(1500);
-  const shown = await qa.evaluate((d) =>
-    [...d.querySelectorAll('p .ln__in')].every((el) => Number(getComputedStyle(el).opacity) > 0.98),
-  );
+  const { steps: opened, shown } = await opening;
   /* 2行の答えもあるため、差は 0.15 で見る（1行ずつずれていれば足りる） */
   const oneByOne = opened.some((o) => o.length >= 2 && o[0] - o[o.length - 1] > 0.15);
-  check(`${label}：よくある質問を開くと、答えが1行ずつ出る`, oneByOne && shown, JSON.stringify(opened.slice(0, 5)));
+  check(
+    `${label}：よくある質問を開くと、答えが1行ずつ出る`,
+    oneByOne && shown,
+    JSON.stringify(opened.filter((o) => o.some((v) => v > 0.02 && v < 0.98)).slice(0, 4)),
+  );
 }
 
 /** 緑の帯の縁（上下）が、3枚の波で流れているか */
@@ -556,36 +588,43 @@ async function checkPop(page, label) {
     (s) => document.querySelector(s).getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.6,
     sel,
   );
-  const watch = async (ms) => {
-    const out = [];
-    const t0 = Date.now();
-    while (Date.now() - t0 < ms) {
-      out.push(
-        await page.evaluate((s) => {
-          const h = document.querySelector(s);
-          return {
+  /**
+   * 送りながら、1コマずつ測る。**送るのも測るのもページの中で行う。**
+   * 検査の側から送ると、送り終わるまでに弾みが終わってしまうことがある
+   * （確認用の住所で落ちた。2026-09-21）。
+   * @param {number} dir 1 = 下へ送って入れる、-1 = 上へ戻して入れる
+   */
+  const watch = (from, to, dir, ms) =>
+    page.evaluate(
+      async ({ s, from: a, to: b, dir: d, ms: span }) => {
+        const h = document.querySelector(s);
+        const out = [];
+        let y = a;
+        const t0 = performance.now();
+        while (performance.now() - t0 < span) {
+          if ((d > 0 && y < b) || (d < 0 && y > b)) {
+            y += d * 80;
+            window.scrollTo(0, d > 0 ? Math.min(y, b) : Math.max(y, b));
+          }
+          await new Promise(requestAnimationFrame);
+          out.push({
             k: Number(getComputedStyle(h).scale) || 1,
             n: Number(getComputedStyle(h.querySelector('.count')).scale) || 1,
             dust: document.querySelectorAll('.dust').length,
             over: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-          };
-        }, sel),
-      );
-      await page.waitForTimeout(40);
-    }
-    return out;
-  };
+          });
+        }
+        return out;
+      },
+      { s: sel, from, to, dir, ms },
+    );
 
   const vh = await page.evaluate(() => window.innerHeight);
 
   /* 見出しを画面の下の外に置いてから、下へ少しずつ送って入れる */
   await page.evaluate((yy) => window.scrollTo(0, Math.max(0, yy)), y - vh);
   await page.waitForTimeout(3500); /* ほかの見出しの砂ぼこりが消えるのを待つ */
-  for (let yy = y - 400; yy <= y; yy += 80) {
-    await page.evaluate((v) => window.scrollTo(0, v), yy);
-    await page.waitForTimeout(30);
-  }
-  const down = await watch(1900);
+  const down = await watch(y - 400, y, 1, 2600);
   const kMax = Math.max(...down.map((f) => f.k));
   const nMax = Math.max(...down.map((f) => f.n));
   const dustMax = Math.max(...down.map((f) => f.dust));
@@ -601,11 +640,7 @@ async function checkPop(page, label) {
   /* 見出しを画面の上の外へ出してから、上へ戻して上から入れる。弾まない */
   await page.evaluate((yy) => window.scrollTo(0, yy), y + vh * 1.6);
   await page.waitForTimeout(3500);
-  for (let yy = y + vh * 1.6; yy >= y; yy -= 80) {
-    await page.evaluate((v) => window.scrollTo(0, v), yy);
-    await page.waitForTimeout(30);
-  }
-  const up = await watch(1500);
+  const up = await watch(y + vh * 1.6, y, -1, 2200);
   check(
     `${label}：上へ戻したときは、弾まない`,
     Math.max(...up.map((f) => f.k)) <= 1.001,
@@ -634,13 +669,28 @@ async function checkGuide(page, label, wide) {
         loaded: img.complete && img.naturalWidth > 0,
       };
     }, sel);
-  const to = async (sel) => {
-    await page.evaluate((s2) => {
-      const box = document.querySelector(s2).getBoundingClientRect();
-      window.scrollTo(0, box.top + window.scrollY - 60);
-    }, sel);
+  const to = async (sel, offset = -60) => {
+    await page.evaluate(
+      ({ s2, off }) => {
+        const box = document.querySelector(s2).getBoundingClientRect();
+        window.scrollTo(0, box.top + window.scrollY + off);
+      },
+      { s2: sel, off: offset },
+    );
     await page.waitForTimeout(2200);
   };
+
+  /* 対応エリアの右下（節をまたいで置いた1枚）。境目が見える位置で測る */
+  await to('#faq', -430);
+  const seam = await look('.guide--faq-top');
+  const seamGaps = wide
+    ? await page.evaluate(() => {
+        const g = document.querySelector('.guide--faq-top').getBoundingClientRect();
+        const qa = document.querySelector('.qa').getBoundingClientRect();
+        const note = document.querySelector('.notice-box').getBoundingClientRect();
+        return { 質問まで: Math.round(qa.top - g.bottom), 知らせ箱まで: Math.round(g.left - note.right) };
+      })
+    : null;
 
   /* よくあるご質問（どの幅でも出す） */
   await to('#faq');
@@ -683,19 +733,19 @@ async function checkGuide(page, label, wide) {
   if (wide) {
     check(
       `${label}：最初の画面と対応エリアの余白にも、案内役が出ている`,
-      [hero, left, right].every((g) => g.seen && g.loaded),
-      JSON.stringify({ hero, left, right }),
+      [hero, left, right, seam].every((g) => g.seen && g.loaded),
+      JSON.stringify({ hero, left, right, seam }),
     );
     check(
       `${label}：写真が本文に掛からない`,
-      heroGap >= 8 && Object.values(gaps).every((g) => g >= 8),
-      JSON.stringify({ hero: heroGap, ...gaps }),
+      heroGap >= 8 && Object.values(gaps).every((g) => g >= 8) && Object.values(seamGaps).every((g) => g >= 8),
+      JSON.stringify({ hero: heroGap, ...gaps, ...seamGaps }),
     );
   } else {
     check(
-      `${label}：余白が無いので、脇の3枚は出さない`,
-      hero.out && left.out && right.out,
-      JSON.stringify({ hero, left, right }),
+      `${label}：余白が無いので、脇の4枚は出さない`,
+      hero.out && left.out && right.out && seam.out,
+      JSON.stringify({ hero, left, right, seam }),
     );
   }
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -993,9 +1043,12 @@ try {
     await page.evaluate((l) => {
       document.getElementById('cards').scrollLeft = l - 40;
     }, loop);
-    /* 触ったあとは少し止まる。流れに戻るまで待つ */
-    await page.waitForTimeout(2600);
-    const wrapped = await at();
+    /* 触ったあとは少し止まり、そのあと残りを流れて巻き戻る。戻るまで待つ */
+    let wrapped = await at();
+    for (let t = 0; t < 20 && wrapped > loop * 0.5; t++) {
+      await page.waitForTimeout(400);
+      wrapped = await at();
+    }
     const gaps = await page.evaluate(() => {
       const cs = [...document.querySelectorAll('#cards .card')].map((el) => el.getBoundingClientRect());
       const out = [];
@@ -1031,13 +1084,43 @@ try {
     to = await at();
     check('横送り：「前へ」で1枚ぶん戻る', from - to > card * 0.6, `${Math.round(from - to)}px`);
 
-    /* 読んでいるあいだ（触っているあいだ）は止まる */
+    /*
+      **止まるのは、読もうとしているときだけ。**
+      マウスを動かしたら止まり、動かさなくなれば流れに戻る。
+      送っているあいだカーソルは止まったままなので、カードがその下に入った
+      だけでは止めない（止めていたため、通り過ぎるまで流れなかった。
+      ご指摘 2026-09-21）。
+    */
     await page.locator('#cards').hover();
-    await page.waitForTimeout(700);
+    await page.mouse.move(700, 450);
+    await page.waitForTimeout(200);
     const holdA = await at();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(700);
     const holdB = await at();
-    check('横送り：触っているあいだは止まる', Math.abs(holdB - holdA) <= 2, `${Math.round(holdA)} → ${Math.round(holdB)}`);
+    check('横送り：マウスを動かしているあいだは止まる', Math.abs(holdB - holdA) <= 2, `${Math.round(holdA)} → ${Math.round(holdB)}`);
+
+    await page.waitForTimeout(1800);
+    const backA = await at();
+    await page.waitForTimeout(1200);
+    const backB = await at();
+    check('横送り：手を止めれば、また流れる', backB - backA > 20, `${Math.round(backA)} → ${Math.round(backB)}`);
+
+    /* カーソルを画面に置いたまま、カードをその下へ送る */
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(1200);
+    await page.evaluate(() => {
+      const r = document.querySelector('#features').getBoundingClientRect();
+      window.scrollTo(0, r.top + window.scrollY + 260);
+    });
+    await page.waitForTimeout(1400);
+    const underA = await at();
+    await page.waitForTimeout(1500);
+    const underB = await at();
+    check(
+      '横送り：カーソルの下を通っても、流れは止まらない',
+      underB - underA > 20,
+      `${Math.round(underA)} → ${Math.round(underB)}`,
+    );
     await page.mouse.move(10, 10);
 
     const qa = page.locator('.qa').first();
