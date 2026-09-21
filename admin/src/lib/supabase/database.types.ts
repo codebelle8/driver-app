@@ -149,6 +149,13 @@ export type DriverProfile = {
   /** 料金の刻み。4つ（2026-09-14）。金額はアプリ側の plans.ts が持つ。 */
   plan: PlanId | null;
   plan_chosen_at: string | null;
+  /**
+   * お支払いいただいた期間の終わり（ご指示 2026-09-15）。
+   *
+   * 「入金を確認した」を押したときに、お選びの刻みぶんだけ先の日付が入る。
+   * null は期限なし。この欄を設ける前から「ご利用中」だった方が当てはまる。
+   */
+  paid_until: string | null;
   /** 振込名義の前に付けていただく番号 */
   member_no: number;
   created_at: string;

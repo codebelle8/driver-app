@@ -237,8 +237,11 @@ const ja = {
     account: 'アカウント',
     payment: 'お支払い',
     accountOut: '登録すると、機種変更しても引き継げます',
-    accountTrial: '無料期間 残り {n} 日',
+    accountTrial: '無料期間 残り {left}',
     accountEnded: '無料期間は終了しました',
+    /* お支払い済みの方の期間。ご指示 2026-09-15。 */
+    accountPaid: 'ご利用期間 残り {left}',
+    accountEndedPaid: 'ご利用期間が終了しました',
     accountChecking: '確認しています…',
     about: 'このアプリについて',
     terms: '利用規約',
@@ -297,15 +300,22 @@ const ja = {
     signOutBody: 'お気に入りと閲覧履歴は、この端末に残ります。',
 
     lockedTitle: '無料期間が終了しました',
+    /* お支払い済みの期間が終わったとき（ご指示 2026-09-15） */
+    lockedTitlePaid: 'ご利用期間が終了しました',
     lockedBody:
       'お支払いの手続きが済むまで、施設の検索はご利用いただけません。お手続きが済み次第、これまでどおりお使いいただけます。',
+    lockedBodyPaid:
+      'ご継続のお手続きが済むまで、施設の検索はご利用いただけません。お手続きが済み次第、これまでどおりお使いいただけます。',
     lockedAction: 'お支払いの手続きへ',
     lockedCheck: 'お振込みが済んだ方はこちら',
     lockedChecking: '確かめています…',
 
     trialTitle: '無料期間',
-    trialLeft: 'あと {n} 日（{date} まで）',
+    trialLeft: 'あと {left}（{date} まで）',
     trialEnded: '{date} に終了しました',
+    /* お支払い済みの期間。言い回しを分ける（ご指示 2026-09-15） */
+    paidLeft: 'あと {left}（{date} まで）',
+    paidEnded: '{date} に終了しました。続けてご利用の場合はお手続きをお願いいたします',
     statusPaid: 'ご利用中',
     statusBlocked: 'ご利用を停止しています',
 
@@ -388,7 +398,7 @@ const ja = {
   plan: {
     title: '無料期間が終了しました',
     body: '引き続きお使いいただくため、料金プランをお選びください。',
-    bodyLeft: '無料期間はあと {n} 日です',
+    bodyLeft: '無料期間はあと {left}です',
     open: '料金プランを見る',
     close: '閉じる',
     /*
@@ -415,6 +425,7 @@ const ja = {
     statusTitle: 'いまのご利用状況',
     statusTrial: '無料期間中',
     statusEndedShort: '無料期間は終了',
+    statusEndedPaid: 'ご利用期間は終了',
     until: '{date} まで',
     chosenAt: '{date} にお申し込み',
     notChosen: 'まだお選びいただいていません',
@@ -465,6 +476,7 @@ const ja = {
     sectionAdded: '新しく増えた施設',
     sectionTrial: 'お支払いのご案内',
     trialTitle: '無料期間が、あと {n} 日で終わります',
+    paidExpiryTitle: 'ご利用期間が、あと {n} 日で終わります',
     trialBody:
       '{date} を過ぎると、お支払いいただくまで設定より先へ進めなくなります。押してお手続きへ。',
     addedNote: '前回この端末で取り込んだあとに増えた施設を、過去14日ぶんまで出しています。',
@@ -510,6 +522,14 @@ const ja = {
     date: '{m}月{d}日',
     /** 英語だけが使う。日本語は date の {m} をそのまま使う。 */
     months: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+    /*
+      残りの長さ。**月だけで丸めない**（ご指摘 2026-09-15）。
+      「あと3か月」では、3か月ちょうどなのか3か月と28日なのかが
+      分からない。端数の日数まで出す。
+    */
+    spanMonthsDays: '{m}か月 {d}日',
+    spanMonths: '{m}か月',
+    spanDays: '{d}日',
   },
 
   weekday: { 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土', 7: '日' },
@@ -777,8 +797,10 @@ const en: Dictionary = {
     account: 'Account',
     payment: 'Payment',
     accountOut: 'Sign up to keep your data when you change phones',
-    accountTrial: '{n} days left in your free month',
+    accountTrial: '{left} left in your free month',
     accountEnded: 'Your free month has ended',
+    accountPaid: '{left} left',
+    accountEndedPaid: 'Your paid period has ended',
     accountChecking: 'Checking…',
     about: 'About this app',
     terms: 'Terms of use',
@@ -831,15 +853,20 @@ const en: Dictionary = {
     signOutBody: 'Your favourites and history stay on this device.',
 
     lockedTitle: 'Your free trial has ended',
+    lockedTitlePaid: 'Your paid period has ended',
     lockedBody:
       'Searching for facilities is unavailable until payment is arranged. Everything returns as soon as it is.',
+    lockedBodyPaid:
+      'Searching for facilities is unavailable until renewal is arranged. Everything returns as soon as it is.',
     lockedAction: 'Go to payment',
     lockedCheck: 'Already paid? Check again',
     lockedChecking: 'Checking...',
 
     trialTitle: 'Free month',
-    trialLeft: '{n} days left (until {date})',
+    trialLeft: '{left} left (until {date})',
     trialEnded: 'Ended on {date}',
+    paidLeft: '{left} left (until {date})',
+    paidEnded: 'Ended on {date}. Please renew to continue',
     statusPaid: 'Active',
     statusBlocked: 'Suspended',
 
@@ -911,7 +938,7 @@ const en: Dictionary = {
   plan: {
     title: 'Your free month has ended',
     body: 'Choose a plan to carry on using the app.',
-    bodyLeft: '{n} days left in your free month',
+    bodyLeft: '{left} left in your free month',
     open: 'See the plans',
     close: 'Close',
     names: {
@@ -931,6 +958,7 @@ const en: Dictionary = {
     statusTitle: 'Your plan',
     statusTrial: 'Free month',
     statusEndedShort: 'Free month ended',
+    statusEndedPaid: 'Paid period ended',
     until: 'until {date}',
     chosenAt: 'Chosen on {date}',
     notChosen: 'No plan chosen yet',
@@ -974,6 +1002,7 @@ const en: Dictionary = {
     sectionAdded: 'Newly added facilities',
     sectionTrial: 'About your payment',
     trialTitle: 'Your free trial ends in {n} days',
+    paidExpiryTitle: 'Your plan ends in {n} days',
     trialBody:
       'After {date}, only the settings screen stays available until payment is made. Tap to continue.',
     addedNote: 'Facilities added since this device last downloaded, for up to 14 days.',
@@ -1014,6 +1043,9 @@ const en: Dictionary = {
       月の名前は months から引く。
     */
     date: '{d} {mon}',
+    spanMonthsDays: '{m} months {d} days',
+    spanMonths: '{m} months',
+    spanDays: '{d} days',
     months: [
       'Jan',
       'Feb',
@@ -1101,6 +1133,18 @@ export function fill(template: string, values: Record<string, string | number>):
     out = out.split(`{${key}}`).join(String(value));
   }
   return out;
+}
+
+/**
+ * 残りの長さを書く。「11か月 20日」「28日」「3か月」。
+ *
+ * **月だけで丸めない。** 端数の日数まで出す（ご指摘 2026-09-15）。
+ * 端数が無いときだけ「3か月」と書く。「3か月 0日」は読みにくい。
+ */
+export function formatSpan(t: Dictionary, span: { months: number; days: number }): string {
+  if (span.months <= 0) return fill(t.when.spanDays, { d: span.days });
+  if (span.days <= 0) return fill(t.when.spanMonths, { m: span.months });
+  return fill(t.when.spanMonthsDays, { m: span.months, d: span.days });
 }
 
 /** 日付を、その言語の並びで書く。 */

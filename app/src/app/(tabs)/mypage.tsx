@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
-import { daysLeft, isExpired } from '@/lib/account';
+import { endsAt, isExpired, remaining } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
@@ -16,7 +16,7 @@ import { PlanLock } from '@/components/plan-lock';
 import { askToInstall, installState, type InstallState } from '@/lib/install';
 import { appVersion, hasAny, loadSite, type Site } from '@/lib/site';
 import { disablePush, enablePush, pushState, type PushState } from '@/lib/push';
-import { fill, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
+import { fill, formatSpan, LOCALE_NAME, LOCALES, type Locale } from '@/lib/i18n/dictionaries';
 import { useTheme, useThemeControl } from '@/theme-context';
 
 /**
@@ -163,11 +163,20 @@ export default function MyPageScreen() {
                 ? t.mypage.accountChecking
                 : !account
                   ? t.mypage.accountOut
-                  : account.status === 'active'
-                    ? t.account.statusPaid
-                    : isExpired(account)
-                      ? t.mypage.accountEnded
-                      : fill(t.mypage.accountTrial, { n: daysLeft(account.trialEndsAt) })}
+                  : /*
+                      **期限を先に見る。** お支払い済みでも期間が過ぎたら
+                      終わった旨を出す（ご指示 2026-09-15）。状態を先に
+                      見ると、切れていても「ご利用中」と出てしまう。
+                    */
+                    isExpired(account)
+                    ? account.status === 'active'
+                      ? t.mypage.accountEndedPaid
+                      : t.mypage.accountEnded
+                    : account.status === 'active'
+                      ? endsAt(account)
+                        ? fill(t.mypage.accountPaid, { left: formatSpan(t, remaining(account)) })
+                        : t.account.statusPaid
+                      : fill(t.mypage.accountTrial, { left: formatSpan(t, remaining(account)) })}
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={17} color={c.textFaint} />
@@ -194,11 +203,15 @@ export default function MyPageScreen() {
             <View style={styles.body}>
               <Text style={styles.name}>{t.mypage.payment}</Text>
               <Text style={styles.hint}>
-                {account.status === 'active'
-                  ? t.account.statusPaid
-                  : isExpired(account)
-                    ? t.mypage.accountEnded
-                    : fill(t.mypage.accountTrial, { n: daysLeft(account.trialEndsAt) })}
+                {isExpired(account)
+                  ? account.status === 'active'
+                    ? t.mypage.accountEndedPaid
+                    : t.mypage.accountEnded
+                  : account.status === 'active'
+                    ? endsAt(account)
+                      ? fill(t.mypage.accountPaid, { left: formatSpan(t, remaining(account)) })
+                      : t.account.statusPaid
+                    : fill(t.mypage.accountTrial, { left: formatSpan(t, remaining(account)) })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={17} color={c.textFaint} />

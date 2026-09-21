@@ -4,6 +4,7 @@ import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { PageLink } from '@/components/page-link';
 import { requireAdmin } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
+import { remainingSpan } from '@/lib/plans';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -56,7 +57,18 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
   const code = (n: number) => (n < 10000 ? String(n).padStart(4, '0') : String(n));
 
   /* 文言の {n} を差し替える。この画面でしか使わないので、ここに置く。 */
-  const fill = (template: string, n: number) => template.replace('{n}', String(n));
+  const fill = (template: string, n: number | string) => template.replace('{n}', String(n));
+
+  /*
+    残りの長さ。**月だけで丸めない**（ご指摘 2026-09-15）。
+    「あと11か月」では、ちょうどなのか端数があるのかが分からない。
+  */
+  const span = (endIso: string | null) => {
+    const { months, days } = remainingSpan(endIso, new Date(now));
+    if (months <= 0) return m.spanDays.replace('{d}', String(days));
+    if (days <= 0) return m.spanMonths.replace('{m}', String(months));
+    return m.spanMonthsDays.replace('{m}', String(months)).replace('{d}', String(days));
+  };
 
   /*
     残り日数。切り上げる。
@@ -78,17 +90,37 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
       3. ご利用中
       4. 停止中
   */
-  const rank = (p: { status: string; trial_ends_at: string }) => {
+  /*
+    見ている期間の終わり。**お支払い済みならその期間の終わり**（2026-09-15）。
+
+    null は期限なし。この欄を設ける前から「ご利用中」だった方が当てはまる。
+    勝手に期限を決めず、次に「入金を確認した」を押した時点で入る。
+  */
+  type Row = { status: string; trial_ends_at: string; paid_until?: string | null };
+  const endOf = (p: Row): string | null =>
+    p.status === 'active' ? (p.paid_until ?? null) : p.trial_ends_at;
+
+  const isOver = (p: Row): boolean => {
+    const at = endOf(p);
+    return !!at && daysTo(at) <= 0;
+  };
+
+  const rank = (p: Row) => {
     if (p.status === 'blocked') return 3;
+    /* お支払い済みでも、期間が過ぎていれば先頭に出す。未収になる。 */
+    if (isOver(p)) return 0;
     if (p.status === 'active') return 2;
-    return daysTo(p.trial_ends_at) <= 0 ? 0 : 1;
+    return 1;
+  };
+
+  /* 並べ替えに使う日付。期限なしの方は、いちばん後ろへ。 */
+  const sortKey = (p: Row) => {
+    const at = endOf(p);
+    return at ? new Date(at).getTime() : Number.MAX_SAFE_INTEGER;
   };
 
   const members = [...(rows ?? [])].sort(
-    (a, b) =>
-      rank(a) - rank(b) ||
-      new Date(a.trial_ends_at).getTime() - new Date(b.trial_ends_at).getTime() ||
-      a.member_no - b.member_no,
+    (a, b) => rank(a) - rank(b) || sortKey(a) - sortKey(b) || a.member_no - b.member_no,
   );
 
   const count = (want: number) => members.filter((p) => rank(p) === want).length;
@@ -165,8 +197,9 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                 {shown.map((p) => {
                   const paid = p.status === 'active';
                   const blocked = p.status === 'blocked';
-                  const left = daysTo(p.trial_ends_at);
-                  const expired = !paid && !blocked && left <= 0;
+                  const endIso = endOf(p);
+                  const left = endIso ? daysTo(endIso) : 0;
+                  const expired = !blocked && !!endIso && left <= 0;
                   return (
                     <tr key={p.user_id}>
                       {/*
@@ -197,18 +230,18 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                         <Badge tone={blocked || expired ? 'warn' : paid ? 'accent' : 'default'}>
                           {blocked
                             ? m.stateBlocked
-                            : paid
-                              ? m.statePaid
-                              : expired
-                                ? m.stateExpired
+                            : expired
+                              ? m.stateExpired
+                              : paid
+                                ? m.statePaid
                                 : m.stateTrial}
                         </Badge>
                       </td>
                       <td className="px-5 py-3 tabular text-text-muted">
-                        {day(p.trial_ends_at)}
-                        {!paid && !blocked && (
+                        {endIso ? day(endIso) : <span className="text-text-faint">{m.noEnd}</span>}
+                        {!blocked && !!endIso && (
                           <span className={`ml-2 text-xs ${expired ? 'text-warn' : 'text-text-faint'}`}>
-                            {expired ? fill(m.overdue, -left) : fill(m.daysLeft, left)}
+                            {expired ? fill(m.overdue, -left) : fill(m.daysLeft, span(endIso))}
                           </span>
                         )}
                       </td>

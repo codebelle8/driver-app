@@ -305,7 +305,7 @@ function TrialRow({
           <View style={styles.nameRow}>
             {unread && <View style={styles.dot} />}
             <Text style={unread ? styles.nameUnread : styles.name} numberOfLines={2}>
-              {fill(t.notices.trialTitle, { n: left })}
+              {fill(notice.paid ? t.notices.paidExpiryTitle : t.notices.trialTitle, { n: left })}
             </Text>
           </View>
           <Text style={styles.text}>

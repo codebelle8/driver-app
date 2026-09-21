@@ -7,10 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { PlanPrompt } from '@/components/plan-prompt';
-import { daysLeft, isExpired } from '@/lib/account';
+import { endsAt, isExpired, remaining } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
-import { fill, formatDate } from '@/lib/i18n/dictionaries';
+import { fill, formatDate, formatSpan } from '@/lib/i18n/dictionaries';
 import {
   isReady,
   loadTransfer,
@@ -124,8 +124,14 @@ export default function PlanScreen() {
     );
   }
 
-  const end = new Date(account.trialEndsAt);
+  /*
+    見ている期間の終わり。**お支払い済みならその期間の終わり。**
+    ご指示 2026-09-15。それまでは無料期間だけを見ていた。
+  */
+  const endIso = endsAt(account);
+  const end = endIso ? new Date(endIso) : null;
   const over = isExpired(account);
+  const paid = account.status === 'active';
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -137,20 +143,28 @@ export default function PlanScreen() {
             <View style={styles.cardRow}>
               <Text style={styles.cardLabel}>{t.plan.statusTitle}</Text>
               <Text style={[styles.cardValue, over && styles.warn]}>
-                {account.status === 'active'
-                  ? t.account.statusPaid
-                  : account.status === 'blocked'
-                    ? t.account.statusBlocked
-                    : over
-                      ? t.plan.statusEndedShort
+                {account.status === 'blocked'
+                  ? t.account.statusBlocked
+                  : over
+                    ? paid
+                      ? t.plan.statusEndedPaid
+                      : t.plan.statusEndedShort
+                    : paid
+                      ? t.account.statusPaid
                       : t.plan.statusTrial}
               </Text>
-              {account.status !== 'active' && (
+              {/*
+                期限を持たない方（この欄を設ける前からご利用中の方）は
+                日付を出さない。出せる日付が無い。
+              */}
+              {!!end && account.status !== 'blocked' && (
                 <Text style={styles.cardNote}>
                   {over
-                    ? fill(t.account.trialEnded, { date: formatDate(t, end) })
-                    : fill(t.account.trialLeft, {
-                        n: daysLeft(account.trialEndsAt),
+                    ? fill(paid ? t.account.paidEnded : t.account.trialEnded, {
+                        date: formatDate(t, end),
+                      })
+                    : fill(paid ? t.account.paidLeft : t.account.trialLeft, {
+                        left: formatSpan(t, remaining(account)),
                         date: formatDate(t, end),
                       })}
                 </Text>

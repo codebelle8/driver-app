@@ -10,7 +10,12 @@ import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
 /**
- * 無料期間が終わっていることの説明。設定の画面の先頭に出す。
+ * ご利用いただける期間が終わっていることの説明。設定の画面の先頭に出す。
+ *
+ * **お支払い済みの方にも出す**（ご指示 2026-09-15）
+ *   お支払いいただいた期間が過ぎたときも、無料期間の終わりと同じように
+ *   出す。ただし文面は変える。一度もお支払いいただいていない方に向けた
+ *   「無料期間が終了しました」を、払ってくださった方へ出してはいけない。
  *
  * **なぜ理由を書くか**
  *   突然「探す」が消えると、壊れたのだと受け取られる。壊れたと
@@ -27,19 +32,22 @@ export function PlanLock() {
   const s = makeStyles(c);
   const router = useRouter();
   const locked = useLocked();
-  const { refresh } = useAccount();
+  const { account, refresh } = useAccount();
   const [checking, setChecking] = useState(false);
 
   if (!locked) return null;
+
+  /* お支払い済みの期間が切れたのか、無料期間が切れたのか。 */
+  const paid = account?.status === 'active';
 
   return (
     <View style={s.box} accessibilityRole="alert">
       <View style={s.head}>
         <Ionicons name="lock-closed" size={18} color={c.warn} />
-        <Text style={s.title}>{t.account.lockedTitle}</Text>
+        <Text style={s.title}>{paid ? t.account.lockedTitlePaid : t.account.lockedTitle}</Text>
       </View>
 
-      <Text style={s.body}>{t.account.lockedBody}</Text>
+      <Text style={s.body}>{paid ? t.account.lockedBodyPaid : t.account.lockedBody}</Text>
 
       <Pressable
         onPress={() => router.push('/plan')}

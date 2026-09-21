@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireAdmin } from '@/lib/auth';
+import { nextPaidUntil } from '@/lib/plans';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { ActionState } from './facilities';
 
@@ -140,14 +141,42 @@ async function setStatus(
   const admin = createAdminClient();
   const { data: before } = await admin
     .from('driver_profiles')
-    .select('status')
+    .select('status, plan, paid_until, trial_ends_at')
     .eq('user_id', userId)
     .maybeSingle();
 
-  const { error } = await admin
-    .from('driver_profiles')
-    .update({ status: next })
-    .eq('user_id', userId);
+  /*
+    いつまでご利用いただけるかを、ここで決める（ご指示 2026-09-15）。
+
+    **以前は決めていなかった。** 「ご利用中」にすると、そのまま無期限に
+    使えた。1か月ぶん払った方も1年ぶん払った方も同じ扱いで、期限という
+    ものが無かった。お選びの刻みぶんだけ先の日付を入れる。
+
+    戻すときは消す。無料期間へ戻したのに期限だけ残っていると、
+    次に「入金を確認した」を押したとき、その残りへ足してしまう。
+  */
+  const patch: {
+    status: 'active' | 'trial' | 'blocked';
+    paid_until?: string | null;
+  } = { status: next };
+
+  if (next === 'active') {
+    patch.paid_until = nextPaidUntil(
+      {
+        paidUntil: before?.paid_until ?? null,
+        /*
+          **無料期間の残りも足す。** 無料期間の途中でお振込みいただいた
+          方の残りを切り捨てると、早く払った方ほど損をする（ご指摘 2026-09-15）。
+        */
+        trialEndsAt: before?.trial_ends_at ?? null,
+      },
+      before?.plan ?? null,
+    );
+  } else {
+    patch.paid_until = null;
+  }
+
+  const { error } = await admin.from('driver_profiles').update(patch).eq('user_id', userId);
   if (error) return;
 
   /*
@@ -161,7 +190,10 @@ async function setStatus(
     action: 'update',
     table_name: 'driver_profiles',
     record_id: userId,
-    diff: { status: { from: before?.status ?? null, to: next } },
+    diff: {
+      status: { from: before?.status ?? null, to: next },
+      paid_until: { from: before?.paid_until ?? null, to: patch.paid_until ?? null },
+    },
   });
 
   /*

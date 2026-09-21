@@ -2,10 +2,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { choosePlan, daysLeft, isExpired } from '@/lib/account';
+import { choosePlan, daysLeft, isExpired, remaining } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
-import { fill } from '@/lib/i18n/dictionaries';
+import { fill, formatSpan } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
 import { PLANS, yen, type PlanId } from '@/lib/plans';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
@@ -68,7 +68,7 @@ export function PlanPrompt({
   if (!account) return null;
 
   const over = isExpired(account);
-  const left = daysLeft(account.trialEndsAt);
+  const left = daysLeft(account);
 
   /*
     探す画面では、終わりが近づくまで出さない。
@@ -111,7 +111,7 @@ export function PlanPrompt({
           color={over ? c.warn : c.textMuted}
         />
         <View style={s.headText}>
-          <Text style={s.title}>{over ? t.plan.title : fill(t.plan.bodyLeft, { n: left })}</Text>
+          <Text style={s.title}>{over ? t.plan.title : fill(t.plan.bodyLeft, { left: formatSpan(t, remaining(account)) })}</Text>
           {chosen ? (
             <Text style={s.body}>{fill(t.plan.current, { name: name(chosen) })}</Text>
           ) : (

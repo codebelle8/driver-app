@@ -15,6 +15,11 @@
  * **締めたあとも設定へは入れることを確かめる**
  *   ログインまで断つと、お支払いの手続きにもたどり着けない。
  *   入れること・設定だけであること・払えば戻ることの3つを見る。
+ *
+ * **お支払いいただいた期間にも終わりがある**（ご指示 2026-09-15）
+ *   以前は「ご利用中」にすると無期限に使えた。いまは paid_until を持ち、
+ *   過ぎれば無料期間と同じように締まる。**文面だけは分ける。**
+ *   払ってくださった方へ「無料期間が終了しました」とは出さない。
  */
 import { chromium } from 'playwright';
 
@@ -36,14 +41,21 @@ const check = (label, ok, detail = '') => {
   }
 };
 
-/** 名簿の期限と状態を差し替える。管理画面から入金済みにするのと同じ結果。 */
-const setTrial = async (userId, { days, status = 'trial' }) => {
+/**
+ * 名簿の期限と状態を差し替える。管理画面から入金済みにするのと同じ結果。
+ *
+ * @param days     無料期間の終わりを、いまから何日先にするか
+ * @param status   trial / active / blocked
+ * @param paidDays お支払いいただいた期間の終わり。null は期限なし。
+ */
+const setTrial = async (userId, { days, status = 'trial', paidDays = null }) => {
   const r = await fetch(`${conn.url}/rest/v1/driver_profiles?user_id=eq.${userId}`, {
     method: 'PATCH',
     headers: conn.svc,
     body: JSON.stringify({
       trial_ends_at: new Date(Date.now() + days * DAY).toISOString(),
       status,
+      paid_until: paidDays === null ? null : new Date(Date.now() + paidDays * DAY).toISOString(),
     }),
   });
   if (!r.ok) throw new Error(`名簿を直せません: ${r.status} ${await r.text()}`);
@@ -124,15 +136,61 @@ try {
     .catch(() => '');
   check('未読として数えられている', badge !== '', `鐘の脇: ${badge}`);
 
-  // --- お支払い済みの方には出さない -----------------------------------------
-  console.log('\n--- お支払い済みのとき ---');
-  await setTrial(member.userId, { days: 0.5, status: 'active' });
+  // --- お支払い済みの方 -----------------------------------------------------
+  /*
+    ご指示 2026-09-15 より前は「払った方には何も出さない」だった。
+    いまは**お支払いいただいた期間にも終わりがある。**
+    期限を持たない方には出さず、持っている方には別の言い回しで出す。
+  */
+  console.log('\n--- お支払い済み・期限なし ---');
+  await setTrial(member.userId, { days: 0.5, status: 'active', paidDays: null });
   await reload();
   text = await body();
-  check('払った方には出さない', !text.includes('無料期間が、あと'), text.slice(0, 90).replace(/\n/g, ' / '));
+  check(
+    '期限を持たない方には出さない',
+    !text.includes('あと 1 日で終わります'),
+    text.slice(0, 90).replace(/\n/g, ' / '),
+  );
 
-  // --- 期限が切れたとき ------------------------------------------------------
-  console.log('\n--- 期限が切れたとき ---');
+  console.log('\n--- お支払い済み・期限あと1日 ---');
+  await setTrial(member.userId, { days: 40, status: 'active', paidDays: 0.5 });
+  await reload();
+  text = await body();
+  check(
+    'お支払い済みの方にも、終わりが近いことを伝える',
+    text.includes('ご利用期間が、あと 1 日で終わります'),
+    text.slice(0, 120).replace(/\n/g, ' / '),
+  );
+  check(
+    '払った方へ「無料期間」とは言わない',
+    !text.includes('無料期間が、あと'),
+    text.slice(0, 90).replace(/\n/g, ' / '),
+  );
+
+  // --- お支払いいただいた期間が切れたとき -----------------------------------
+  console.log('\n--- お支払い済み・期限切れ ---');
+  await setTrial(member.userId, { days: 40, status: 'active', paidDays: -1 });
+  await reload('/');
+  text = await body();
+  check('お支払い済みでも、過ぎれば設定へ移される', page.url().includes('/mypage'), page.url());
+  check(
+    'お支払い済みの言い回しで締める',
+    text.includes('ご利用期間が終了しました'),
+    text.slice(0, 120).replace(/\n/g, ' / '),
+  );
+  check(
+    '払った方へ「無料期間が終了」とは言わない',
+    !text.includes('無料期間が終了しました'),
+    text.slice(0, 120).replace(/\n/g, ' / '),
+  );
+  check(
+    'ご継続のご案内になっている',
+    text.includes('ご継続のお手続き'),
+    text.slice(0, 160).replace(/\n/g, ' / '),
+  );
+
+  // --- 無料期間が切れたとき -------------------------------------------------
+  console.log('\n--- 無料期間が切れたとき ---');
   await setTrial(member.userId, { days: -1 });
   await reload('/');
   text = await body();
@@ -163,7 +221,8 @@ try {
 
   // --- 払ったら戻る ----------------------------------------------------------
   console.log('\n--- お支払いのあと ---');
-  await setTrial(member.userId, { days: -1, status: 'active' });
+  /* 管理画面で「入金を確認した」を押したのと同じ状態（1か月ぶん先の期限が入る） */
+  await setTrial(member.userId, { days: -1, status: 'active', paidDays: 30 });
   await reload('/');
   text = await body();
   check('探す画面へ戻れる', !page.url().includes('/mypage'), page.url());

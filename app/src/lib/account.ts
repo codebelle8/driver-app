@@ -40,6 +40,13 @@ export interface Account {
   status: MemberStatus;
   /** 無料期間の終わり（ISO） */
   trialEndsAt: string;
+  /**
+   * お支払いいただいた期間の終わり（ISO）。
+   *
+   * null は「期限なし」。この欄を設ける前から「ご利用中」だった方が
+   * 当てはまる。勝手に締めないため、null は切れていない扱いにする。
+   */
+  paidUntil: string | null;
   /** 顔写真の置き場所。まだ無ければ null。 */
   avatarPath: string | null;
   /** 顔写真の URL。avatarPath から作る。 */
@@ -450,6 +457,8 @@ interface ProfileRow {
   display_name: string | null;
   status: MemberStatus;
   trial_ends_at: string;
+  /** お支払いいただいた期間の終わり。null は期限なし。 */
+  paid_until: string | null;
   avatar_path: string | null;
   plan: PlanId | null;
   plan_chosen_at: string | null;
@@ -588,6 +597,7 @@ export async function loadAccount(): Promise<Account | null> {
     displayName: row.display_name,
     status: row.status,
     trialEndsAt: row.trial_ends_at,
+    paidUntil: row.paid_until ?? null,
     avatarPath: row.avatar_path,
     avatarUrl: row.avatar_path ? avatarUrlOf(row.avatar_path) : null,
     plan: row.plan,
@@ -685,21 +695,109 @@ export async function choosePlan(userId: string, plan: PlanId): Promise<Result> 
 }
 
 /**
- * 無料期間の残り日数。
+ * いま見ている期間の終わり。
+ *
+ * **お支払い済みなら、お支払いいただいた期間の終わり。**
+ * そうでなければ無料期間の終わり。ご指示 2026-09-15。
+ *
+ * お支払い済みで期限を持たない方（この欄を設ける前からの方）は null。
+ * 呼ぶ側は「期限なし」として扱う。
+ */
+export function endsAt(account: Account): string | null {
+  if (account.status === 'active') return account.paidUntil;
+  return account.trialEndsAt;
+}
+
+/**
+ * いま見ている期間の残り日数。
  *
  * 切り上げる。あと数時間でも「あと1日」と出したい。「あと0日」では
  * 今日中に切れるのか既に切れているのか読み取れない。
+ *
+ * 期限を持たない方は 0 を返す。残りを出す場面では、呼ぶ側が
+ * endsAt() の null を見て出し分ける。
  */
-export function daysLeft(trialEndsAt: string, now: Date = new Date()): number {
-  const end = new Date(trialEndsAt).getTime();
+export function daysLeft(account: Account, now: Date = new Date()): number {
+  const at = endsAt(account);
+  if (!at) return 0;
+  const end = new Date(at).getTime();
   if (Number.isNaN(end)) return 0;
   const ms = end - now.getTime();
   if (ms <= 0) return 0;
   return Math.ceil(ms / 86_400_000);
 }
 
-/** 無料期間が切れているか */
+/** 残りの長さ。月と、その端数の日。 */
+export interface Span {
+  months: number;
+  days: number;
+}
+
+/**
+ * いま見ている期間の残りを、月と日に分ける。
+ *
+ * **月だけで丸めない**（ご指摘 2026-09-15）。「あと11か月」では、
+ * ちょうど11か月なのか11か月と28日なのかが分からない。
+ *
+ * **暦で数える。** 30日を1か月と見なすやり方だと、1年が「12か月5日」に
+ * なる。9月15日から翌年9月15日までは、12か月ちょうどと出したい。
+ *
+ * 端数の日は切り上げる。daysLeft() と同じ考え方で、あと数時間でも
+ * 「あと1日」と出す。
+ *
+ * 期限を持たない方・切れている方は 0か月 0日。呼ぶ側が endsAt() の
+ * null と isExpired() を見て出し分ける。
+ */
+export function remaining(account: Account, now: Date = new Date()): Span {
+  const at = endsAt(account);
+  if (!at) return { months: 0, days: 0 };
+  const end = new Date(at).getTime();
+  if (Number.isNaN(end) || end <= now.getTime()) return { months: 0, days: 0 };
+
+  /* いまから1か月ずつ進めて、終わりを越えない回数を数える。 */
+  let months = 0;
+  let cursor = now.getTime();
+  for (;;) {
+    const next = addMonth(new Date(cursor)).getTime();
+    if (next > end) break;
+    cursor = next;
+    months++;
+    /* 念のための歯止め。暦の計算が進まなくなっても回り続けない。 */
+    if (months > 600) break;
+  }
+
+  return { months, days: Math.ceil((end - cursor) / 86_400_000) };
+}
+
+/**
+ * 1か月進める。
+ *
+ * 足した先に同じ日が無ければ、その月の末日にする。素直に setMonth を
+ * 使うと 1月31日 が 3月3日 になり、月の数え方がずれる。
+ * 管理画面の nextPaidUntil() と同じ考え方（admin/src/lib/plans.ts）。
+ */
+function addMonth(from: Date): Date {
+  const day = from.getDate();
+  const to = new Date(from);
+  to.setDate(1);
+  to.setMonth(to.getMonth() + 1);
+  const lastDay = new Date(to.getFullYear(), to.getMonth() + 1, 0).getDate();
+  to.setDate(Math.min(day, lastDay));
+  return to;
+}
+
+/**
+ * 使える期間が切れているか。
+ *
+ * **お支払い済みでも切れる。** ご指示 2026-09-15。それまでは
+ * 「ご利用中」にすると無期限に使えた。1か月ぶん払った方も1年ぶん
+ * 払った方も同じ扱いで、止めるには人が気づいて手で停止するしかなかった。
+ *
+ * **期限を持たない方は切れない。** この欄を設ける前から「ご利用中」
+ * だった方が当てはまる。期限を勝手に決めて突然締めることはしない。
+ */
 export function isExpired(account: Account, now: Date = new Date()): boolean {
-  if (account.status === 'active') return false;
-  return new Date(account.trialEndsAt).getTime() <= now.getTime();
+  const at = endsAt(account);
+  if (!at) return false;
+  return new Date(at).getTime() <= now.getTime();
 }

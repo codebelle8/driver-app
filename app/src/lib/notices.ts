@@ -40,7 +40,7 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { daysLeft, type Account } from './account';
+import { daysLeft, endsAt, type Account } from './account';
 import {
   getAddedFacilities,
   getChangedCategories,
@@ -75,6 +75,8 @@ export interface Notice {
   facilityName?: string;
   /** 無料期間の知らせだけが持つ。残りの日数。 */
   daysLeft?: number;
+  /** 同上。お支払い済みの期間か（文面を変える）。 */
+  paid?: boolean;
   /** 画面に出す本文 */
   /**
    * 本文。注意事項はそのまま出す。
@@ -98,31 +100,38 @@ export interface Notice {
  *   ご指示による。毎日出すと読まなくなり、切れた日にも読み飛ばされる。
  *   2回に絞れば、どちらも目に入る。
  *
- * **お支払い済みの方には出さない。**
- *   払った方に払えと言うのが、いちばんしてはいけないこと。
+ * **お支払い済みの方にも出す**（ご指示 2026-09-15）。
+ *   お支払いいただいた期間にも終わりがある。切れる前に一度もお伝えせず、
+ *   ある日突然使えなくなるのでは、無料期間のときと同じ不親切になる。
+ *
+ *   ただし**期限を持たない方には出さない。** この欄を設ける前から
+ *   「ご利用中」だった方が当てはまる。払った方に払えと言うのが、
+ *   いちばんしてはいけないこと。
  *
  * **1件ずつ別の知らせにする。**
  *   id に残りの日数を入れてある。2日前を読んでも、1日前はまた
  *   未読として出る。同じ id にすると、一度読んだきり二度と出ない。
  */
 export function trialNotice(account: Account | null, now: Date = new Date()): Notice | null {
-  /*
-    払った方と、停止中の方には出さない。
-    払った方に払えと言うのが、いちばんしてはいけないこと。
-  */
   if (!account) return null;
-  if (account.status === 'active' || account.status === 'blocked') return null;
+  /* 停止中の方には出さない。払う先ではなく、ご連絡いただく先が要る。 */
+  if (account.status === 'blocked') return null;
 
-  const left = daysLeft(account.trialEndsAt, now);
+  /* 期限を持たない方には出さない（endsAt が null） */
+  const at = endsAt(account);
+  if (!at) return null;
+
+  const left = daysLeft(account, now);
   if (left !== 1 && left !== 2) return null;
 
-  const end = new Date(account.trialEndsAt).getTime();
+  const end = new Date(at).getTime();
   if (Number.isNaN(end)) return null;
 
   return {
-    id: `t:${account.trialEndsAt}:${left}`,
+    id: `t:${at}:${left}`,
     kind: 'trial',
     daysLeft: left,
+    paid: account.status === 'active',
     /* 知らせが効き始めた時刻。並べ替えと「何時間前」に使う。 */
     at: new Date(end - left * 86_400_000).toISOString(),
   };

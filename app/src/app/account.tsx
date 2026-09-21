@@ -12,9 +12,10 @@ import {
   PASSWORD_MIN,
   changePassword,
   clearAvatar,
-  daysLeft,
   deleteMyAccount,
+  endsAt,
   isExpired,
+  remaining,
   signOut,
   signOutEverywhere,
   updateDisplayName,
@@ -24,7 +25,7 @@ import { useAccount } from '@/lib/account-context';
 import { canPickAvatar, pickAvatar } from '@/lib/avatar';
 import { confirmDelete } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
-import { fill, formatDate } from '@/lib/i18n/dictionaries';
+import { fill, formatDate, formatSpan } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
 import { forgetRemembered } from '@/lib/remember';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
@@ -100,8 +101,14 @@ function SignedIn({
 
   if (!account) return null;
 
-  const end = new Date(account.trialEndsAt);
+  /*
+    見ている期間の終わり。**お支払い済みならその期間の終わり。**
+    ご指示 2026-09-15。それまでは無料期間だけを見ていた。
+  */
+  const endIso = endsAt(account);
+  const end = endIso ? new Date(endIso) : null;
   const over = isExpired(account);
+  const paid = account.status === 'active';
 
   async function onSave() {
     if (!account || saving) return;
@@ -307,14 +314,17 @@ function SignedIn({
         <View style={styles.cardRow}>
           <Text style={styles.cardLabel}>{t.account.trialTitle}</Text>
           <Text style={[styles.cardValue, over && styles.cardValueWarn]}>
-            {account.status === 'active'
-              ? t.account.statusPaid
-              : account.status === 'blocked'
-                ? t.account.statusBlocked
+            {account.status === 'blocked'
+              ? t.account.statusBlocked
+              : /* 期限を持たない方（この欄を設ける前からの方）は日付を出さない */
+                !end
+                ? t.account.statusPaid
                 : over
-                  ? fill(t.account.trialEnded, { date: formatDate(t, end) })
-                  : fill(t.account.trialLeft, {
-                      n: daysLeft(account.trialEndsAt),
+                  ? fill(paid ? t.account.paidEnded : t.account.trialEnded, {
+                      date: formatDate(t, end),
+                    })
+                  : fill(paid ? t.account.paidLeft : t.account.trialLeft, {
+                      left: formatSpan(t, remaining(account)),
                       date: formatDate(t, end),
                     })}
           </Text>
