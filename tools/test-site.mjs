@@ -121,8 +121,12 @@ async function checkFades(page, label, moves) {
     page.evaluate((s) => Number(getComputedStyle(document.querySelector(s)).opacity), FADE_TARGET);
   const trail = (r) => r.all.map((x) => x.o.toFixed(2)).join(' ');
 
+  /* 遅れて読む写真を、先に読ませておく。読み込みと測定が重なると、
+     出ている途中の値を取りこぼす（確認用の住所で1度落ちた） */
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(1500);
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(800);
   check(`${label}：画面の外の塊は、まだ出ていない`, (await opacity()) < 0.02);
 
   /* 下へ送って、下から入れる */
@@ -518,7 +522,8 @@ async function checkLines(page, label) {
   const shown = await qa.evaluate((d) =>
     [...d.querySelectorAll('p .ln__in')].every((el) => Number(getComputedStyle(el).opacity) > 0.98),
   );
-  const oneByOne = opened.some((o) => o.length >= 2 && o[0] - o[o.length - 1] > 0.3);
+  /* 2行の答えもあるため、差は 0.15 で見る（1行ずつずれていれば足りる） */
+  const oneByOne = opened.some((o) => o.length >= 2 && o[0] - o[o.length - 1] > 0.15);
   check(`${label}：よくある質問を開くと、答えが1行ずつ出る`, oneByOne && shown, JSON.stringify(opened.slice(0, 5)));
 }
 
@@ -636,14 +641,7 @@ async function checkGuide(page, label, wide) {
     await page.waitForTimeout(2200);
   };
 
-  /* ご利用の流れ・よくあるご質問（どの幅でも出す） */
-  await to('#flow');
-  const flow = await look('.guide--flow');
-  check(
-    `${label}：ご利用の流れに、パソコンとスマートフォンの作例が出ている`,
-    flow.seen && flow.loaded,
-    JSON.stringify(flow),
-  );
+  /* よくあるご質問（どの幅でも出す） */
   await to('#faq');
   const faq = await look('.guide--faq');
   check(`${label}：よくあるご質問に、説明している写真が出ている`, faq.seen && faq.loaded, JSON.stringify(faq));

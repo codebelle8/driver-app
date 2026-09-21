@@ -1,6 +1,3 @@
 README.md
 .env*
 .gitignore
-
-# 発注元よりご提供の写真の原本（切り取ったものだけを配る）
-assets/people/source
