@@ -1025,7 +1025,7 @@ a {
 .guide--hero,
 .guide--area-left,
 .guide--area-right,
-.guide--faq-top {
+.guide--closing {
   position: absolute;
   z-index: 1;
   /* 飾りなので、押すのを邪魔しない */
@@ -1047,12 +1047,13 @@ a {
   top: 32%;
   width: min(300px, 20vw);
 }
-/* 対応エリアの右下。節をまたいで置くため、よくあるご質問の側から上へ出す
-   （対応エリアは、背の巨大な英字を切るために外へはみ出せない） */
-.guide--faq-top {
-  right: 4%;
-  top: -250px;
-  width: min(240px, 17vw);
+/* 締めからフッターにまたがる右側。フッターの側から上へ出す
+   （締めは、散らした目印を切るために外へはみ出せない）。
+   フッターは上へのはみ出しを許しているので、そのまま重ねられる */
+.guide--closing {
+  right: 12%;
+  top: -330px;
+  width: min(300px, 21vw);
 }
 /* 1320px 以下では、本文との間が詰まる（右の写真が施設の種類の札に掛かる）。
    余白に置けなくなったら、出さない */
@@ -1060,7 +1061,7 @@ a {
   .guide--hero,
   .guide--area-left,
   .guide--area-right,
-  .guide--faq-top {
+  .guide--closing {
     display: none;
   }
 }

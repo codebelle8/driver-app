@@ -680,15 +680,20 @@ async function checkGuide(page, label, wide) {
     await page.waitForTimeout(2200);
   };
 
-  /* 対応エリアの右下（節をまたいで置いた1枚）。境目が見える位置で測る */
-  await to('#faq', -430);
-  const seam = await look('.guide--faq-top');
+  /* 締めからフッターにまたがる1枚。境目が見える位置で測る */
+  await to('.site-footer', -520);
+  const seam = await look('.guide--closing');
   const seamGaps = wide
     ? await page.evaluate(() => {
-        const g = document.querySelector('.guide--faq-top').getBoundingClientRect();
-        const qa = document.querySelector('.qa').getBoundingClientRect();
-        const note = document.querySelector('.notice-box').getBoundingClientRect();
-        return { 質問まで: Math.round(qa.top - g.bottom), 知らせ箱まで: Math.round(g.left - note.right) };
+        const g = document.querySelector('.guide--closing').getBoundingClientRect();
+        const nav = document.querySelector('.site-footer__nav').getBoundingClientRect();
+        const logo = document.querySelector('.site-footer__logo').getBoundingClientRect();
+        const pill = document.querySelector('.closing .pill').getBoundingClientRect();
+        return {
+          案内まで: Math.round(nav.top - g.bottom),
+          ロゴまで: Math.round(g.left - logo.right),
+          締めの釦まで: Math.round(g.left - pill.right),
+        };
       })
     : null;
 
