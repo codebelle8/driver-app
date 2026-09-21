@@ -636,7 +636,14 @@ async function checkGuide(page, label, wide) {
     await page.waitForTimeout(2200);
   };
 
-  /* よくあるご質問（どの幅でも出す） */
+  /* ご利用の流れ・よくあるご質問（どの幅でも出す） */
+  await to('#flow');
+  const flow = await look('.guide--flow');
+  check(
+    `${label}：ご利用の流れに、パソコンとスマートフォンの作例が出ている`,
+    flow.seen && flow.loaded,
+    JSON.stringify(flow),
+  );
   await to('#faq');
   const faq = await look('.guide--faq');
   check(`${label}：よくあるご質問に、説明している写真が出ている`, faq.seen && faq.loaded, JSON.stringify(faq));
