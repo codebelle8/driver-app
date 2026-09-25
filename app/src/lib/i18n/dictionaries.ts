@@ -579,6 +579,7 @@ const ja = {
   intro: {
     skip: '導入を飛ばす',
     skipHint: '画面を押すと飛ばせます',
+    sound: '音を出す',
   },
 
   comingSoon: {
@@ -1108,6 +1109,7 @@ const en: Dictionary = {
   intro: {
     skip: 'Skip the intro',
     skipHint: 'Tap the screen to skip',
+    sound: 'Turn on sound',
   },
 
   comingSoon: {
