@@ -52,7 +52,11 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
       note: ' ',
       yes: t.account.signOut,
       onYes: () => {
-        void signOut().then(() => notify(t.account.signedOut));
+        void signOut().then((r) => {
+          // 圏外では出ていかない（出ると、電波が戻るまで入り直せないため）
+          if (r.ok) notify(t.account.signedOut);
+          else notify(t.account.error[r.problem], undefined, 'error');
+        });
       },
     });
   };

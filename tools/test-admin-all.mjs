@@ -275,6 +275,31 @@ try {
   }
 
   /* ===================================================================== */
+  console.log(`${NL}--- サイト設定：圏外で使える日数 ---`);
+  /* ===================================================================== */
+
+  /*
+    アプリは圏外のとき、最後に確かめた会員の控えで動く。その上限の日数
+    （ご指示 2026-09-26）。**本番の値は書き換えない。** 欄があることと、
+    範囲外の値を弾くことだけを見る（弾かれた保存は、何も書き換えない）。
+  */
+  await page.goto(`${BASE}/site`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+  const days = page.locator('input[name="offline_grace_days"]');
+  const daysValue = (await days.count()) ? await days.inputValue() : '';
+  check('「圏外で使える日数」の欄がある', (await days.count()) === 1);
+  check('いまの日数が入っている（1〜365）', /^\d+$/.test(daysValue) && +daysValue >= 1 && +daysValue <= 365, daysValue);
+
+  const siteBefore = (await sb('/rest/v1/site_settings?select=*&id=eq.1')).body?.[0] ?? {};
+  await days.fill('0');
+  await page.getByRole('button', { name: /^保存$/ }).click();
+  await page.waitForTimeout(2500);
+  const rejected = (await text(page)).includes('1〜365 の整数でご指定ください');
+  const siteAfter = (await sb('/rest/v1/site_settings?select=*&id=eq.1')).body?.[0] ?? {};
+  check('範囲外の日数（0）は弾き、理由を出す', rejected);
+  check('弾いたときは、何も書き換えない', JSON.stringify(siteBefore) === JSON.stringify(siteAfter));
+
+  /* ===================================================================== */
   console.log(`${NL}--- カテゴリ ---`);
   /* ===================================================================== */
 

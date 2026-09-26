@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { AppState, Platform } from 'react-native';
 
 import {
   endRecovery,
   isRecovery,
   loadAccount,
+  offlineLimitReached,
   recoveryPending,
   scrubUrlFragment,
   tookOver,
@@ -23,6 +25,12 @@ import { supabase } from './supabase';
  *   ready は「調べ終えたか」であって「ログインしているか」ではない。
  *   このアプリは登録しなくても使えるため、調べ終える前に一覧を出してよい。
  *   マイページの行だけが、調べ終えるまで形を決められない。
+ *
+ * **圏外で通しているあいだは、電波が戻ったら確かめ直す**
+ *   圏外では、最後に確かめた会員の控えで通している（account.ts）。
+ *   停止・ほかの端末への移動・期限の延長は、確かめ直すまで分からない。
+ *   電波が戻った合図（ブラウザの online・アプリが表に出た）と、一定の
+ *   間隔で確かめ直す。確かめられたら、いつもの状態に戻る。
  *
  * **再設定の途中を覚えておく**
  *   パスワード再設定のリンクから戻ってくると、Supabase は
@@ -44,15 +52,26 @@ interface AccountContextValue {
    * 入口へ出したままにして、次に入るまで残す。
    */
   takenOver: boolean;
+  /**
+   * 圏外で使える日数を過ぎ、確かめ直しを待っているか。日数を持つ。
+   *
+   * 入口でログインの画面の代わりに「電波の届く場所で開いてください」を
+   * 出す（圏外ではログインできないため、行き止まりを見せない）。
+   */
+  offlineLimit: { days: number } | null;
   doneRecovering: () => void;
   refresh: () => Promise<void>;
 }
+
+/** 圏外で通しているあいだ、確かめ直す間隔 */
+const RECHECK_MS = 30_000;
 
 const AccountContext = createContext<AccountContextValue>({
   account: null,
   ready: false,
   recovering: false,
   takenOver: false,
+  offlineLimit: null,
   doneRecovering: () => {},
   refresh: async () => {},
 });
@@ -75,10 +94,40 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const cameFromUrl = isRecovery();
   const [recovering, setRecovering] = useState(cameFromUrl);
   const [takenOver, setTakenOver] = useState(false);
+  const [offlineLimit, setOfflineLimit] = useState<{ days: number } | null>(null);
 
   const refresh = useCallback(async () => {
-    setAccount(await loadAccount());
+    const found = await loadAccount();
+    setAccount(found);
+    setOfflineLimit(offlineLimitReached());
+    if (tookOver()) setTakenOver(true);
   }, []);
+
+  /*
+    圏外で通しているあいだ（控えで通している・日数を過ぎて止めている）は、
+    電波が戻ったら確かめ直す。確かめられたら、この見張りは外れる。
+  */
+  const waiting = Boolean(account?.offline) || Boolean(offlineLimit);
+  useEffect(() => {
+    if (!waiting) return;
+    let alive = true;
+    const retry = () => {
+      if (alive) void refresh();
+    };
+    const timer = setInterval(retry, RECHECK_MS);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    const web =
+      Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    if (web) window.addEventListener('online', retry);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      sub.remove();
+      if (web) window.removeEventListener('online', retry);
+    };
+  }, [waiting, refresh]);
 
   useEffect(() => {
     let alive = true;
@@ -87,6 +136,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       const found = await loadAccount();
       if (!alive) return;
       setAccount(found);
+      setOfflineLimit(offlineLimitReached());
       setReady(true);
 
       /*
@@ -129,6 +179,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         void loadAccount().then((found) => {
           if (!alive) return;
           setAccount(found);
+          setOfflineLimit(offlineLimitReached());
           if (tookOver()) setTakenOver(true);
           else if (found) {
             setTakenOver(false);
@@ -153,7 +204,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
   return (
     <AccountContext.Provider
-      value={{ account, ready, recovering, takenOver, doneRecovering, refresh }}
+      value={{ account, ready, recovering, takenOver, offlineLimit, doneRecovering, refresh }}
     >
       {children}
     </AccountContext.Provider>

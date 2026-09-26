@@ -108,6 +108,40 @@ if (Platform.OS !== 'web') {
   });
 }
 
+/**
+ * ログインの控えの置き場所の名前。
+ *
+ * supabase-js の既定と同じ作り方（`sb-<プロジェクト>-auth-token`）。
+ * **名前を変えてはいけない。** 変えると、いまログインしている全員の
+ * 控えが見つからなくなり、全員がログインし直しになる。
+ *
+ * 圏外で鍵を取り替えられなかったとき、控えが残っているか（＝ログアウト
+ * したのではないか）を確かめるために読む（account.ts）。
+ */
+export const AUTH_STORAGE_KEY = `sb-${new URL(url).hostname.split('.')[0]}-auth-token`;
+
+/**
+ * サーバーに届くか。
+ *
+ * 圏外でログアウトすると、電波が戻るまで入り直せなくなる（入るには通信が
+ * 要る）。出る前にこれで確かめる。答えを待つのは短く（圏外では待たせない）。
+ */
+export async function reachServer(timeoutMs = 4000): Promise<boolean> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url}/auth/v1/health`, {
+      headers: { apikey: anonKey! },
+      signal: abort.signal,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Storage 上のパスから、写真の公開URLを作る */
 export function photoUrl(storagePath: string): string {
   return `${url}/storage/v1/object/public/facility-photos/${storagePath}`;

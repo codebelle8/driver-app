@@ -79,6 +79,18 @@ export async function saveSiteSettings(
   }
 
   /*
+    圏外で使える日数。全角の数字も受け付ける（日本語の入力のまま打たれる）。
+    空欄は既定の30日に戻す。
+  */
+  const rawDays = get('offline_grace_days').replace(/[０-９]/g, (c) =>
+    String.fromCharCode(c.charCodeAt(0) - 0xfee0),
+  );
+  const graceDays = rawDays === '' ? 30 : Number(rawDays);
+  if (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 365) {
+    errors.offline_grace_days = '1〜365 の整数でご指定ください';
+  }
+
+  /*
     **欄の下だけでなく、上にもまとめて出す。**
 
     欄が画面の外にあると、赤い文字に気づけない。保存を押したのに
@@ -89,19 +101,36 @@ export async function saveSiteSettings(
   }
 
   const admin = createAdminClient();
+  const links = {
+    // 空欄は null。空文字を入れると、アプリが「入っている」と見て空の行を出す。
+    operator_name: v.operatorName || null,
+    contact_email: v.contactEmail || null,
+    terms_url: v.termsUrl || null,
+    privacy_url: v.privacyUrl || null,
+    law_url: v.lawUrl || null,
+  };
   const { error } = await admin
     .from('site_settings')
-    .update({
-      // 空欄は null。空文字を入れると、アプリが「入っている」と見て空の行を出す。
-      operator_name: v.operatorName || null,
-      contact_email: v.contactEmail || null,
-      terms_url: v.termsUrl || null,
-      privacy_url: v.privacyUrl || null,
-      law_url: v.lawUrl || null,
-    })
+    .update({ ...links, offline_grace_days: graceDays })
     .eq('id', 1);
 
-  if (error) return { message: `保存できませんでした: ${error.message}` };
+  if (error) {
+    /*
+      **データベースを更新する前（列がまだ無い）。** 日数だけを外して保存し、
+      ほかの項目は失わない。日数は既定の30日で動く。
+    */
+    if (error.code === '42703' || /offline_grace_days/.test(error.message)) {
+      const retry = await admin.from('site_settings').update(links).eq('id', 1);
+      if (retry.error) return { message: `保存できませんでした: ${retry.error.message}` };
+      revalidatePath('/site');
+      return {
+        ok: true,
+        message:
+          '保存しました。ただし「圏外で使える日数」は、データベースの更新（20260926000001_offline_grace.sql）の後から保存できます。それまでは30日で動きます。',
+      };
+    }
+    return { message: `保存できませんでした: ${error.message}` };
+  }
 
   revalidatePath('/site');
   return { ok: true, message: '保存しました' };

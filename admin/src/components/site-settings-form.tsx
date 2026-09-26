@@ -30,6 +30,7 @@ export function SiteSettingsForm({
     terms_url: string | null;
     privacy_url: string | null;
     law_url: string | null;
+    offline_grace_days: number;
   };
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
@@ -107,6 +108,28 @@ export function SiteSettingsForm({
             className={inputClass}
             placeholder="https://example.com/law"
           />
+        </Field>
+
+        {/*
+          圏外で使える日数。規約類とは別の話だが、同じ「アプリ全体の設定」
+          なので、ここに並べる（画面を増やさない）。
+        */}
+        <div className="border-t border-border pt-4">
+          <h2 className="text-sm font-semibold text-text-muted">{s.offlineTitle}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-text-faint">{s.offlineHint}</p>
+        </div>
+
+        <Field label={s.offlineDays} hint={s.offlineDaysHint} error={err('offline_grace_days')}>
+          <div className="flex items-center gap-2">
+            <input
+              name="offline_grace_days"
+              inputMode="numeric"
+              defaultValue={String(initial.offline_grace_days)}
+              className={`${inputClass} w-28`}
+              placeholder="30"
+            />
+            <span className="text-sm text-text-muted">{s.offlineDaysUnit}</span>
+          </div>
         </Field>
 
         <Button type="submit" disabled={pending}>

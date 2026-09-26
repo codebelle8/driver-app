@@ -190,6 +190,8 @@ export type SiteSettings = {
   terms_url: string | null;
   privacy_url: string | null;
   law_url: string | null;
+  /** 圏外で使える日数（最後に確かめてから）。1〜365、既定30。20260926000001 で追加 */
+  offline_grace_days: number;
   updated_at: string;
 }
 

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,6 +7,7 @@ import { AuthForm } from '@/components/auth-form';
 import { BrandLogo } from '@/components/brand';
 import { signOut } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
+import { fill } from '@/lib/i18n/dictionaries';
 import { useT } from '@/lib/i18n/context';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -30,6 +31,10 @@ import { useTheme } from '@/theme-context';
  *   停止という状態を持ちながら、それを見て止める場所が無かった。
  *   ここで止め、理由と問い合わせ先を出す。
  *
+ * **圏外で使える日数を過ぎたら、ログインの画面を出さない**
+ *   圏外ではログインできない。入力を出すと行き止まりになる。何をすれば
+ *   よいか（電波の届く場所で開く）を出し、電波が戻れば自動で中へ通す。
+ *
  * **管理画面の入口に合わせる**（ご指示 2026-09-11）
  *   同じ製品として、入口の形を揃える。
  *
@@ -47,10 +52,38 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const c = useTheme();
   const t = useT();
   const s = makeStyles(c);
-  const { account, ready, recovering, takenOver } = useAccount();
+  const { account, ready, recovering, takenOver, offlineLimit, refresh } = useAccount();
+  const [checking, setChecking] = useState(false);
 
   // 調べ終えるまでは、地の色だけ出しておく
   if (!ready && !recovering) return <View style={s.blank} />;
+
+  if (!account && offlineLimit) {
+    return (
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+        <View style={s.center}>
+          <View style={s.card} accessibilityRole="alert">
+            <Ionicons name="cellular-outline" size={28} color={c.warn} />
+            <Text style={s.blockedTitle}>{t.account.offlineLimitTitle}</Text>
+            <Text style={s.lead}>{fill(t.account.offlineLimitBody, { n: offlineLimit.days })}</Text>
+            <Pressable
+              onPress={async () => {
+                setChecking(true);
+                await refresh();
+                setChecking(false);
+              }}
+              disabled={checking}
+              accessibilityRole="button"
+              accessibilityLabel={t.account.offlineRetry}
+              style={s.plain}
+            >
+              <Text style={s.plainText}>{checking ? t.account.offlineChecking : t.account.offlineRetry}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (account && account.status === 'blocked') {
     return (

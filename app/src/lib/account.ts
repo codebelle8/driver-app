@@ -26,7 +26,9 @@ import { deviceId } from './device';
 import { forgetFavoritesHere } from './favorites';
 import { forgetHistoryHere } from './history';
 import type { PlanId } from './plans';
-import { supabase } from './supabase';
+import { isAuthRetryableFetchError } from '@supabase/supabase-js';
+
+import { AUTH_STORAGE_KEY, reachServer, supabase } from './supabase';
 
 /** 顔写真の置き場所 */
 const AVATARS = 'avatars';
@@ -61,6 +63,13 @@ export interface Account {
    * 突き合わせられないため、短い番号を添えていただく。
    */
   memberNo: number;
+  /**
+   * 圏外のため、最後に確かめた控えで通しているか。
+   *
+   * 電波が戻ると確かめ直す（account-context.tsx）。そのあいだも、
+   * 期限（無料期間・お支払いの期間）は控えの日付で判断される。
+   */
+  offline: boolean;
 }
 
 /**
@@ -86,6 +95,8 @@ export type Problem =
   | 'signupClosed'
   | 'rateLimited'
   | 'network'
+  /* 圏外でログアウトしようとした。出ると、電波が戻るまで入り直せない */
+  | 'offline'
   | 'unknown';
 
 export type Result<T = void> = { ok: true; value: T } | { ok: false; problem: Problem };
@@ -335,6 +346,15 @@ async function claimDevice(): Promise<void> {
  * 損をする形になる。
  */
 export async function signOut(): Promise<Result> {
+  /*
+    **圏外では出ていかない。**
+
+    出ると、電波が戻るまで入り直せない（入るには通信が要る）。地下で
+    うっかり押すと、そこで仕事が止まる。supabase も、通信できないまま
+    出ると、手元の控えだけを消して「出た」状態にしてしまう。
+  */
+  if (!(await reachServer())) return bad('offline');
+  offlineLimit = null;
   await dropSnapshot();
   await endRecovery();
   const { error } = await supabase.auth.signOut();
@@ -349,6 +369,9 @@ export async function signOut(): Promise<Result> {
  * 心当たりのあるときに、まとめて切れるようにしておく。
  */
 export async function signOutEverywhere(): Promise<Result> {
+  // ほかの端末まで切るには、そもそも通信が要る。圏外では何も消さずに断る
+  if (!(await reachServer())) return bad('offline');
+  offlineLimit = null;
   await dropSnapshot();
   await endRecovery();
   const { error } = await supabase.auth.signOut({ scope: 'global' });
@@ -515,16 +538,58 @@ export function tookOver(): boolean {
  */
 const SNAPSHOT_KEY = 'kn_account_snapshot';
 
-async function keepSnapshot(account: Account): Promise<void> {
-  await AsyncStorage.setItem(SNAPSHOT_KEY, JSON.stringify(account)).catch(() => undefined);
+/**
+ * 圏外で使える日数（最後にサーバーで確かめてから）。**既定の値。**
+ *
+ * 管理画面の「サイト設定」で変えられる（site_settings.offline_grace_days）。
+ * 電波のある場所で開くたびに読み、控えに入れておく。圏外ではサーバーに
+ * 聞けないため、控えの値で判断する。
+ *
+ * **なぜ上限を設けるか**
+ *   停止した方・ほかの端末へ移った方も、圏外のままなら控えで使い続け
+ *   られてしまう。どこかで確かめ直す必要がある。毎日使う乗務員の方なら、
+ *   30日のあいだに必ず一度は電波のある場所で開くので、実際に当たることは
+ *   まず無い。
+ */
+export const OFFLINE_GRACE_DAYS = 30;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+interface Kept {
+  account: Account;
+  /** 最後にサーバーで確かめた時刻（ms） */
+  verifiedAt: number;
+  /** そのとき読んだ「圏外で使える日数」 */
+  graceDays: number;
 }
 
-async function readSnapshot(): Promise<Account | null> {
+async function keepSnapshot(account: Account, graceDays: number): Promise<void> {
+  const kept: Kept = { account, verifiedAt: Date.now(), graceDays };
+  await AsyncStorage.setItem(SNAPSHOT_KEY, JSON.stringify(kept)).catch(() => undefined);
+}
+
+async function readSnapshot(): Promise<Kept | null> {
   const raw = await AsyncStorage.getItem(SNAPSHOT_KEY).catch(() => null);
   if (!raw) return null;
   try {
-    const kept = JSON.parse(raw) as Account;
-    return kept && typeof kept.userId === 'string' ? kept : null;
+    const parsed = JSON.parse(raw) as Partial<Kept> & Partial<Account>;
+    if (parsed.account && typeof parsed.account.userId === 'string') {
+      return {
+        account: parsed.account,
+        verifiedAt: typeof parsed.verifiedAt === 'number' ? parsed.verifiedAt : Date.now(),
+        graceDays: typeof parsed.graceDays === 'number' ? parsed.graceDays : OFFLINE_GRACE_DAYS,
+      };
+    }
+    /*
+      以前の形（会員の中身だけ）。確かめた日時を持っていない。
+      **いま確かめたものとして扱う。** 厳しく扱うと、この版へ上がった
+      直後に圏外で開いた方を締め出してしまう。次に電波のある場所で
+      開いた時点で、新しい形に書き換わる。
+    */
+    if (typeof parsed.userId === 'string') {
+      return { account: parsed as Account, verifiedAt: Date.now(), graceDays: OFFLINE_GRACE_DAYS };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -533,6 +598,81 @@ async function readSnapshot(): Promise<Account | null> {
 /** ログアウト・退会のときに捨てる。次の方に前の方の控えを見せない。 */
 async function dropSnapshot(): Promise<void> {
   await AsyncStorage.removeItem(SNAPSHOT_KEY).catch(() => undefined);
+}
+
+/**
+ * 圏外で使える日数を過ぎて、確かめ直しが要る状態か。
+ *
+ * 画面へ知らせるための合図（入口で「電波の届く場所で開いてください」を
+ * 出す）。ログインの画面を出しても、圏外では入れない。行き止まりを
+ * 見せるより、何をすればよいかを出す。確かめられた時点で消える。
+ */
+let offlineLimit: { days: number } | null = null;
+
+export function offlineLimitReached(): { days: number } | null {
+  return offlineLimit;
+}
+
+/**
+ * 端末に残っているログインの控え（持ち主と、鍵の期限）。
+ * 控えが無ければ null（ログアウトした・一度も入っていない）。
+ */
+async function storedSession(): Promise<{ userId: string; expiresAt: number } | null> {
+  const raw = await AsyncStorage.getItem(AUTH_STORAGE_KEY).catch(() => null);
+  if (!raw) return null;
+  try {
+    const stored = JSON.parse(raw) as { user?: { id?: unknown }; expires_at?: unknown };
+    if (typeof stored.user?.id !== 'string') return null;
+    const expiresAt = typeof stored.expires_at === 'number' ? stored.expires_at : 0;
+    return { userId: stored.user.id, expiresAt };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 鍵の取り替えが要る頃合いか。supabase-js と同じ幅（切れる90秒前から）で見る。
+ */
+const EXPIRY_MARGIN_MS = 90_000;
+
+/**
+ * 圏外のときに、最後に確かめた会員の控えで通す。
+ *
+ * **通さない場合**
+ *   * 控えが無い（ログアウトした・退会した・一度も確かめていない）
+ *   * 控えの持ち主と、端末に残っているログインの持ち主が違う
+ *   * 最後に確かめてから、圏外で使える日数を過ぎた（→ 入口で知らせる）
+ *
+ * 期限（無料期間・お支払いの期間）と停止は、控えの中身どおりに効く。
+ */
+async function offlineAccount(userId?: string): Promise<Account | null> {
+  const kept = await readSnapshot();
+  if (!kept) return null;
+  const owner = userId ?? (await storedSession())?.userId;
+  if (!owner || kept.account.userId !== owner) return null;
+
+  if (Date.now() - kept.verifiedAt > kept.graceDays * DAY_MS) {
+    offlineLimit = { days: kept.graceDays };
+    return null;
+  }
+  offlineLimit = null;
+  return { ...kept.account, offline: true };
+}
+
+/**
+ * 圏外で使える日数を読む。読めなければ既定（30日）。
+ *
+ * 列がまだ無い（データベースを更新する前）ときも既定で動く。
+ */
+async function loadGraceDays(): Promise<number> {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('offline_grace_days')
+    .eq('id', 1)
+    .maybeSingle();
+  const n = (data as { offline_grace_days?: unknown } | null)?.offline_grace_days;
+  if (error || typeof n !== 'number' || !Number.isFinite(n) || n < 1) return OFFLINE_GRACE_DAYS;
+  return Math.min(365, Math.floor(n));
 }
 
 /**
@@ -558,9 +698,40 @@ async function ensureProfile(): Promise<{ row: ProfileRow | null; reached: boole
  * 設定の場合、登録した時点では行を作れないため。
  */
 export async function loadAccount(): Promise<Account | null> {
-  const { data } = await supabase.auth.getSession();
+  /*
+    **圏外で開いたとき、長く待たせない。**
+
+    鍵の期限が切れていると、supabase は取り替えを間隔を広げながら
+    やり直し、**30秒ほどたってから**諦める。そのあいだ画面は真っ白に
+    なる（調べ終えるまで何も出さない作りのため）。先に端末の控えで
+    期限を見て、切れていてサーバーにも届かなければ、すぐ控えで通す。
+    届く場合だけ、supabase に取り替えを任せる。
+  */
+  const stored = await storedSession();
+  if (
+    stored &&
+    stored.expiresAt * 1000 - Date.now() < EXPIRY_MARGIN_MS &&
+    !(await reachServer(3000))
+  ) {
+    return offlineAccount(stored.userId);
+  }
+
+  const { data, error } = await supabase.auth.getSession();
   const session = data.session;
-  if (!session) return null;
+  if (!session) {
+    /*
+      **圏外で、ログインの鍵を取り替えられなかった場合。**
+
+      鍵は1時間で切れ、開くたびにサーバーで新しいものへ取り替える。
+      圏外ではこれができず、supabase は「ログインしていない」と返す。
+      ところが**ログインの控えは端末に残っている**（通信の失敗では
+      消さない）。ここで入口へ戻すと、圏外ではログインもできないため
+      行き止まりになる（ご指摘 2026-09-23）。最後に確かめた控えで通す。
+    */
+    if (error && isAuthRetryableFetchError(error)) return offlineAccount();
+    offlineLimit = null;
+    return null;
+  }
 
   const { row, reached } = await ensureProfile();
   if (!row) {
@@ -569,10 +740,7 @@ export async function loadAccount(): Promise<Account | null> {
 
       別の方の控えは使わない。いま入っている方のものだけ。
     */
-    if (!reached) {
-      const kept = await readSnapshot();
-      if (kept && kept.userId === session.user.id) return kept;
-    }
+    if (!reached) return offlineAccount(session.user.id);
     return null;
   }
 
@@ -603,10 +771,12 @@ export async function loadAccount(): Promise<Account | null> {
     plan: row.plan,
     planChosenAt: row.plan_chosen_at,
     memberNo: row.member_no,
+    offline: false,
   };
 
-  // 次に圏外で開いたときのために控える
-  await keepSnapshot(account);
+  // 次に圏外で開いたときのために控える。圏外で使える日数も、いま読んで入れておく
+  offlineLimit = null;
+  await keepSnapshot(account, await loadGraceDays());
   return account;
 }
 

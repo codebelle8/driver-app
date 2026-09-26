@@ -46,6 +46,8 @@ export default async function SitePage() {
           terms_url: data?.terms_url ?? null,
           privacy_url: data?.privacy_url ?? null,
           law_url: data?.law_url ?? null,
+          /* データベースを更新する前は列が無い。既定の30日を出しておく */
+          offline_grace_days: (data as { offline_grace_days?: number } | null)?.offline_grace_days ?? 30,
         }}
       />
     </div>

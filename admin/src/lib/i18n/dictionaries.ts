@@ -116,6 +116,13 @@ const ja = {
     privacyUrl: 'プライバシーポリシーのURL',
     lawUrl: '特定商取引法に基づく表記のURL',
 
+    offlineTitle: '圏外で使える日数',
+    offlineHint:
+      '電波が届かない場所では、アプリは最後にサーバーで確かめた会員の情報で動きます。確かめてから、ここで決めた日数を過ぎると「電波の届く場所で開いてください」と出して止めます。利用を停止した方や、別の端末へ移った方が、圏外のまま使い続けられる期間の上限でもあります。',
+    offlineDays: '日数（1〜365日）',
+    offlineDaysHint: '既定は30日です。毎日お使いの方なら、そのあいだに必ず一度は電波のある場所で開くため、まず当たりません。',
+    offlineDaysUnit: '日',
+
     whyTitle: 'お金を受け取る前に、この3つが要ります',
     whyBody:
       '継続してお金をいただくには、販売者名・連絡先・金額・支払いの時期・解約の条件を書いた「特定商取引法に基づく表記」が要ります。メールアドレスや顔写真をお預かりするため、プライバシーポリシーも要ります。文面はこちらでお作りできます。',
@@ -710,6 +717,13 @@ const en: Dictionary = {
     termsUrl: 'Terms of use URL',
     privacyUrl: 'Privacy policy URL',
     lawUrl: 'Legal notice (Japan) URL',
+
+    offlineTitle: 'Days the app works without a signal',
+    offlineHint:
+      'Without a signal, the app runs on the member details it last confirmed with the server. Once this many days have passed since then, it stops and asks to be opened where there is a signal. This is also the longest a suspended member, or one who moved to another device, can keep using it offline.',
+    offlineDays: 'Days (1-365)',
+    offlineDaysHint: 'The default is 30. Members who use the app daily will almost always open it with a signal within that time.',
+    offlineDaysUnit: 'days',
 
     whyTitle: 'These three are required before charging',
     whyBody:
