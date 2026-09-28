@@ -1080,6 +1080,11 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 **端末（Expo Go・APK）でのご確認をお願いしたい。** ブラウザ（ホーム画面に
 追加した PWA）は、本物の圏外で確かめてある。
 
+**2026-09-28 にデータベースを更新した**（発注元で SQL Editor から実行）。
+会員として（アプリと同じ経路で）日数を読めること、会員からは書き換えられ
+ないこと（試しても 0件で弾かれる）を確かめた。管理画面の手順書
+（`docs/14-admin-manual.md` 12.）にも、この設定の説明を足した。
+
 関連: `app/src/lib/account.ts`, `app/src/lib/account-context.tsx`, `app/src/components/auth-gate.tsx`,
 `app/src/lib/supabase.ts`, `admin/src/app/actions/site.ts`, `admin/src/components/site-settings-form.tsx`,
 `supabase/migrations/20260926000001_offline_grace.sql`, `tools/test-offline-login.mjs`
