@@ -5,7 +5,7 @@ import { UnsavedMark } from '@/components/unsaved-mark';
 
 import { saveEntryPoint } from '@/app/actions/entry-points';
 import type { ActionState } from '@/app/actions/facilities';
-import { CoordPicker } from '@/components/coord-picker';
+import { CoordPicker, type OtherEntry } from '@/components/coord-picker';
 import { PlusIcon } from '@/components/icons';
 import { Alert, Button, Field, inputClass } from '@/components/ui';
 import type { Dictionary } from '@/lib/i18n/dictionaries';
@@ -29,12 +29,15 @@ export function EntryPointEditor({
   facilityId,
   entryPoint,
   suggestedCode,
+  others,
   onDone,
   t,
 }: {
   facilityId: string;
   entryPoint?: EntryPoint;
   suggestedCode?: string;
+  /** 同じ施設のほかの入口。座標の地図に灰色で出す */
+  others?: OtherEntry[];
   onDone?: () => void;
   t: Dictionary;
 }) {
@@ -173,6 +176,7 @@ export function EntryPointEditor({
           <CoordPicker
             nav={nav}
             dropoff={dropoff}
+            others={others}
             onChange={(which, value) => (which === 'nav' ? setNav(value) : setDropoff(value))}
             labels={{
               nav: e.navTitle,
@@ -180,6 +184,7 @@ export function EntryPointEditor({
               hint: e.mapHint,
               missingKey: e.mapMissingKey,
               failed: e.mapFailed,
+              others: e.mapOthers,
             }}
           />
         </div>
@@ -314,10 +319,12 @@ export function EntryPointEditor({
 export function AddEntryPointButton({
   facilityId,
   suggestedCode,
+  others,
   t,
 }: {
   facilityId: string;
   suggestedCode: string;
+  others?: OtherEntry[];
   t: Dictionary;
 }) {
   const [open, setOpen] = useState(false);
@@ -337,6 +344,7 @@ export function AddEntryPointButton({
       <EntryPointEditor
         facilityId={facilityId}
         suggestedCode={suggestedCode}
+        others={others}
         onDone={() => setOpen(false)}
         t={t}
       />

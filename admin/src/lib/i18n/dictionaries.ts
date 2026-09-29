@@ -497,6 +497,13 @@ const ja = {
     mapHint: '地図を押すと座標が入ります。置く先:',
     mapMissingKey: '地図の利用設定が未完了です。NEXT_PUBLIC_GOOGLE_MAPS_API_KEY をご確認ください。',
     mapFailed: '地図を読み込めませんでした。通信とキーの制限設定をご確認ください。',
+    /* 入口が2つ以上ある施設（ご指摘 2026-09-29） */
+    mapOthers: '灰色のピンは、この施設のほかの入口（{codes}）のナビ地点です。見るためだけのもので、動きません。',
+    overviewTitle: '入口の位置',
+    overviewHint:
+      'アプリの地図と同じく、入口ごとにピンを立てています（ナビ地点）。ピンを押すと、その入口の編集欄へ移ります。',
+    overviewInactive: '薄いピンは無効の入口です（アプリには出ません）。',
+    showOnMap: '地図で見る',
     dropoffLat: '停車位置 緯度',
     dropoffLng: '停車位置 経度',
     heightLimit: '高さ制限 (cm)',
@@ -1059,6 +1066,13 @@ const en: Dictionary = {
     mapHint: 'Click the map to set coordinates. Target:',
     mapMissingKey: 'Map is not configured. Check NEXT_PUBLIC_GOOGLE_MAPS_API_KEY.',
     mapFailed: 'Could not load the map. Check the network and the key restrictions.',
+    mapOthers:
+      "Grey pins are this facility's other entry points ({codes}), at their approach points. They are for reference and cannot be moved.",
+    overviewTitle: 'Entry point locations',
+    overviewHint:
+      'One pin per entry point, as in the app (approach points). Click a pin to jump to that entry point.',
+    overviewInactive: ' Faded pins are disabled entry points (not shown in the app).',
+    showOnMap: 'Show on map',
     dropoffLat: 'Stopping latitude',
     dropoffLng: 'Stopping longitude',
     heightLimit: 'Height limit (cm)',

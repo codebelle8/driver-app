@@ -236,6 +236,18 @@ body {
   letter-spacing: 0;
 }
 
+/*
+ * 入口の位置の地図でピンを押し、その入口の編集欄へ移ったとき。
+ * どの欄へ来たかが分かるよう、少しのあいだ主役の色で縁取る。
+ */
+.ep-anchor {
+  border-radius: 0.5rem;
+  transition: box-shadow 0.3s ease;
+}
+.ep-anchor[data-flash] {
+  box-shadow: 0 0 0 3px var(--c-accent);
+}
+
 ::selection {
   background: var(--c-accent);
   color: var(--c-accent-text);

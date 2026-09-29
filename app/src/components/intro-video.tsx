@@ -84,6 +84,37 @@ async function soundAllowed(): Promise<boolean> {
   }
 }
 
+/*
+  **映像を片付けた・止めたときの「中断」を、誤りとして記録に出さない**（web）。
+
+  expo-video のブラウザ版は、映像の再生（video.play()）の約束を受け止めて
+  いない。導入を飛ばすと、次の1本の再生を始めた直後に映像ごと片付けるため、
+  ブラウザが「再生が中断された」（AbortError）を受け止め手の無い誤りとして
+  記録に出す。止めたのはこちらなので、正しい動きにあたる。
+
+  受け止めるのは2種類だけ。
+    AbortError      … 映像を片付けた・止めたことによる中断
+    NotAllowedError … 音ありの自動再生の断り。音を出してよいかは別に確かめて
+                      おり（soundAllowed）、断られたら消音で流している
+  ほかの誤りは、これまでどおり外へ出る（投げ直すので、記録にも出る）。
+  再生の約束を待っている側には、これまでどおりどの誤りも届く。
+*/
+if (Platform.OS === 'web' && typeof HTMLMediaElement !== 'undefined') {
+  const proto = HTMLMediaElement.prototype as HTMLMediaElement & { __knPlayGuard?: boolean };
+  if (!proto.__knPlayGuard) {
+    proto.__knPlayGuard = true;
+    const play = proto.play;
+    proto.play = function guardedPlay(this: HTMLMediaElement) {
+      const started = play.call(this);
+      started?.catch?.((err: unknown) => {
+        const name = (err as { name?: string } | null)?.name;
+        if (name !== 'AbortError' && name !== 'NotAllowedError') throw err;
+      });
+      return started;
+    };
+  }
+}
+
 type Phase = 'video' | 'logo';
 
 export function IntroVideo({ onDone }: { onDone?: () => void }) {
@@ -121,8 +152,14 @@ export function IntroVideo({ onDone }: { onDone?: () => void }) {
   function finish() {
     if (finishing.current) return;
     finishing.current = true;
-    // 押した瞬間に音を止める。消えるのを待つあいだ鳴り続けると、飛ばせていないように見える
-    player.pause();
+    /*
+      押した瞬間に音を止める。消えるのを待つあいだ鳴り続けると、飛ばせていない
+      ように見える。**一時停止ではなく消音にする。** 次の1本の再生を始めた
+      直後に一時停止すると、ブラウザが「再生が一時停止で中断された」誤りを
+      記録に出す（expo-video が再生の約束を受け止めていないため）。
+      映像は、消えたあと部品ごと片付けられる。
+    */
+    player.muted = true;
     Animated.timing(opacity, {
       toValue: 0,
       duration: FADE_MS,

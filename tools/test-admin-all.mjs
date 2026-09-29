@@ -300,6 +300,99 @@ try {
   check('弾いたときは、何も書き換えない', JSON.stringify(siteBefore) === JSON.stringify(siteAfter));
 
   /* ===================================================================== */
+  console.log(`${NL}--- 施設：入口の位置の地図 ---`);
+  /* ===================================================================== */
+
+  /*
+    進入路が2つある施設（ご指摘 2026-09-29）。帝国ホテル東京（入口 A・B）で見る。
+    **見るだけ。** 保存は押さない。座標の地図も押さない（押すと点が動く）。
+  */
+  const TWO_ENTRIES = '8e1f2039-8b2d-4728-9ee1-6704ebbef86e';
+  const ONE_ENTRY = 'dfbc299d-a79d-4d40-8016-ed5c7a89f3e1';
+
+  /** 地図の枠の中にある Google のピン（title が「A 車寄せ」の形） */
+  const pinsIn = (sel) =>
+    page.evaluate((s) => {
+      const box = document.querySelector(s);
+      if (!box) return { box: null, pins: [] };
+      const b = box.getBoundingClientRect();
+      const pins = [...box.querySelectorAll('[title]')].map((e) => {
+        const r = e.getBoundingClientRect();
+        return { title: e.getAttribute('title'), x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      return { box: { left: b.left, top: b.top, right: b.right, bottom: b.bottom }, pins };
+    }, sel);
+
+  await page.goto(`${BASE}/facilities/${TWO_ENTRIES}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(3500);
+
+  const overview = await pinsIn('[data-testid="entry-points-map"]');
+  const lettered = overview.pins.filter((p) => /^[A-Z] /.test(p.title));
+  check('入口が2つの施設に「入口の位置」の地図が出る', overview.box !== null);
+  check(
+    '入口の数だけピンが立つ（A・B）',
+    lettered.map((p) => p.title[0]).sort().join(',') === 'A,B',
+    JSON.stringify(overview.pins.map((p) => p.title)),
+  );
+  const inBox = (p, b) => b && p.x > b.left && p.x < b.right && p.y > b.top && p.y < b.bottom;
+  check(
+    'すべてのピンが地図の中に収まる',
+    lettered.length === 2 && lettered.every((p) => inBox(p, overview.box)),
+    JSON.stringify(overview),
+  );
+
+  /* ピン B を押すと、B の編集欄へ移る */
+  const pinB = lettered.find((p) => p.title.startsWith('B '));
+  if (pinB) await page.mouse.click(pinB.x, pinB.y);
+  await page.waitForTimeout(400);
+  const flashed = await page.evaluate(() => document.getElementById('ep-B')?.hasAttribute('data-flash') ?? false);
+  await page.waitForTimeout(1200);
+  const epB = await page.evaluate(() => {
+    const r = document.getElementById('ep-B')?.getBoundingClientRect();
+    return r ? { top: r.top } : null;
+  });
+  check(
+    'ピン B を押すと、B の編集欄へ移る',
+    epB !== null && epB.top >= 0 && epB.top < 300,
+    JSON.stringify(epB),
+  );
+  check('移った先の編集欄が縁取られる', flashed);
+
+  /* A の「地図で見る」を押すと、地図へ戻り A のピンを選ぶ */
+  await page.locator('#ep-A').getByRole('button', { name: '地図で見る' }).click();
+  await page.waitForTimeout(1500);
+  const back = await page.evaluate(() => {
+    const m = document.querySelector('[data-testid="entry-points-map"]');
+    const r = m?.getBoundingClientRect();
+    return { top: r?.top ?? null, bottom: r?.bottom ?? null, h: window.innerHeight, selected: m?.parentElement?.getAttribute('data-selected') ?? null };
+  });
+  check(
+    '「地図で見る」で、地図が画面に入り A を選ぶ',
+    back.top !== null && back.top >= 0 && back.bottom <= back.h && back.selected === 'A',
+    JSON.stringify(back),
+  );
+
+  /* A の座標の地図に、B が灰色で出る。A 自身の点（ナビ投入座標）も開いた時点で出る */
+  await page.locator('#ep-A [data-testid="coord-picker"]').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(1200);
+  const pickerA = await pinsIn('#ep-A [data-testid="coord-picker"]');
+  const titlesA = pickerA.pins.map((p) => p.title);
+  check('A の座標の地図に、ほかの入口 B が出る', titlesA.some((x) => /^B /.test(x)), JSON.stringify(titlesA));
+  check('A の座標の地図に、A 自身の点が開いた時点で出る', titlesA.includes('ナビ投入座標'), JSON.stringify(titlesA));
+  check('ほかの入口の説明が添えてある', (await text(page)).includes('ほかの入口（B）'));
+  check('A の座標の地図に、A 自身は灰色で重ねない', !titlesA.some((x) => /^A /.test(x)), JSON.stringify(titlesA));
+
+  /* 入口が1つの施設は、これまでどおり（一覧の地図も「地図で見る」も出さない） */
+  await page.goto(`${BASE}/facilities/${ONE_ENTRY}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2500);
+  check(
+    '入口が1つの施設には、一覧の地図を出さない',
+    (await page.locator('[data-testid="entry-points-map"]').count()) === 0 &&
+      (await page.getByRole('button', { name: '地図で見る' }).count()) === 0,
+  );
+  check('入口が1つの施設には、ほかの入口の説明を出さない', !(await text(page)).includes('ほかの入口（'));
+
+  /* ===================================================================== */
   console.log(`${NL}--- カテゴリ ---`);
   /* ===================================================================== */
 

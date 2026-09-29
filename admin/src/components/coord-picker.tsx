@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { loadMaps, PIN_PATH } from '@/lib/google-maps';
+
 /**
  * 地図から座標を決める。
  *
@@ -19,6 +21,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  *   ナビ地点  … カーナビに渡す。進入レーン上の地点
  *   停車位置  … 実際に停める場所。画面に出す
  *   別物なので、取り違えないよう色と形を分けている。
+ *
+ * **同じ施設のほかの入口を灰色で出す**（ご指摘 2026-09-29）
+ *   以前はこの入口の点しか出しておらず、B を直しているときに A の位置が
+ *   見えなかった。進入路が2つある施設では、2つが同じ道に重なっていないかを
+ *   ここで確かめたい。灰色のしずく形に記号（A・B）を付けて出す。
+ *   動かせず、押すと下の地図へ抜ける（点を置く操作をじゃましない）。
  */
 
 /** 地図の初期位置。東京駅。登録済みの座標があればそちらを使う。 */
@@ -49,46 +57,50 @@ function fromLatLng(lat: number, lng: number): Coord {
   return { lat: lat.toFixed(6), lng: lng.toFixed(6) };
 }
 
-let loading: Promise<void> | null = null;
-
-/**
- * Google の地図を読み込む。
- *
- * 一度きりにしているのは、進入口ごとにこの部品が並ぶため。
- * 数だけ読み込むと、そのぶん課金対象の呼び出しが増える。
- */
-function loadMaps(key: string): Promise<void> {
-  if (typeof window === 'undefined') return Promise.resolve();
-  if ((window as { google?: { maps?: unknown } }).google?.maps) return Promise.resolve();
-  if (loading) return loading;
-
-  loading = new Promise((resolve, reject) => {
-    const el = document.createElement('script');
-    el.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&language=ja&region=JP`;
-    el.async = true;
-    el.onload = () => resolve();
-    el.onerror = () => reject(new Error('地図を読み込めませんでした'));
-    document.head.appendChild(el);
-  });
-  return loading;
+/** 同じ施設のほかの入口（見るだけ） */
+export interface OtherEntry {
+  code: string;
+  name: string;
+  lat: number;
+  lng: number;
 }
+
+/** ほかの入口のピンの色。この入口の N・P と取り違えない灰色 */
+const OTHER_GREY = '#7a858c';
 
 export function CoordPicker({
   nav,
   dropoff,
+  others = [],
   onChange,
   labels,
 }: {
   nav: Coord;
   dropoff: Coord;
+  /** 同じ施設のほかの入口のナビ地点 */
+  others?: OtherEntry[];
   onChange: (which: Point, value: Coord) => void;
-  labels: { nav: string; dropoff: string; hint: string; missingKey: string; failed: string };
+  labels: {
+    nav: string;
+    dropoff: string;
+    hint: string;
+    missingKey: string;
+    failed: string;
+    others: string;
+  };
 }) {
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
   const markers = useRef<Partial<Record<Point, google.maps.Marker>>>({});
   const [error, setError] = useState<string | null>(null);
+  /**
+   * 地図ができたか。
+   *
+   * 地図の読み込みは後から終わる。これを持たないと、印を描く効果が
+   * 地図のできる前に一度だけ走って終わり、開いた時点の点が出ない。
+   */
+  const [ready, setReady] = useState(false);
   /** いまどちらの点を置こうとしているか。地図を押したときの行き先。 */
   const [target, setTarget] = useState<Point>('nav');
 
@@ -112,7 +124,9 @@ export function CoordPicker({
       .then(() => {
         if (!alive || !box.current || map.current) return;
 
-        const center = toNumber(nav) ?? toNumber(dropoff) ?? FALLBACK;
+        // 新しい入口は、ほかの入口のそばから始める（東京駅から探させない）
+        const near = others[0] ? { lat: others[0].lat, lng: others[0].lng } : null;
+        const center = toNumber(nav) ?? toNumber(dropoff) ?? near ?? FALLBACK;
         map.current = new google.maps.Map(box.current, {
           center,
           zoom: ZOOM,
@@ -128,6 +142,7 @@ export function CoordPicker({
           if (!ev.latLng) return;
           place(targetRef.current, ev.latLng.lat(), ev.latLng.lng());
         });
+        setReady(true);
       })
       .catch(() => {
         if (alive) setError(labels.failed);
@@ -144,9 +159,42 @@ export function CoordPicker({
   const targetRef = useRef<Point>(target);
   targetRef.current = target;
 
+  // --- ほかの入口を灰色で出す ----------------------------------------------
+  const othersKey = others.map((o) => `${o.code}:${o.lat}:${o.lng}`).join('|');
+  useEffect(() => {
+    if (!ready || !map.current) return;
+    const drawn = others.map(
+      (o) =>
+        new google.maps.Marker({
+          map: map.current,
+          position: { lat: o.lat, lng: o.lng },
+          title: `${o.code} ${o.name}`,
+          // 押しても下の地図へ抜ける（点を置く操作をじゃましない）
+          clickable: false,
+          zIndex: 0,
+          label: { text: o.code, color: '#ffffff', fontWeight: '800', fontSize: '12px' },
+          icon: {
+            path: PIN_PATH,
+            fillColor: OTHER_GREY,
+            fillOpacity: 0.9,
+            strokeColor: '#ffffff',
+            strokeWeight: 1.5,
+            scale: 1.1,
+            anchor: new google.maps.Point(12, 33),
+            labelOrigin: new google.maps.Point(12, 12),
+          },
+        }),
+    );
+    return () => {
+      for (const m of drawn) m.setMap(null);
+    };
+    // 並びが変わったときだけ描き直す
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, othersKey]);
+
   // --- 入力欄の値を、地図の印へ反映する -------------------------------------
   useEffect(() => {
-    if (!map.current) return;
+    if (!ready || !map.current) return;
 
     for (const [which, coord] of [
       ['nav', nav],
@@ -191,7 +239,7 @@ export function CoordPicker({
       });
       markers.current[which] = marker;
     }
-  }, [nav, dropoff, labels.nav, labels.dropoff, place]);
+  }, [ready, nav, dropoff, labels.nav, labels.dropoff, place]);
 
   if (error) {
     return (
@@ -228,8 +276,18 @@ export function CoordPicker({
 
       <div
         ref={box}
+        data-testid="coord-picker"
         className="h-80 w-full overflow-hidden rounded-lg border border-border-strong bg-surface-2"
       />
+      {others.length > 0 && (
+        <p className="flex items-center gap-1.5 text-xs text-text-faint">
+          <span
+            className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: OTHER_GREY }}
+          />
+          {labels.others.replace('{codes}', others.map((o) => o.code).join('・'))}
+        </p>
+      )}
     </div>
   );
 }

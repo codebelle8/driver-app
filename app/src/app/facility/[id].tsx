@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { IconButton } from '@/components/icon-button';
 import { PhotoViewer } from '@/components/photo-viewer';
-import { FacilityMap } from '@/components/facility-map';
+import { FacilityMap, type MapPoint } from '@/components/facility-map';
 import { describeSchedule, splitByActive } from '@/lib/cautions';
 import { fetchFacilityDetail } from '@/lib/facilities';
 import { useLayout } from '@/lib/layout';
@@ -109,6 +109,15 @@ export default function FacilityScreen() {
   const [pinned, setPinned] = useState(false);
   /** 広い画面で地図を置く枠の実寸 */
   const [mapBox, setMapBox] = useState({ width: 0, height: 0 });
+  /**
+   * 選んでいる入口（ご指摘 2026-09-29）。地図のピンと下のカードで選び、
+   * 「経路」の行き先になる。未選択なら、座標のある先頭の入口。
+   */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  /* ピンを押したとき、その入口のカードまで送るための控え（広い画面） */
+  const scroller = useRef<ScrollView>(null);
+  const bodyY = useRef(0);
+  const cardY = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let alive = true;
@@ -242,8 +251,45 @@ export default function FacilityScreen() {
   const mapWidth = isSplit ? mapBox.width : winWidth - SPACE.lg * 2;
   const mapHeight = isSplit ? mapBox.height : MAP_HEIGHT;
 
-  const main = entryPoints[0];
-  const hasNav = main && main.nav_lat !== null && main.nav_lng !== null;
+  /*
+    **入口ごとにピンを立てる**（ご指摘 2026-09-29）。以前は先頭の入口（A）
+    だけを地図に渡しており、進入路が2つある施設で1つしか無いように見えた。
+    「経路」も常に A へ向かっていた（B から入りたい方が A へ案内される）。
+  */
+  const located = entryPoints.filter((ep) => ep.nav_lat !== null && ep.nav_lng !== null);
+  const points: MapPoint[] = located.map((ep) => ({
+    id: ep.id,
+    code: ep.code,
+    lat: ep.nav_lat!,
+    lng: ep.nav_lng!,
+    label: t.entryKind[ep.kind],
+  }));
+  const main = located.find((ep) => ep.id === selectedId) ?? located[0] ?? entryPoints[0];
+  const hasNav = Boolean(main && main.nav_lat !== null && main.nav_lng !== null);
+  /** 入口を選び分ける意味があるか（座標のある入口が2つ以上） */
+  const many = located.length > 1;
+  const mapCenter = { lat: facility.lat, lng: facility.lng };
+
+  /** カードを押した。地図がそのピンへ寄る。狭い画面では地図が見えるところまで戻す */
+  function pickFromCard(id: string) {
+    setSelectedId(id);
+    if (!isSplit) scroller.current?.scrollTo({ y: 0, animated: true });
+  }
+
+  /**
+   * ピンを押した。その入口を選び、カードが分かるようにする。
+   * 広い画面では、地図を右に残したまま、左の列をそのカードまで送る。
+   * 狭い画面では送らない（地図が画面の外へ出てしまう）。見出しと「経路」の
+   * 札に、選んだ入口の記号が出る。
+   */
+  function pickFromPin(id: string) {
+    setSelectedId(id);
+    setSection('summary');
+    const y = cardY.current[id];
+    if (isSplit && y !== undefined) {
+      scroller.current?.scrollTo({ y: Math.max(0, bodyY.current + y - SPACE.md), animated: true });
+    }
+  }
 
   /*
     留める／外すを切り替える。
@@ -322,6 +368,7 @@ export default function FacilityScreen() {
       */}
       <View style={isSplit ? styles.split : styles.splitOff}>
       <ScrollView
+        ref={scroller}
         style={isSplit ? styles.splitText : undefined}
         contentContainerStyle={styles.page}
         showsVerticalScrollIndicator={false}
@@ -339,9 +386,10 @@ export default function FacilityScreen() {
         {!isSplit && (
           <View style={styles.map}>
             <FacilityMap
-              lat={main?.nav_lat ?? facility.lat}
-              lng={main?.nav_lng ?? facility.lng}
-              label={main ? t.entryKind[main.kind] : undefined}
+              points={points}
+              center={mapCenter}
+              selectedId={main?.id ?? null}
+              onSelect={pickFromPin}
               width={mapWidth}
               height={mapHeight}
             />
@@ -356,7 +404,10 @@ export default function FacilityScreen() {
           {main && (
             <View style={styles.kindRow}>
               <Ionicons name="car-outline" size={13} color={c.textMuted} />
-              <Text style={styles.kindText}>{t.entryKind[main.kind]}</Text>
+              {/* 入口が2つ以上なら、どの入口へ向かうのかを記号と名前で出す */}
+              <Text style={styles.kindText}>
+                {many ? `${main.code}  ${entryPointName(main, locale)}` : t.entryKind[main.kind]}
+              </Text>
             </View>
           )}
           <Text style={styles.address}>{facilityAddress(facility, locale)}</Text>
@@ -376,7 +427,9 @@ export default function FacilityScreen() {
               accessibilityRole="button"
             >
               <Ionicons name="navigate" size={15} color={c.accentText} />
-              <Text style={styles.actionMainText}>{t.facility.route}</Text>
+              <Text style={styles.actionMainText}>
+                {many && main ? fill(t.facility.routeTo, { code: main.code }) : t.facility.route}
+              </Text>
             </Pressable>
             {/*
               上の心印と同じ働き。押す場所が2つあるのは、
@@ -412,6 +465,8 @@ export default function FacilityScreen() {
               <Text style={styles.actionText}>{t.facility.share}</Text>
             </Pressable>
           </View>
+          {/* 入口が2つ以上あるとき。経路の行き先を選べることを知らせる */}
+          {many && <Text style={styles.pickHint}>{t.facility.pickEntry}</Text>}
         </View>
 
 
@@ -419,9 +474,23 @@ export default function FacilityScreen() {
           <SectionTabs section={section} onChange={setSection} styles={styles} c={c} wide />
         )}
 
-        <View style={styles.body}>
+        <View
+          style={styles.body}
+          onLayout={(e) => {
+            bodyY.current = e.nativeEvent.layout.y;
+          }}
+        >
           {section === 'summary' && (
-            <SummaryBlock entryPoints={entryPoints} styles={styles} c={c} />
+            <SummaryBlock
+              entryPoints={entryPoints}
+              styles={styles}
+              c={c}
+              selectedId={many ? (main?.id ?? null) : null}
+              onPick={many ? pickFromCard : undefined}
+              onCardLayout={(id, y) => {
+                cardY.current[id] = y;
+              }}
+            />
           )}
           {section === 'photos' && (
             <PhotoGrid
@@ -454,9 +523,10 @@ export default function FacilityScreen() {
           }}
         >
           <FacilityMap
-            lat={main?.nav_lat ?? facility.lat}
-            lng={main?.nav_lng ?? facility.lng}
-            label={main ? t.entryKind[main.kind] : undefined}
+            points={points}
+            center={mapCenter}
+            selectedId={main?.id ?? null}
+            onSelect={pickFromPin}
             width={mapWidth}
             height={mapHeight}
           />
@@ -540,10 +610,19 @@ function SummaryBlock({
   entryPoints,
   styles,
   c,
+  selectedId,
+  onPick,
+  onCardLayout,
 }: {
   entryPoints: EntryPoint[];
   styles: ReturnType<typeof makeStyles>;
   c: Palette;
+  /** 選んでいる入口（入口が2つ以上のときだけ） */
+  selectedId: string | null;
+  /** カードを押したとき。入口が1つなら渡さない（選ぶものが無い） */
+  onPick?: (id: string) => void;
+  /** カードの位置（ピンを押したとき、そこまで送るため） */
+  onCardLayout?: (id: string, y: number) => void;
 }) {
   const t = useT();
   const { locale } = useLocale();
@@ -562,8 +641,29 @@ function SummaryBlock({
           ep.is_24h !== null ? (ep.is_24h ? t.facility.open24h : t.facility.not24h) : null,
         ].filter(Boolean) as string[];
 
+        const on = ep.id === selectedId;
+        const located = ep.nav_lat !== null && ep.nav_lng !== null;
         return (
-          <View key={ep.id} style={styles.card}>
+          <Pressable
+            key={ep.id}
+            onLayout={(e) => onCardLayout?.(ep.id, e.nativeEvent.layout.y)}
+            // 座標の無い入口は地図に無いので、押しても選ばない
+            onPress={onPick && located ? () => onPick(ep.id) : undefined}
+            disabled={!onPick || !located}
+            style={({ hovered }) => [
+              styles.card,
+              on && styles.cardOn,
+              onPick && located && hovered && !on && styles.cardHover,
+            ]}
+            accessibilityRole={onPick && located ? 'button' : undefined}
+            accessibilityState={onPick && located ? { selected: on } : undefined}
+            aria-selected={onPick && located ? on : undefined}
+            accessibilityLabel={
+              onPick && located
+                ? fill(t.facility.showOnMap, { code: ep.code, name: entryPointName(ep, locale) })
+                : undefined
+            }
+          >
             <View style={styles.cardHead}>
               <View style={styles.cardBadge}>
                 <Text style={styles.cardBadgeText}>{ep.code}</Text>
@@ -612,7 +712,7 @@ function SummaryBlock({
                 />
               </View>
             )}
-          </View>
+          </Pressable>
         );
       })}
     </View>
@@ -868,6 +968,17 @@ function makeStyles(c: Palette) {
       borderWidth: 1,
       borderColor: c.border,
     },
+    /*
+      選んでいる入口。枠の色と地の色で示す。枠の太さは変えない
+      （太さを変えると、選ぶたびに中身が1pxずれる）。影で厚みを足す。
+    */
+    cardOn: {
+      borderColor: c.accent,
+      backgroundColor: c.accentSoft,
+      boxShadow: `0 0 0 1px ${c.accent}`,
+    },
+    cardHover: { borderColor: c.borderStrong },
+    pickHint: { fontSize: TEXT.small, color: c.textFaint, marginTop: SPACE.sm, lineHeight: 17 },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
     cardBadge: {
       width: 26,

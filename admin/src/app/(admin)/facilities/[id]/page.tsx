@@ -13,6 +13,7 @@ import {
 } from '@/app/actions/facilities';
 import { CautionEditor } from '@/components/caution-editor';
 import { AddEntryPointButton, EntryPointEditor } from '@/components/entry-point-editor';
+import { EntryPointsMap, ShowOnMapButton } from '@/components/entry-points-map';
 import { FacilityForm } from '@/components/facility-form';
 import { PhotoManager } from '@/components/photo-manager';
 import { Alert, Badge, Button, Card, PageHeader, StatusBadge } from '@/components/ui';
@@ -61,6 +62,20 @@ export default async function FacilityDetailPage({
   ]);
 
   const epIds = (entryPoints ?? []).map((ep) => ep.id);
+
+  /*
+    ナビ地点のある入口。入口の位置の地図と、各入口の座標の地図
+    （ほかの入口を灰色で出す）に使う。
+  */
+  const located = (entryPoints ?? []).flatMap((ep) =>
+    ep.nav_lat !== null && ep.nav_lng !== null
+      ? [{ id: ep.id, code: ep.code, name: ep.name, lat: ep.nav_lat, lng: ep.nav_lng, active: ep.is_active }]
+      : [],
+  );
+  /* 入口が1つなら、その入口の座標の地図で足りる。2つ以上で一覧の地図を出す */
+  const showOverview = located.length >= 2;
+  const othersOf = (id?: string) =>
+    located.filter((p) => p.id !== id).map(({ code, name, lat, lng }) => ({ code, name, lat, lng }));
 
   const [{ data: photos }, { data: cautions }] = await Promise.all([
     epIds.length
@@ -181,10 +196,32 @@ export default async function FacilityDetailPage({
             <AddEntryPointButton
               facilityId={facility.id}
               suggestedCode={nextCode((entryPoints ?? []).map((ep) => ep.code))}
+              others={othersOf()}
               t={t}
             />
           )}
         </div>
+
+        {/*
+          入口の位置の一覧（ご指摘 2026-09-29）。
+          進入路が2つある施設で、A と B の位置を一度に確かめられるように。
+        */}
+        {showOverview && (
+          <Card>
+            <EntryPointsMap
+              points={located.map(({ code, name, lat, lng, active }) => ({ code, name, lat, lng, active }))}
+              labels={{
+                title: t.entryPoint.overviewTitle,
+                hint:
+                  t.entryPoint.overviewHint +
+                  (located.some((p) => !p.active) ? t.entryPoint.overviewInactive : ''),
+                missingKey: t.entryPoint.mapMissingKey,
+                failed: t.entryPoint.mapFailed,
+                inactive: t.entryPoint.inactive,
+              }}
+            />
+          </Card>
+        )}
 
         {!entryPoints?.length ? (
           <Card>
@@ -205,7 +242,9 @@ export default async function FacilityDetailPage({
               const epCautions = (cautions ?? []).filter((c) => c.entry_point_id === ep.id);
 
               return (
-                <Card key={ep.id} className="space-y-6">
+                /* 入口の位置の地図でピンを押すと、ここへ移る */
+                <div key={ep.id} id={`ep-${ep.code}`} className="ep-anchor">
+                <Card className="space-y-6">
                   <div className="flex flex-wrap items-center gap-3 border-b border-border pb-4">
                     <span className="flex size-9 items-center justify-center rounded-lg bg-accent text-lg font-bold text-accent-text">
                       {ep.code}
@@ -221,6 +260,9 @@ export default async function FacilityDetailPage({
                     <Badge tone="accent">
                       {t.entryPoint.photos} {epPhotos.length} {t.common.sheets}
                     </Badge>
+                    {showOverview && ep.nav_lat !== null && (
+                      <ShowOnMapButton code={ep.code} label={t.entryPoint.showOnMap} />
+                    )}
                     {editable && (
                       <BulkCheck id={ep.id} label={ep.name}>
                         <form action={deleteEntryPoint}>
@@ -243,7 +285,12 @@ export default async function FacilityDetailPage({
                   </div>
 
                   {editable ? (
-                    <EntryPointEditor facilityId={facility.id} entryPoint={ep} t={t} />
+                    <EntryPointEditor
+                      facilityId={facility.id}
+                      entryPoint={ep}
+                      others={othersOf(ep.id)}
+                      t={t}
+                    />
                   ) : (
                     // 編集はできなくても、現地で参照する情報としては読めるべき
                     <dl className="space-y-2 text-sm">
@@ -309,6 +356,7 @@ export default async function FacilityDetailPage({
                     />
                   </div>
                 </Card>
+                </div>
               );
             })}
           </div>
