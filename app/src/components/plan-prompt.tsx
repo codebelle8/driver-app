@@ -7,7 +7,7 @@ import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatSpan } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
-import { PLANS, yen, type PlanId } from '@/lib/plans';
+import { offeredPlan, PLANS, yen, type PlanId } from '@/lib/plans';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -84,7 +84,11 @@ export function PlanPrompt({
   */
   if (account.status === 'active' && !isPage) return null;
 
-  const chosen = account.plan;
+  /*
+    いま申し込める刻みだけを「ご希望」として扱う。以前の刻み（3か月・6か月）を
+    選んでいた方には、未選択と同じく選んでいただく案内を出す。
+  */
+  const chosen = offeredPlan(account.plan)?.id ?? null;
 
   async function onSubmit() {
     if (!account || !picked || busy) return;

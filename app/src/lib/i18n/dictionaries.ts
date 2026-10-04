@@ -420,9 +420,10 @@ const ja = {
     */
     names: {
       monthly: '1か月',
+      /* 3か月・6か月は取り扱いを終えた（2026-10-04）。以前に選んだ方の表示にだけ使う */
       quarterly: '3か月',
       half: '6か月',
-      yearly: '1年',
+      yearly: '12か月（一括払い）',
     },
     price: '{yen} 円',
     choose: 'この内容で申し込む',
@@ -440,6 +441,7 @@ const ja = {
     until: '{date} まで',
     chosenAt: '{date} にお申し込み',
     notChosen: 'まだお選びいただいていません',
+    retired: 'この料金は取り扱いを終了しました。お手数ですが、下からお選び直しください。',
     chosenLabel: 'ご希望の料金',
     choiceTitle: 'ご希望の料金をお選びください',
     afterTrial:
@@ -966,7 +968,7 @@ const en: Dictionary = {
       monthly: '1 month',
       quarterly: '3 months',
       half: '6 months',
-      yearly: '1 year',
+      yearly: '12 months (paid upfront)',
     },
     price: '¥{yen}',
     choose: 'Choose this plan',
@@ -983,6 +985,7 @@ const en: Dictionary = {
     until: 'until {date}',
     chosenAt: 'Chosen on {date}',
     notChosen: 'No plan chosen yet',
+    retired: 'This plan is no longer offered. Please choose again below.',
     chosenLabel: 'Chosen plan',
     choiceTitle: 'Choose a plan',
     afterTrial:

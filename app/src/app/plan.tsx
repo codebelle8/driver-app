@@ -19,7 +19,7 @@ import {
   reportPayment,
   type Transfer,
 } from '@/lib/payment';
-import { planOf, yen } from '@/lib/plans';
+import { offeredPlan, yen } from '@/lib/plans';
 import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -132,6 +132,11 @@ export default function PlanScreen() {
   const end = endIso ? new Date(endIso) : null;
   const over = isExpired(account);
   const paid = account.status === 'active';
+  /*
+    いま申し込める刻み。以前の刻み（3か月・6か月）を選んでいた方は null。
+    その方には振込先を出さず、選び直していただく。
+  */
+  const current = offeredPlan(account.plan);
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -181,6 +186,9 @@ export default function PlanScreen() {
                   {fill(t.plan.chosenAt, { date: formatDate(t, new Date(account.planChosenAt)) })}
                 </Text>
               )}
+              {!!account.plan && !current && (
+                <Text style={[styles.cardNote, styles.warn]}>{t.plan.retired}</Text>
+              )}
             </View>
           </View>
 
@@ -197,7 +205,7 @@ export default function PlanScreen() {
             お振込先。ご希望の料金をお選びいただいてから出す。
             選ぶ前に出しても、いくら振り込めばよいのかが決まらない。
           */}
-          {!!account.plan &&
+          {!!current &&
             (isReady(transfer) ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t.plan.transferTitle}</Text>
@@ -207,10 +215,10 @@ export default function PlanScreen() {
                   <View style={styles.cardRow}>
                     <Text style={styles.cardLabel}>{t.plan.transferAmount}</Text>
                     <Text style={styles.cardValue}>
-                      {fill(t.plan.price, { yen: yen(planOf(account.plan).yen) })}
+                      {fill(t.plan.price, { yen: yen(current.yen) })}
                     </Text>
                     {/* いくらぶんの期間か。金額だけでは何か月ぶんか分からない */}
-                    <Text style={styles.cardNote}>{t.plan.names[account.plan]}</Text>
+                    <Text style={styles.cardNote}>{t.plan.names[current.id]}</Text>
                   </View>
 
                   <View style={styles.cardRow}>

@@ -173,8 +173,8 @@ try {
     shown.includes(now.account_holder_kana ?? now.account_holder ?? ''),
     String(now.account_holder_kana ?? now.account_holder),
   );
-  /* 料金の刻みは4つになった（2026-09-14）。金額と期間を別に出す。 */
-  check('お振込金額が出る', shown.includes('4,000 円'), shown.slice(0, 120));
+  /* 1か月は 600円（2026-10-04）。金額と期間を別に出す。 */
+  check('お振込金額が出る', shown.includes('600 円'), shown.slice(0, 120));
   check('何か月ぶんかが出る', shown.includes('1か月'), shown.slice(0, 120));
   check(
     'どの銀行からでも振り込める旨がある',

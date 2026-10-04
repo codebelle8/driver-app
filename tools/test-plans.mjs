@@ -5,10 +5,12 @@
  *   node tools/test-plans.mjs https://kurumayose-navi.vercel.app
  *
  * **何を見るか**
- *   1. 4つの刻みが、短い順に並んでいる
+ *   1. 2つの刻み（1か月・12か月）が、短い順に並んでいる
  *   2. それぞれの金額が合っている
  *   3. 選ぶと、その刻みが控えに残る
  *   4. 選んだ刻みが、お支払いの画面に出る
+ *   5. 取り扱いを終えた刻み（6か月）を選んでいた方には、選び直しを案内し、
+ *      振込先は出さない（別の金額を振り込ませない）
  *
  * **金額は、こちらでも別に持って突き合わせる。**
  *   画面が出した文字を、画面の元にした表と比べても意味がない。
@@ -24,17 +26,14 @@ const NL = String.fromCharCode(10);
 
 const conn = connect();
 
-/** ご指示の金額（2026-09-14）。画面の実装とは別に持つ。 */
+/** 発注元のご希望の金額（2026-10-04）。画面の実装とは別に持つ。 */
 const WANT = [
-  { id: 'monthly', name: '1か月', yen: '4,000' },
-  { id: 'quarterly', name: '3か月', yen: '11,000' },
-  { id: 'half', name: '6か月', yen: '21,000' },
-  { id: 'yearly', name: '1年', yen: '40,000' },
+  { id: 'monthly', name: '1か月', yen: '600' },
+  { id: 'yearly', name: '12か月（一括払い）', yen: '5,000' },
 ];
 
-/** 選んでみる刻み。**今回増やしたほう**を選ぶ。前からある2つでは、 */
-/** 制約を張り替えていなくても通ってしまい、確かめたことにならない。 */
-const PICK = { id: 'quarterly', name: '3か月' };
+/** 選んでみる刻み。**名前を変えたほう**（「1年」→「12か月（一括払い）」）を選ぶ。 */
+const PICK = { id: 'yearly', name: '12か月（一括払い）' };
 
 let pass = 0;
 const failures = [];
@@ -81,10 +80,10 @@ try {
     );
   });
 
-  check('4つの刻みが出ている', Array.isArray(choices) && choices.length === 4,
+  check('2つの刻みが出ている（3か月・6か月は出さない）', Array.isArray(choices) && choices.length === 2,
     JSON.stringify(choices));
 
-  if (Array.isArray(choices) && choices.length === 4) {
+  if (Array.isArray(choices) && choices.length === 2) {
     WANT.forEach((w, i) => {
       const got = choices[i] ?? '';
       check(
@@ -136,6 +135,39 @@ try {
   }, 'ご希望の料金');
   check(`「ご希望の料金」の欄に「${PICK.name}」と出る`,
     typeof shown === 'string' && shown.includes(PICK.name), String(shown));
+
+  /*
+    取り扱いを終えた刻みを選んでいた方。
+
+    以前は、見つからない刻みを先頭（1か月）に読み替えていた。6か月を
+    選んでいた方に「600 円」の振込先が出ると、選んでいない金額を
+    振り込ませることになる。
+  */
+  await fetch(`${conn.url}/rest/v1/driver_profiles?user_id=eq.${member.userId}`, {
+    method: 'PATCH',
+    headers: { ...conn.svc, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ plan: 'half' }),
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(4000);
+  await skipIntro(page);
+  await page.waitForTimeout(600);
+  const legacy = await page.evaluate((label) => {
+    const hit = [...document.querySelectorAll('div')].find(
+      (el) => el.childElementCount >= 2 && el.children[0]?.textContent?.trim() === label,
+    );
+    return {
+      row: hit ? hit.innerText.replace(/\s+/g, ' ').trim() : null,
+      body: document.body.innerText,
+    };
+  }, 'ご希望の料金');
+  check('以前の刻み（6か月）を選んでいた方には、その名前が出る',
+    typeof legacy.row === 'string' && legacy.row.includes('6か月'), String(legacy.row));
+  check('あわせて、選び直しを案内する',
+    typeof legacy.row === 'string' && legacy.row.includes('取り扱いを終了しました'), String(legacy.row));
+  check('振込先（金額）は出さない',
+    !legacy.body.includes('お振込金額') && !legacy.body.includes('お振込先はただいま準備中'),
+    legacy.body.slice(0, 200));
 
   await ctx.close();
 } finally {
