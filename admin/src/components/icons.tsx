@@ -187,6 +187,17 @@ export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** 受け箱 — 会員からの情報提供 */
+export function InboxIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 13l2.5-7.5A2 2 0 0 1 7.4 4h9.2a2 2 0 0 1 1.9 1.5L21 13" />
+      <path d="M3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5" />
+      <path d="M3 13h5l1.5 2.5h5L16 13h5" />
+    </svg>
+  );
+}
+
 /** 書面 — 規約類の掲載先 */
 export function DocumentIcon(props: SVGProps<SVGSVGElement>) {
   return (

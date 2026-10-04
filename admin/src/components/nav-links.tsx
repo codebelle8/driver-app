@@ -12,6 +12,7 @@ import {
   CardIcon,
   MegaphoneIcon,
   DocumentIcon,
+  InboxIcon,
 } from '@/components/icons';
 import { useCloseSideNav } from '@/components/side-nav';
 
@@ -33,11 +34,14 @@ import { useCloseSideNav } from '@/components/side-nav';
 export function NavLinks({
   labels,
   isAdmin = false,
+  isManager = false,
+  pendingSubmissions = 0,
 }: {
   labels: {
     dashboard: string;
     facilities: string;
     categories: string;
+    submissions: string;
     members: string;
     push: string;
     accounts: string;
@@ -46,6 +50,10 @@ export function NavLinks({
   };
   /** アカウント管理と操作履歴は管理者しか開けない。開けない項目は出さない。 */
   isAdmin?: boolean;
+  /** 情報提供の審査は、管理者と編集者だけ（調査員は審査しない） */
+  isManager?: boolean;
+  /** 審査待ちの情報提供の数。行の右に出す */
+  pendingSubmissions?: number;
 }) {
   const pathname = usePathname();
   const close = useCloseSideNav();
@@ -54,6 +62,13 @@ export function NavLinks({
     { href: '/', label: labels.dashboard, Icon: GaugeIcon },
     { href: '/facilities', label: labels.facilities, Icon: BuildingIcon },
     { href: '/categories', label: labels.categories, Icon: TagIcon },
+    /*
+      情報提供（2026-10-05）。審査待ちの数を添える。届いたことに
+      気づけないと、審査が溜まり、採用の件数（翌月無料の元）も遅れる。
+    */
+    ...(isManager
+      ? [{ href: '/submissions', label: labels.submissions, Icon: InboxIcon, count: pendingSubmissions }]
+      : []),
     ...(isAdmin
       ? [
           { href: '/members', label: labels.members, Icon: CardIcon },
@@ -78,7 +93,9 @@ export function NavLinks({
 
   return (
     <nav className="flex flex-col gap-0.5">
-      {items.map(({ href, label, Icon }) => {
+      {items.map((item) => {
+        const { href, label, Icon } = item;
+        const count = ('count' in item ? item.count : 0) ?? 0;
         const active = isActive(href);
         return (
           <Link
@@ -105,6 +122,11 @@ export function NavLinks({
           >
             <Icon />
             <span>{label}</span>
+            {count > 0 && (
+              <span className="tabular ml-auto rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-text">
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
           </Link>
         );
       })}

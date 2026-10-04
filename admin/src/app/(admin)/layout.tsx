@@ -12,7 +12,7 @@ import { SideNavPanel, SideNavProvider, SideNavTrigger } from '@/components/side
 import { requireStaff } from '@/lib/auth';
 import { getDictionary, getLocale, getTheme } from '@/lib/i18n/server';
 import { ensurePurgeRequest, fetchOpenNotices } from '@/lib/notices';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 async function signOut() {
   'use server';
@@ -43,6 +43,22 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   if (isAdmin) {
     await ensurePurgeRequest();
     notices = await fetchOpenNotices();
+  }
+
+  /*
+    審査待ちの情報提供の数（左の柱に出す）。審査するのは管理者と編集者。
+
+    表がまだ無い（データベースを更新する前）ときは 0 として扱う。
+    数が出せないことで、画面全体を止めない。
+  */
+  const isManager = staff.profile.role === 'admin' || staff.profile.role === 'editor';
+  let pendingSubmissions = 0;
+  if (isManager) {
+    const { count, error } = await createAdminClient()
+      .from('submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (!error) pendingSubmissions = count ?? 0;
   }
 
   const roleLabel = {
@@ -173,6 +189,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 dashboard: t.nav.dashboard,
                 facilities: t.nav.facilities,
                 categories: t.nav.categories,
+                submissions: t.nav.submissions,
                 members: t.nav.members,
                 push: t.nav.push,
                 accounts: t.nav.accounts,
@@ -180,6 +197,8 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 site: t.nav.site,
               }}
               isAdmin={staff.profile.role === 'admin'}
+              isManager={isManager}
+              pendingSubmissions={pendingSubmissions}
             />
           </SideNavPanel>
 

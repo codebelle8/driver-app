@@ -25,6 +25,7 @@ const ja = {
     facilities: '施設一覧',
     categories: 'カテゴリ',
     members: '会員・お支払い',
+    submissions: '情報提供',
     push: '通知',
     accounts: 'アカウント',
     history: '操作履歴',
@@ -62,6 +63,47 @@ const ja = {
     photos: '写真',
     categories: 'カテゴリ',
     admin_profiles: 'アカウント',
+    submissions: '情報提供',
+  },
+
+  /*
+    情報提供（2026-10-05）。会員がアプリから送った施設の情報を審査する。
+
+    件数に数えるのは「採用」だけ（毎月の上位の方を翌月無料にする元）。
+    採用しても施設の情報は変わらない。反映はこれまでどおり施設の画面で行う。
+  */
+  submissions: {
+    title: '情報提供',
+    description:
+      '会員がアプリから送った情報です。確かめて「採用」か「不採用」を決めてください。採用しても施設の情報は自動では変わりません。反映は施設の画面で行います。',
+    tabPending: '審査待ち',
+    tabAccepted: '採用',
+    tabRejected: '不採用',
+    empty: 'この区分の情報はありません',
+    emptyPending: '審査待ちの情報はありません。',
+    kinds: {
+      wrong_place: '入口の位置が違う',
+      new_entry: '新しい入口がある',
+      photo: '写真',
+      caution: '注意事項',
+      other: 'その他',
+    },
+    facilityGone: '（削除された施設）',
+    anyEntry: '入口の指定なし',
+    member: '会員 {no}',
+    memberGone: '（退会した会員）',
+    sentAt: '{date} に受付',
+    reviewedAt: '{date} に審査',
+    location: '送ったときの位置を地図で見る',
+    noLocation: '位置は添えられていません',
+    photoAlt: '送られた写真 {n}',
+    note: '覚え書き（会員には見えません）',
+    notePlaceholder: '例：現地で確認済み。施設の画面に反映した。',
+    accept: '採用',
+    reject: '不採用',
+    reopen: '審査待ちに戻す',
+    saveNote: '覚え書きを保存',
+    openFacility: '施設の画面を開く',
   },
 
   /*
@@ -640,6 +682,7 @@ const en: Dictionary = {
     facilities: 'Facilities',
     categories: 'Categories',
     members: 'Members',
+    submissions: 'Submissions',
     push: 'Notifications',
     accounts: 'Accounts',
     history: 'History',
@@ -678,6 +721,41 @@ const en: Dictionary = {
     photos: 'Photo',
     categories: 'Category',
     admin_profiles: 'Account',
+    submissions: 'Submission',
+  },
+
+  submissions: {
+    title: 'Submissions',
+    description:
+      'Information sent by members from the app. Check it and mark it accepted or rejected. Accepting does not change the facility automatically; update the facility page yourself.',
+    tabPending: 'Pending',
+    tabAccepted: 'Accepted',
+    tabRejected: 'Rejected',
+    empty: 'Nothing here',
+    emptyPending: 'No submissions are waiting for review.',
+    kinds: {
+      wrong_place: 'Entrance is elsewhere',
+      new_entry: 'New entrance',
+      photo: 'Photo',
+      caution: 'Caution',
+      other: 'Other',
+    },
+    facilityGone: '(deleted facility)',
+    anyEntry: 'No entrance specified',
+    member: 'Member {no}',
+    memberGone: '(member has left)',
+    sentAt: 'Received {date}',
+    reviewedAt: 'Reviewed {date}',
+    location: 'Open the location on a map',
+    noLocation: 'No location attached',
+    photoAlt: 'Submitted photo {n}',
+    note: 'Note (not shown to the member)',
+    notePlaceholder: 'e.g. Checked on site and updated the facility page.',
+    accept: 'Accept',
+    reject: 'Reject',
+    reopen: 'Back to pending',
+    saveNote: 'Save note',
+    openFacility: 'Open the facility page',
   },
 
   push: {

@@ -52,7 +52,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "いまいる場所の地名を画面に表示するために使います。位置情報を端末の外へ送ることはありません。",
+          "locationWhenInUsePermission": "いまいる場所の地名を画面に表示するために使います。また、情報をお送りいただく際に「いまいる場所を添える」を選ばれた場合に限り、その位置を添えて送ります。",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }

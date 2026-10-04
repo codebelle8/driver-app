@@ -25,6 +25,7 @@ import { Platform } from 'react-native';
 import { deviceId } from './device';
 import { forgetFavoritesHere } from './favorites';
 import { forgetHistoryHere } from './history';
+import { removeMySubmissionPhotos } from './submissions';
 import type { PlanId } from './plans';
 import { isAuthRetryableFetchError } from '@supabase/supabase-js';
 
@@ -407,6 +408,8 @@ export async function deleteMyAccount(userId: string): Promise<Result> {
   } catch {
     // 置き場所を片付けられなくても、アカウントは消す。
   }
+  /* 情報提供の写真も。行のほうは、アカウントを消すとデータベースが消す */
+  await removeMySubmissionPhotos(userId);
 
   const { error } = await supabase.rpc('delete_my_account');
   if (error) return bad(toProblem(error));

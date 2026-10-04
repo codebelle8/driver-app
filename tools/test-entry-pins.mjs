@@ -137,10 +137,34 @@ try {
       JSON.stringify({ before: bBefore && Math.round(dist(bBefore)), after: bAfter && Math.round(dist(bAfter)) }),
     );
 
-    /* ピン A を押す */
+    /*
+      ピン A を押す。
+
+      **地図の中に見えているピンだけを押す。** B へ寄せたあとは、A が
+      地図の外へ出ていることがある（広い画面で 2026-10-05 に確認）。
+      外のまま位置を押すと、左の列（カードや札）を押してしまい、
+      ピンを押したことにならない。以前はそこに A のカードがあったため、
+      カードを押して偶然合格していた。
+
+      見えていなければ、人と同じく地図を動かして（A のほうへ引いて）
+      から押す。
+    */
     /* Google のピンは、押せる枠の上に絵が重なっている。人が押すのと同じく、マウスで位置を押す */
-    const at = await page.locator('[title="A 車寄せ"]').first().boundingBox();
-    if (at) await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
+    const pinA = async () => (await googlePins(page)).find((p) => p.code === 'A');
+    let a = await pinA();
+    if (a && !inside(a) && box) {
+      /* 地図の中心から A の向きへ、はみ出したぶんだけ引く */
+      const dx = Math.max(box.left + 80 - a.x, Math.min(0, box.right - 80 - a.x));
+      const dy = Math.max(box.top + 80 - a.y, Math.min(0, box.bottom - 80 - a.y));
+      await page.mouse.move(center.x, center.y);
+      await page.mouse.down();
+      await page.mouse.move(center.x + dx, center.y + dy, { steps: 12 });
+      await page.mouse.up();
+      await page.waitForTimeout(1200);
+      a = await pinA();
+    }
+    check('ピン A が地図の中に見えている（押せる）', !!a && inside(a), JSON.stringify({ box, a }));
+    if (a && inside(a)) await page.mouse.click(a.x, a.y);
     await page.waitForTimeout(1200);
     check('ピン A を押すと A を選ぶ（経路の札が「経路（A）」）', (await routeCode(page)) === 'A');
     const cardA = await page.getByRole('button', { name: /^A「/ }).getAttribute('aria-selected');

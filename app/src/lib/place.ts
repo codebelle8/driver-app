@@ -11,7 +11,12 @@
  *   そのため、断られたら黙って諦め、案内できる範囲の表示に戻す。
  *
  * **座標の行き先**
- *   端末の外へは出さない。地名への変換は端末自身に行わせる。
+ *   地名の表示のためには、端末の外へは出さない。地名への変換は端末自身に
+ *   行わせる。
+ *
+ *   **例外は情報提供だけ**（2026-10-05）。本人が「いまいる場所を添える」を
+ *   選んだときに限り、currentCoords() の座標を送る情報に添える。
+ *   黙って呼ぶ場所を作らないこと。
  */
 import { Platform } from 'react-native';
 
@@ -170,6 +175,33 @@ async function fromGsi(lat: number, lon: number): Promise<string | null> {
   const name = data.results?.lv01Nm;
   // 国外だと「－」が返る
   return name && name !== '－' ? name : null;
+}
+
+/**
+ * いまいる位置（緯度経度）。取れなければ null。
+ *
+ * **情報提供で、本人が「いまいる場所を添える」を選んだときにだけ使う。**
+ *
+ * 地名の表示より細かく測る（High）。入口の位置の違いを知らせていただく
+ * ため、町名が分かる程度（Balanced）では足りない。測れなければ、直前の
+ * 位置で代える。
+ */
+export async function currentCoords(): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const Location = await loadLocation();
+    if (!Location) return null;
+    if (!(await ensurePermission(Location))) return null;
+
+    const fine = await withTimeout(
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+      TIMEOUT_MS,
+    );
+    const at = fine ?? (await Location.getLastKnownPositionAsync({ maxAge: FRESH_MS }));
+    if (!at) return null;
+    return { lat: at.coords.latitude, lng: at.coords.longitude };
+  } catch {
+    return null;
+  }
 }
 
 /** 応答が返らない相手を、いつまでも待たない */

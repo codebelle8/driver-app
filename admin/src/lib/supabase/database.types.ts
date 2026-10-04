@@ -219,6 +219,36 @@ export type AdminNotice = {
   decided_by: string | null;
 }
 
+/** 情報提供の種類（20261005000001_submissions.sql と同じ） */
+export type SubmissionKind = 'wrong_place' | 'new_entry' | 'photo' | 'caution' | 'other';
+
+/** 情報提供の審査の状態。件数に数えるのは accepted だけ */
+export type SubmissionStatus = 'pending' | 'accepted' | 'rejected';
+
+/**
+ * 会員からの情報提供。
+ *
+ * reviewed_at / reviewed_by は、状態を変えたときにデータベースが入れる。
+ * 画面からは書けない（採用の月をさかのぼらせないため）。
+ */
+export type Submission = {
+  id: string;
+  user_id: string;
+  facility_id: string | null;
+  entry_point_id: string | null;
+  kind: SubmissionKind;
+  body: string;
+  photo_paths: string[];
+  lat: number | null;
+  lng: number | null;
+  status: SubmissionStatus;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /** どの端末へ送るか。1つのブラウザにつき1件。 */
 export type PushSubscription = {
   id: string;
@@ -360,6 +390,14 @@ export interface Database {
       catalog_snapshots: Table<
         CatalogSnapshot,
         Insert<CatalogSnapshot, 'published_by' | 'published_at'>
+      >;
+      submissions: Table<
+        Submission,
+        Insert<
+          Submission,
+          | 'id' | 'user_id' | 'facility_id' | 'entry_point_id' | 'photo_paths' | 'lat' | 'lng'
+          | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note' | 'created_at' | 'updated_at'
+        >
       >;
       admin_notices: Table<
         AdminNotice,

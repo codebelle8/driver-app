@@ -202,6 +202,7 @@ function Shell() {
         <Stack.Screen name="notices" />
         <Stack.Screen name="account" />
         <Stack.Screen name="plan" />
+        <Stack.Screen name="submit" />
       </Stack>
       </PlanGate>
       </View>

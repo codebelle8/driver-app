@@ -317,6 +317,14 @@ export default function FacilityScreen() {
     中心へ案内されるだけで、進入方法の説明が届かない。このアプリで
     最も伝えたいものが落ちる。画面の在り処ごと渡す。
   */
+  /*
+    情報を送る（2026-10-05）。いま選んでいる入口を初めから選んでおく。
+    入口が2つある施設で、B を見ながら押した方は B の話をしたいはず。
+  */
+  function onSendInfo() {
+    router.push({ pathname: '/submit', params: { facility: id, entry: main?.id ?? '' } });
+  }
+
   async function onShare() {
     const url =
       Platform.OS === 'web' && typeof window !== 'undefined'
@@ -467,6 +475,23 @@ export default function FacilityScreen() {
           </View>
           {/* 入口が2つ以上あるとき。経路の行き先を選べることを知らせる */}
           {many && <Text style={styles.pickHint}>{t.facility.pickEntry}</Text>}
+          {/*
+            情報を送る。上の3つ（経路・保存・共有）とは役目が違うので、
+            並べずに控えめな一行で置く。走行前に急いで押す釦の隣に置くと、
+            押し間違えて別の画面へ移ってしまう。
+          */}
+          <Pressable
+            onPress={onSendInfo}
+            style={({ hovered, pressed }) => [
+              styles.sendInfo,
+              hovered && styles.sendInfoHover,
+              pressed && styles.actionPressed,
+            ]}
+            accessibilityRole="button"
+          >
+            <Ionicons name="create-outline" size={15} color={c.accent} />
+            <Text style={styles.sendInfoText}>{t.facility.sendInfo}</Text>
+          </Pressable>
         </View>
 
 
@@ -979,6 +1004,19 @@ function makeStyles(c: Palette) {
     },
     cardHover: { borderColor: c.borderStrong },
     pickHint: { fontSize: TEXT.small, color: c.textFaint, marginTop: SPACE.sm, lineHeight: 17 },
+    sendInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      alignSelf: 'flex-start',
+      gap: 6,
+      minHeight: 40,
+      marginTop: SPACE.sm,
+      paddingHorizontal: SPACE.sm,
+      marginLeft: -SPACE.sm,
+      borderRadius: RADIUS.sm,
+    },
+    sendInfoHover: { backgroundColor: c.accentSoft },
+    sendInfoText: { fontSize: TEXT.sub, fontWeight: '700', color: c.accentInk },
     cardHead: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
     cardBadge: {
       width: 26,

@@ -150,6 +150,54 @@ const ja = {
     enlarge: '{kind}を拡大する',
     nowCaution: 'いま注意',
     nowCautionWhen: 'いま注意（{when}）',
+    /* 情報提供（2026-10-05）。施設の画面から送る画面へ */
+    sendInfo: '現地と違うところがあれば、情報を送る',
+  },
+
+  /*
+    情報提供（2026-10-05）。
+
+    送っていただいたものは、管理画面で確かめてから反映する。
+    「送ればすぐ直る」と読める書き方はしない。
+  */
+  submit: {
+    title: '情報を送る',
+    lead: '現地と違うところや、新しく分かったことをお知らせください。こちらで確かめたうえで反映します。',
+    kindTitle: 'どんな情報ですか',
+    kinds: {
+      wrong_place: '入口の位置が違う',
+      new_entry: '新しい入口がある',
+      photo: '写真を送る',
+      caution: '注意事項（工事・時間帯の規制など）',
+      other: 'その他',
+    },
+    entryTitle: 'どの入口についてですか',
+    entryAny: '入口を問わない',
+    bodyTitle: '内容',
+    bodyPlaceholder: '例：正面の入口は工事中で、一本南の道から入るようになっています。',
+    bodyCount: '{n} / {max}',
+    photoTitle: '写真（{max}枚まで）',
+    photoAdd: '写真を選ぶ',
+    photoRemove: '{n}枚目の写真を外す',
+    photoUnreadable: 'この写真は読み込めませんでした',
+    photoNative: '写真は、ブラウザ（ホーム画面に追加したアプリ）から送れます。',
+    whereTitle: 'いまいる場所を添える',
+    whereNote: '現地にいるときにお使いください。入口の位置を確かめるのに役立ちます。選んだときだけ送ります。',
+    whereFinding: '位置を確かめています…',
+    whereFound: '位置を添えます',
+    whereFailed: '位置を取得できませんでした。位置情報の許可をご確認ください。',
+    send: '送る',
+    sending: '送っています…',
+    sent: '情報を受け付けました',
+    sentBody: 'ありがとうございます。こちらで確かめたうえで反映します。',
+    needBody: '内容をご記入ください',
+    error: {
+      offline: '通信できないため送れませんでした。電波の届く場所でもう一度お試しください。',
+      tooMany: '1日に送れる数（20件）を超えました。明日あらためてお送りください。',
+      blocked: 'ご利用が停止されているため、送れません。',
+      photo: '写真を送れませんでした。写真を外すか、もう一度お試しください。',
+      unknown: '送れませんでした。もう一度お試しください。',
+    },
   },
 
   /** 短い知らせ（帯） */
@@ -730,6 +778,47 @@ const en: Dictionary = {
     enlarge: 'Enlarge the {kind} photo',
     nowCaution: 'Applies now',
     nowCautionWhen: 'Applies now ({when})',
+    sendInfo: 'Something different on site? Send us information',
+  },
+
+  submit: {
+    title: 'Send information',
+    lead: 'Tell us about anything that differs on site or anything new you have found. We will check it before updating.',
+    kindTitle: 'What is it about?',
+    kinds: {
+      wrong_place: 'The entrance is in a different place',
+      new_entry: 'There is a new entrance',
+      photo: 'Send a photo',
+      caution: 'A caution (construction, time restrictions, etc.)',
+      other: 'Other',
+    },
+    entryTitle: 'Which entrance?',
+    entryAny: 'Any entrance',
+    bodyTitle: 'Details',
+    bodyPlaceholder: 'e.g. The main entrance is under construction; cars now enter from the road one block south.',
+    bodyCount: '{n} / {max}',
+    photoTitle: 'Photos (up to {max})',
+    photoAdd: 'Choose a photo',
+    photoRemove: 'Remove photo {n}',
+    photoUnreadable: 'This photo could not be read',
+    photoNative: 'Photos can be sent from the browser (the app added to your home screen).',
+    whereTitle: 'Add where I am now',
+    whereNote: 'Use this while you are on site. It helps us check the entrance location. Sent only when you turn it on.',
+    whereFinding: 'Finding your location…',
+    whereFound: 'Your location will be added',
+    whereFailed: 'Could not get your location. Please check the location permission.',
+    send: 'Send',
+    sending: 'Sending…',
+    sent: 'Information received',
+    sentBody: 'Thank you. We will check it before updating.',
+    needBody: 'Please enter the details',
+    error: {
+      offline: 'Could not send without a connection. Please try again where there is a signal.',
+      tooMany: 'You have reached the daily limit (20). Please send more tomorrow.',
+      blocked: 'Your account has been suspended, so you cannot send information.',
+      photo: 'Could not send the photos. Remove them or try again.',
+      unknown: 'Could not send. Please try again.',
+    },
   },
 
   notice: {

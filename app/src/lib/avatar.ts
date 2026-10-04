@@ -66,8 +66,13 @@ export async function pickAvatar(): Promise<Picked> {
   return { ok: true, blob };
 }
 
-/** ファイルを選ぶ枠を出す */
-function chooseFile(): Promise<File | null> {
+/**
+ * ファイルを選ぶ枠を出す。
+ *
+ * 情報提供の写真（lib/submissions.ts）でも使う。選ぶ仕組みを二つ持つと、
+ * 下の「窓へ戻ってきてからの見張り」の直しが片方にしか入らない。
+ */
+export function chooseFile(): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
