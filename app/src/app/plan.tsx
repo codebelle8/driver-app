@@ -150,6 +150,8 @@ export default function PlanScreen() {
               <Text style={[styles.cardValue, over && styles.warn]}>
                 {account.status === 'blocked'
                   ? t.account.statusBlocked
+                  : account.freeReason
+                    ? t.account.statusFree
                   : over
                     ? paid
                       ? t.plan.statusEndedPaid
@@ -192,20 +194,33 @@ export default function PlanScreen() {
             </View>
           </View>
 
-          {/* 期間が終わったあとどうなるか。伏せずに書く。 */}
-          <View style={styles.notice}>
-            <Ionicons name="information-circle-outline" size={18} color={c.accent} />
-            <Text style={styles.noticeText}>{t.plan.afterTrial}</Text>
-          </View>
+          {/*
+            無料でお使いいただいている方（調査員など）。料金の選択も振込先も
+            出さない。選べてしまうと、払う必要があるように読める。
+          */}
+          {account.freeReason ? (
+            <View style={styles.notice}>
+              <Ionicons name="checkmark-circle-outline" size={18} color={c.accent} />
+              <Text style={styles.noticeText}>{t.account.freeBody}</Text>
+            </View>
+          ) : (
+            <>
+              {/* 期間が終わったあとどうなるか。伏せずに書く。 */}
+              <View style={styles.notice}>
+                <Ionicons name="information-circle-outline" size={18} color={c.accent} />
+                <Text style={styles.noticeText}>{t.plan.afterTrial}</Text>
+              </View>
 
-          {/* 料金の選択。ここは部品に任せる（探す画面の帯と同じ中身）。 */}
-          <PlanPrompt variant="page" style={styles.choice} />
+              {/* 料金の選択。ここは部品に任せる（探す画面の帯と同じ中身）。 */}
+              <PlanPrompt variant="page" style={styles.choice} />
+            </>
+          )}
 
           {/*
             お振込先。ご希望の料金をお選びいただいてから出す。
             選ぶ前に出しても、いくら振り込めばよいのかが決まらない。
           */}
-          {!!current &&
+          {!!current && !account.freeReason &&
             (isReady(transfer) ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t.plan.transferTitle}</Text>

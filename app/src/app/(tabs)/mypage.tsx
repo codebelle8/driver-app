@@ -168,7 +168,9 @@ export default function MyPageScreen() {
                       終わった旨を出す（ご指示 2026-09-15）。状態を先に
                       見ると、切れていても「ご利用中」と出てしまう。
                     */
-                    isExpired(account)
+                    account.freeReason
+                    ? t.mypage.accountFree
+                    : isExpired(account)
                     ? account.status === 'active'
                       ? t.mypage.accountEndedPaid
                       : t.mypage.accountEnded
@@ -203,7 +205,9 @@ export default function MyPageScreen() {
             <View style={styles.body}>
               <Text style={styles.name}>{t.mypage.payment}</Text>
               <Text style={styles.hint}>
-                {isExpired(account)
+                {account.freeReason
+                  ? t.mypage.accountFree
+                  : isExpired(account)
                   ? account.status === 'active'
                     ? t.mypage.accountEndedPaid
                     : t.mypage.accountEnded

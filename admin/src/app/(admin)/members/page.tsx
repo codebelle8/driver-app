@@ -48,6 +48,18 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
 
   const { data: rows } = await admin.from('driver_profiles').select('*');
 
+  /*
+    無料でお使いいただいている方（2026-10-05）。管理画面で「調査員」として
+    有効な方は、アプリを無料で使える（データベースの my_free_access と同じ
+    基準）。期限も入金の確認も要らないので、催促の対象から外す。
+  */
+  const { data: surveyorRows } = await admin
+    .from('admin_profiles')
+    .select('user_id')
+    .eq('role', 'surveyor')
+    .eq('is_active', true);
+  const free = new Set((surveyorRows ?? []).map((r) => r.user_id));
+
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? null]));
 
@@ -96,9 +108,9 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
     null は期限なし。この欄を設ける前から「ご利用中」だった方が当てはまる。
     勝手に期限を決めず、次に「入金を確認した」を押した時点で入る。
   */
-  type Row = { status: string; trial_ends_at: string; paid_until?: string | null };
+  type Row = { user_id: string; status: string; trial_ends_at: string; paid_until?: string | null };
   const endOf = (p: Row): string | null =>
-    p.status === 'active' ? (p.paid_until ?? null) : p.trial_ends_at;
+    free.has(p.user_id) ? null : p.status === 'active' ? (p.paid_until ?? null) : p.trial_ends_at;
 
   const isOver = (p: Row): boolean => {
     const at = endOf(p);
@@ -109,7 +121,8 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
     if (p.status === 'blocked') return 3;
     /* お支払い済みでも、期間が過ぎていれば先頭に出す。未収になる。 */
     if (isOver(p)) return 0;
-    if (p.status === 'active') return 2;
+    /* 無料の方（調査員）は、ご利用中と同じ並びへ */
+    if (p.status === 'active' || free.has(p.user_id)) return 2;
     return 1;
   };
 
@@ -197,6 +210,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                 {shown.map((p) => {
                   const paid = p.status === 'active';
                   const blocked = p.status === 'blocked';
+                  const isFree = !blocked && free.has(p.user_id);
                   const endIso = endOf(p);
                   const left = endIso ? daysTo(endIso) : 0;
                   const expired = !blocked && !!endIso && left <= 0;
@@ -227,10 +241,12 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={blocked || expired ? 'warn' : paid ? 'accent' : 'default'}>
+                        <Badge tone={blocked || expired ? 'warn' : paid || isFree ? 'accent' : 'default'}>
                           {blocked
                             ? m.stateBlocked
-                            : expired
+                            : isFree
+                              ? m.stateFree
+                              : expired
                               ? m.stateExpired
                               : paid
                                 ? m.statePaid
@@ -259,7 +275,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                             停止中の方に入金の操作は出さない。
                             先に停止を解いてから、あらためて判断していただく。
                           */}
-                          {!blocked && (
+                          {!blocked && !isFree && (
                             <form action={setMemberActive}>
                               <input type="hidden" name="user_id" value={p.user_id} />
                               <input type="hidden" name="active" value={paid ? 'false' : 'true'} />

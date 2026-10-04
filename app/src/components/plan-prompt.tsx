@@ -66,6 +66,8 @@ export function PlanPrompt({
   const [busy, setBusy] = useState(false);
 
   if (!account) return null;
+  /* 無料でお使いいただいている方（調査員など）には、料金の話を出さない */
+  if (account.freeReason) return null;
 
   const over = isExpired(account);
   const left = daysLeft(account);

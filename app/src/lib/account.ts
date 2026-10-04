@@ -36,6 +36,15 @@ const AVATARS = 'avatars';
 
 export type MemberStatus = 'trial' | 'active' | 'expired' | 'blocked';
 
+/**
+ * 無料でお使いいただいている理由（2026-10-05）。
+ *
+ *   surveyor … 管理画面で「調査員」として登録されている方
+ *
+ * 毎月の上位の方を翌月無料にする段で、理由が増える。
+ */
+export type FreeReason = 'surveyor';
+
 export interface Account {
   userId: string;
   email: string | null;
@@ -71,6 +80,14 @@ export interface Account {
    * 期限（無料期間・お支払いの期間）は控えの日付で判断される。
    */
   offline: boolean;
+  /**
+   * 無料でお使いいただいている理由。通常の会員は null。
+   *
+   * データベースの my_free_access() で尋ねる。端末の控えにも入るので、
+   * 圏外でも同じように効く。この版より前の控えには無い（undefined）。
+   * 無いものは「通常の会員」として扱う。
+   */
+  freeReason?: FreeReason | null;
 }
 
 /**
@@ -775,12 +792,30 @@ export async function loadAccount(): Promise<Account | null> {
     planChosenAt: row.plan_chosen_at,
     memberNo: row.member_no,
     offline: false,
+    freeReason: await loadFreeReason(),
   };
 
   // 次に圏外で開いたときのために控える。圏外で使える日数も、いま読んで入れておく
   offlineLimit = null;
   await keepSnapshot(account, await loadGraceDays());
   return account;
+}
+
+/**
+ * 無料でお使いいただける方か（調査員など）。
+ *
+ * 尋ねられなかったときは、通常の会員として扱う（null）。データベースを
+ * 更新する前でも、これまでどおり動く。
+ */
+async function loadFreeReason(): Promise<FreeReason | null> {
+  try {
+    const { data, error } = await supabase.rpc('my_free_access');
+    if (error || !data || typeof data !== 'object') return null;
+    const reason = (data as { reason?: unknown }).reason;
+    return reason === 'surveyor' ? 'surveyor' : null;
+  } catch {
+    return null;
+  }
 }
 
 // --- 顔写真 -------------------------------------------------------------------
@@ -877,6 +912,8 @@ export async function choosePlan(userId: string, plan: PlanId): Promise<Result> 
  * 呼ぶ側は「期限なし」として扱う。
  */
 export function endsAt(account: Account): string | null {
+  /* 無料でお使いいただいている方（調査員など）は期限なし */
+  if (account.freeReason) return null;
   if (account.status === 'active') return account.paidUntil;
   return account.trialEndsAt;
 }

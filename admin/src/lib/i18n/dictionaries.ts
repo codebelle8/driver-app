@@ -207,6 +207,8 @@ const ja = {
     colPlan: 'ご希望の料金',
     statePaid: 'ご利用中',
     stateTrial: '無料期間',
+    /* 調査員はアプリを無料で使える（2026-10-05）。入金の確認は要らない */
+    stateFree: '無料（調査員）',
     /*
       料金の刻みの名前。id で引く。
       刻みは4つ（2026-09-14）。画面の側で書き分けない。
@@ -851,6 +853,7 @@ const en: Dictionary = {
     colPlan: 'Chosen plan',
     statePaid: 'Active',
     stateTrial: 'Free month',
+    stateFree: 'Free (surveyor)',
     planNames: {
       monthly: '1 month',
       quarterly: '3 months',
