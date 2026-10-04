@@ -34,6 +34,7 @@ $$;
 begin;
 
 insert into auth.users (id, email) values
+  ('cccccccc-0000-0000-0000-000000000021', 'APrOfessional0575@gmail.com'),
   ('cccccccc-0000-0000-0000-000000000001', 'free-admin@example.com'),
   ('cccccccc-0000-0000-0000-000000000002', 'free-editor@example.com'),
   ('cccccccc-0000-0000-0000-000000000003', 'free-surveyor@example.com'),
@@ -51,6 +52,7 @@ insert into public.admin_profiles (user_id, display_name, role, is_active) value
 \set SURVEYOR     '''cccccccc-0000-0000-0000-000000000003'''
 \set SURVEYOR_OFF '''cccccccc-0000-0000-0000-000000000004'''
 \set DRIVER       '''cccccccc-0000-0000-0000-000000000011'''
+\set OWNER        '''cccccccc-0000-0000-0000-000000000021'''
 
 set local role authenticated;
 
@@ -69,7 +71,13 @@ set local request.jwt.claim.sub = :EDITOR;
 select pg_temp.assert(public.my_free_access() is null, '編集者は対象外（ご依頼は調査員）');
 
 set local request.jwt.claim.sub = :ADMIN;
-select pg_temp.assert(public.my_free_access() is null, '管理者も対象外（ご依頼は調査員）');
+select pg_temp.assert(public.my_free_access() is null, '管理者も対象外（ご依頼は調査員と所有者）');
+
+-- 所有者（2026-10-05）。メールアドレスの大文字・小文字は問わない
+set local request.jwt.claim.sub = :OWNER;
+select pg_temp.assert(
+  public.my_free_access() = '{"reason": "owner", "until": null}'::jsonb,
+  '所有者は無料（期限なし）');
 
 -- 会員が自分を調査員にして無料になることはできない
 set local request.jwt.claim.sub = :DRIVER;

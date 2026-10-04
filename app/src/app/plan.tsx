@@ -151,7 +151,7 @@ export default function PlanScreen() {
                 {account.status === 'blocked'
                   ? t.account.statusBlocked
                   : account.freeReason
-                    ? t.account.statusFree
+                    ? t.account.statusFree[account.freeReason]
                   : over
                     ? paid
                       ? t.plan.statusEndedPaid
@@ -201,7 +201,7 @@ export default function PlanScreen() {
           {account.freeReason ? (
             <View style={styles.notice}>
               <Ionicons name="checkmark-circle-outline" size={18} color={c.accent} />
-              <Text style={styles.noticeText}>{t.account.freeBody}</Text>
+              <Text style={styles.noticeText}>{t.account.freeBody[account.freeReason]}</Text>
             </View>
           ) : (
             <>

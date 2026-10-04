@@ -321,7 +321,7 @@ function SignedIn({
             {account.status === 'blocked'
               ? t.account.statusBlocked
               : account.freeReason
-                ? t.account.statusFree
+                ? t.account.statusFree[account.freeReason]
               : /* 期限を持たない方（この欄を設ける前からの方）は日付を出さない */
                 !end
                 ? t.account.statusPaid

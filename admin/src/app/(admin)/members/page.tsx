@@ -3,6 +3,7 @@ import { PaymentSettingsForm } from '@/components/payment-settings-form';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { PageLink } from '@/components/page-link';
 import { requireAdmin } from '@/lib/auth';
+import { isOwnerEmail } from '@/lib/owner';
 import { getDictionary } from '@/lib/i18n/server';
 import { remainingSpan } from '@/lib/plans';
 import { createAdminClient } from '@/lib/supabase/server';
@@ -62,6 +63,15 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
 
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? null]));
+
+  /*
+    所有者のアカウントも無料（ご指示 2026-10-05）。データベースの
+    my_free_access と同じく、メールアドレスで見分ける（lib/owner.ts）。
+  */
+  const ownerIds = new Set(
+    [...emailById].filter(([, email]) => isOwnerEmail(email)).map(([id]) => id),
+  );
+  for (const id of ownerIds) free.add(id);
 
   const day = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('ja-JP', { dateStyle: 'medium' }) : '—';
@@ -245,7 +255,9 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                           {blocked
                             ? m.stateBlocked
                             : isFree
-                              ? m.stateFree
+                              ? ownerIds.has(p.user_id)
+                                ? m.stateFreeOwner
+                                : m.stateFree
                               : expired
                               ? m.stateExpired
                               : paid

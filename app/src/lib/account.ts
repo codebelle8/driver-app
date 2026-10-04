@@ -40,10 +40,11 @@ export type MemberStatus = 'trial' | 'active' | 'expired' | 'blocked';
  * 無料でお使いいただいている理由（2026-10-05）。
  *
  *   surveyor … 管理画面で「調査員」として登録されている方
+ *   owner    … 所有者のアカウント（管理画面の所有者と同じ。ご指示 2026-10-05）
  *
  * 毎月の上位の方を翌月無料にする段で、理由が増える。
  */
-export type FreeReason = 'surveyor';
+export type FreeReason = 'surveyor' | 'owner';
 
 export interface Account {
   userId: string;
@@ -812,7 +813,7 @@ async function loadFreeReason(): Promise<FreeReason | null> {
     const { data, error } = await supabase.rpc('my_free_access');
     if (error || !data || typeof data !== 'object') return null;
     const reason = (data as { reason?: unknown }).reason;
-    return reason === 'surveyor' ? 'surveyor' : null;
+    return reason === 'surveyor' || reason === 'owner' ? reason : null;
   } catch {
     return null;
   }

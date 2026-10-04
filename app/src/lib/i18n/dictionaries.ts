@@ -292,7 +292,11 @@ const ja = {
     accountOut: '登録すると、機種変更しても引き継げます',
     accountTrial: '無料期間 残り {left}',
     /* 調査員など、無料でお使いいただいている方（2026-10-05） */
-    accountFree: '調査員のため無料でお使いいただけます',
+    /* 無料の理由ごと（lib/account.ts の FreeReason） */
+    accountFree: {
+      surveyor: '調査員のため無料でお使いいただけます',
+      owner: '運営者のアカウントのため無料でお使いいただけます',
+    },
     accountEnded: '無料期間は終了しました',
     /* お支払い済みの方の期間。ご指示 2026-09-15。 */
     accountPaid: 'ご利用期間 残り {left}',
@@ -372,8 +376,14 @@ const ja = {
     paidLeft: 'あと {left}（{date} まで）',
     paidEnded: '{date} に終了しました。続けてご利用の場合はお手続きをお願いいたします',
     statusPaid: 'ご利用中',
-    statusFree: '無料（調査員）',
-    freeBody: '調査員として登録されているため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
+    statusFree: {
+      surveyor: '無料（調査員）',
+      owner: '無料（運営者）',
+    },
+    freeBody: {
+      surveyor: '調査員として登録されているため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
+      owner: '運営者のアカウントのため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
+    },
     statusBlocked: 'ご利用を停止しています',
 
     displayName: 'お名前',
@@ -909,7 +919,10 @@ const en: Dictionary = {
     payment: 'Payment',
     accountOut: 'Sign up to keep your data when you change phones',
     accountTrial: '{left} left in your free month',
-    accountFree: 'Free to use as a field surveyor',
+    accountFree: {
+      surveyor: 'Free to use as a field surveyor',
+      owner: 'Free to use as the operator account',
+    },
     accountEnded: 'Your free month has ended',
     accountPaid: '{left} left',
     accountEndedPaid: 'Your paid period has ended',
@@ -980,8 +993,14 @@ const en: Dictionary = {
     paidLeft: '{left} left (until {date})',
     paidEnded: 'Ended on {date}. Please renew to continue',
     statusPaid: 'Active',
-    statusFree: 'Free (field surveyor)',
-    freeBody: 'You are registered as a field surveyor, so you can use the app free of charge with no end date. No payment is needed.',
+    statusFree: {
+      surveyor: 'Free (field surveyor)',
+      owner: 'Free (operator)',
+    },
+    freeBody: {
+      surveyor: 'You are registered as a field surveyor, so you can use the app free of charge with no end date. No payment is needed.',
+      owner: 'This is the operator account, so you can use the app free of charge with no end date. No payment is needed.',
+    },
     statusBlocked: 'Suspended',
 
     displayName: 'Name',
