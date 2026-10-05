@@ -4,6 +4,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BrandHome } from '@/components/brand';
 import { useLocked } from '@/components/plan-gate';
+import { unreadLabel, useChatUnread } from '@/lib/chat-unread';
 import { RailArt } from '@/components/rail-art';
 import type { Palette } from '@/theme';
 import { useT } from '@/lib/i18n/context';
@@ -77,6 +78,7 @@ export function SideRail() {
     画面を広げただけで行けたり行けなかったりする。
   */
   const locked = useLocked();
+  const { unread } = useChatUnread();
   const items = locked ? NAV.filter((t) => t.path === '/mypage' || t.path === '/chat') : NAV;
 
   return (
@@ -144,6 +146,12 @@ export function SideRail() {
                 >
                   {dict.tabs[t.key]}
                 </Text>
+                {/* チャットの未読（2026-10-05） */}
+                {t.key === 'chat' && unread > 0 && (
+                  <View style={s.badge} testID="chat-unread">
+                    <Text style={s.badgeText}>{unreadLabel(unread)}</Text>
+                  </View>
+                )}
               </Pressable>
             </Link>
           );
@@ -203,6 +211,18 @@ const makeStyles = (c: Palette) =>
     },
     barOff: { width: 3, marginRight: SPACE.lg - 3 },
     label: { fontSize: TEXT.bodyStrong, fontWeight: '600' },
+    /* チャットの未読の数 */
+    badge: {
+      marginLeft: 'auto',
+      minWidth: 22,
+      height: 22,
+      paddingHorizontal: 6,
+      borderRadius: 11,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    badgeText: { fontSize: TEXT.small, fontWeight: '700', color: c.accentText },
 
     art: { flex: 1, justifyContent: 'flex-end' },
     tagline: { padding: SPACE.xl },

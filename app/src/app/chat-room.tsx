@@ -30,6 +30,7 @@ import {
   type ChatFeed,
   type ChatMessage,
 } from '@/lib/chat';
+import { useChatUnread } from '@/lib/chat-unread';
 import { confirmDelete } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
@@ -60,6 +61,7 @@ export default function ChatRoomScreen() {
   const styles = makeStyles(c);
   const router = useRouter();
   const { account } = useAccount();
+  const { markRead } = useChatUnread();
 
   const [feed, setFeed] = useState<ChatFeed | null>(null);
   const [failed, setFailed] = useState(false);
@@ -80,7 +82,13 @@ export default function ChatRoomScreen() {
     setFailed(false);
     setFeed(f);
     setMore(f.messages.length >= PAGE);
-  }, []);
+    /*
+      開いているあいだに読み込んだ分までを既読にする（2026-10-05）。
+      時刻はサーバーの書き込みの時刻を使う（端末の時計はずれうる）。
+    */
+    const newest = f.messages[0]?.createdAt;
+    if (newest) await markRead(newest);
+  }, [markRead]);
 
   useFocusEffect(
     useCallback(() => {

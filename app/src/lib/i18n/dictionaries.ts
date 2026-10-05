@@ -216,6 +216,10 @@ const ja = {
     generalName: '情報交換',
     generalDesc: 'みんなで書き込めるチャンネルです',
     noMessages: 'まだ書き込みはありません',
+    /* 未読（2026-10-05） */
+    unread: '未読 {n}',
+    newMessage: '情報交換に新しい書き込みがあります',
+    newMessageBody: '下の「チャット」から読めます。',
   },
 
   chatRoom: {
@@ -940,6 +944,9 @@ const en: Dictionary = {
     generalName: 'Driver talk',
     generalDesc: 'A channel everyone can post in',
     noMessages: 'No posts yet',
+    unread: '{n} unread',
+    newMessage: 'New posts in Driver talk',
+    newMessageBody: 'Open "Chat" to read them.',
   },
 
   chatRoom: {

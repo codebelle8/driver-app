@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageWidth } from '@/components/page-width';
 import { loadFeed, type ChatMessage } from '@/lib/chat';
+import { unreadLabel, useChatUnread } from '@/lib/chat-unread';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { loadRanking, type Ranking } from '@/lib/ranking';
@@ -27,6 +28,8 @@ export default function ChatScreen() {
   const styles = makeStyles(c);
   const router = useRouter();
   const [ranking, setRanking] = useState<Ranking | null>(null);
+  /* 情報交換の未読（2026-10-05） */
+  const { unread } = useChatUnread();
   /* 情報交換の最新の書き込み（一覧に1行だけ出す） */
   const [last, setLast] = useState<ChatMessage | null | undefined>(undefined);
 
@@ -89,8 +92,15 @@ export default function ChatScreen() {
               <Ionicons name="chatbubbles" size={22} color={c.accentText} />
             </View>
             <View style={styles.channelBody}>
-              <Text style={styles.channelName}>{t.chat.generalName}</Text>
-              <Text style={styles.channelLine} numberOfLines={1}>
+              <View style={styles.channelTitleRow}>
+                <Text style={styles.channelName}>{t.chat.generalName}</Text>
+                {unread > 0 && (
+                  <Text style={styles.unread} testID="chat-unread-general">
+                    {fill(t.chat.unread, { n: unreadLabel(unread) })}
+                  </Text>
+                )}
+              </View>
+              <Text style={[styles.channelLine, unread > 0 && styles.channelLineNew]} numberOfLines={1}>
                 {last === undefined
                   ? t.chat.generalDesc
                   : last === null
@@ -147,5 +157,16 @@ function makeStyles(c: Palette) {
       paddingVertical: 1,
     },
     channelLine: { fontSize: TEXT.sub, color: c.textMuted },
+    channelLineNew: { color: c.text, fontWeight: '700' },
+    unread: {
+      fontSize: TEXT.small,
+      fontWeight: '700',
+      color: c.accentText,
+      backgroundColor: c.accent,
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 1,
+      overflow: 'hidden',
+    },
   });
 }

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocked } from '@/components/plan-gate';
+import { unreadLabel, useChatUnread } from '@/lib/chat-unread';
 import { useT } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { useTheme } from '@/theme-context';
@@ -56,6 +57,8 @@ export default function TabsLayout() {
     壊れているように見える。行けない先は、はじめから出さない。
   */
   const locked = useLocked();
+  /* チャットの未読（2026-10-05）。「チャット」の記号に数を添える */
+  const { unread } = useChatUnread();
 
   return (
     <Tabs
@@ -100,6 +103,8 @@ export default function TabsLayout() {
             title: dict.tabs[t.key],
             /* href: null で帯から外れる。設定（mypage）だけを残す。 */
             href: locked && t.name !== 'mypage' && t.name !== 'chat' ? null : undefined,
+            tabBarBadge: t.name === 'chat' && unread > 0 ? unreadLabel(unread) : undefined,
+            tabBarBadgeStyle: { backgroundColor: c.accent, color: c.accentText, fontSize: 11, fontWeight: '700' },
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? t.on : t.off} size={22} color={color} />
             ),
