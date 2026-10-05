@@ -13,6 +13,7 @@ import {
   MegaphoneIcon,
   DocumentIcon,
   InboxIcon,
+  ChatIcon,
 } from '@/components/icons';
 import { useCloseSideNav } from '@/components/side-nav';
 
@@ -36,12 +37,14 @@ export function NavLinks({
   isAdmin = false,
   isManager = false,
   pendingSubmissions = 0,
+  openChatReports = 0,
 }: {
   labels: {
     dashboard: string;
     facilities: string;
     categories: string;
     submissions: string;
+    chat: string;
     members: string;
     push: string;
     accounts: string;
@@ -54,6 +57,8 @@ export function NavLinks({
   isManager?: boolean;
   /** 審査待ちの情報提供の数。行の右に出す */
   pendingSubmissions?: number;
+  /** 未対応のチャットの通報の数。行の右に出す */
+  openChatReports?: number;
 }) {
   const pathname = usePathname();
   const close = useCloseSideNav();
@@ -67,7 +72,11 @@ export function NavLinks({
       気づけないと、審査が溜まり、採用の件数（翌月無料の元）も遅れる。
     */
     ...(isManager
-      ? [{ href: '/submissions', label: labels.submissions, Icon: InboxIcon, count: pendingSubmissions }]
+      ? [
+          { href: '/submissions', label: labels.submissions, Icon: InboxIcon, count: pendingSubmissions },
+          /* チャットの見張り（2026-10-05）。未対応の通報の数を添える */
+          { href: '/chat', label: labels.chat, Icon: ChatIcon, count: openChatReports },
+        ]
       : []),
     ...(isAdmin
       ? [

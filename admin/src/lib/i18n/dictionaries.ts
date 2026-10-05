@@ -26,6 +26,7 @@ const ja = {
     categories: 'カテゴリ',
     members: '会員・お支払い',
     submissions: '情報提供',
+    chat: 'チャット',
     push: '通知',
     accounts: 'アカウント',
     history: '操作履歴',
@@ -64,6 +65,35 @@ const ja = {
     categories: 'カテゴリ',
     admin_profiles: 'アカウント',
     submissions: '情報提供',
+    chat_messages: 'チャットの書き込み',
+  },
+
+  /*
+    チャットの見張り（2026-10-05）。会員どうしの書き込み（情報交換）。
+
+    消さずに「非表示」にする。会員には見えなくなるが、ここと操作履歴には残る。
+    書き込みを止めても、アプリは使えるまま（読むことはできる）。
+  */
+  chatAdmin: {
+    title: 'チャット',
+    description:
+      '会員どうしの書き込み（情報交換）を見張ります。ルールに反する書き込みは「非表示」にしてください。会員には見えなくなりますが、この画面と操作履歴には残ります。',
+    tabReports: '通報（未対応）',
+    tabAll: 'すべての書き込み',
+    noReports: '未対応の通報はありません。',
+    noMessages: 'まだ書き込みはありません。',
+    reportCount: '通報 {n} 件',
+    member: '会員 {no}',
+    noName: '名前未設定',
+    memberGone: '（退会した会員）',
+    hidden: '非表示',
+    muted: '書き込み停止中',
+    hide: '非表示にする',
+    unhide: '表示に戻す',
+    resolve: '問題なし（通報を片付ける）',
+    mute: 'この会員の書き込みを止める',
+    unmute: '書き込みの停止をやめる',
+    postedAt: '{date}',
   },
 
   /*
@@ -686,6 +716,7 @@ const en: Dictionary = {
     categories: 'Categories',
     members: 'Members',
     submissions: 'Submissions',
+    chat: 'Chat',
     push: 'Notifications',
     accounts: 'Accounts',
     history: 'History',
@@ -725,6 +756,29 @@ const en: Dictionary = {
     categories: 'Category',
     admin_profiles: 'Account',
     submissions: 'Submission',
+    chat_messages: 'Chat post',
+  },
+
+  chatAdmin: {
+    title: 'Chat',
+    description:
+      'Watch member posts (Driver talk). Hide posts that break the rules. Hidden posts disappear for members but stay here and in the history.',
+    tabReports: 'Reports (open)',
+    tabAll: 'All posts',
+    noReports: 'No open reports.',
+    noMessages: 'No posts yet.',
+    reportCount: '{n} reports',
+    member: 'Member {no}',
+    noName: 'No name',
+    memberGone: '(member has left)',
+    hidden: 'Hidden',
+    muted: 'Posting stopped',
+    hide: 'Hide',
+    unhide: 'Show again',
+    resolve: 'No problem (close reports)',
+    mute: 'Stop this member posting',
+    unmute: 'Allow posting again',
+    postedAt: '{date}',
   },
 
   submissions: {

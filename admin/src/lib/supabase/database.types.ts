@@ -158,6 +158,8 @@ export type DriverProfile = {
   paid_until: string | null;
   /** 振込名義の前に付けていただく番号 */
   member_no: number;
+  /** チャットへの書き込みを止めている（2026-10-05） */
+  chat_muted?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -247,6 +249,30 @@ export type Submission = {
   review_note: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * チャットの書き込み（2026-10-05）。全員に見える掲示板の形。
+ * hidden_at があるものは会員に見せない。hidden_by はデータベースが入れる。
+ */
+export type ChatMessage = {
+  id: string;
+  channel: 'general';
+  user_id: string;
+  body: string;
+  hidden_at: string | null;
+  hidden_by: string | null;
+  created_at: string;
+}
+
+/** チャットの通報。誰が通報したかは会員に見せない */
+export type ChatReport = {
+  id: string;
+  message_id: string;
+  reporter_id: string;
+  reason: string | null;
+  state: 'open' | 'done';
+  created_at: string;
 }
 
 /** どの端末へ送るか。1つのブラウザにつき1件。 */
@@ -398,6 +424,14 @@ export interface Database {
           | 'id' | 'user_id' | 'facility_id' | 'entry_point_id' | 'photo_paths' | 'lat' | 'lng'
           | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note' | 'created_at' | 'updated_at'
         >
+      >;
+      chat_messages: Table<
+        ChatMessage,
+        Insert<ChatMessage, 'id' | 'channel' | 'user_id' | 'hidden_at' | 'hidden_by' | 'created_at'>
+      >;
+      chat_reports: Table<
+        ChatReport,
+        Insert<ChatReport, 'id' | 'reporter_id' | 'reason' | 'state' | 'created_at'>
       >;
       admin_notices: Table<
         AdminNotice,

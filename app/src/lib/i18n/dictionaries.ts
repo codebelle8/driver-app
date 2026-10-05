@@ -212,6 +212,39 @@ const ja = {
     meLine: '今月のあなた：採用 {n}件・{rank}位',
     meNoRank: '今月のあなた：採用 {n}件',
     readOnly: '読むだけのチャンネル',
+    /* 会員どうしの書き込み（2026-10-05） */
+    generalName: '情報交換',
+    generalDesc: 'みんなで書き込めるチャンネルです',
+    noMessages: 'まだ書き込みはありません',
+  },
+
+  chatRoom: {
+    rules:
+      'みんなが読める場所です。個人が特定できる情報や、人を傷つける書き込みはしないでください。ルールに反する書き込みは運営が非表示にします。',
+    placeholder: '書き込む（500字まで）',
+    send: '送る',
+    empty: 'まだ書き込みはありません。最初の書き込みをどうぞ。',
+    older: '前の書き込みを読む',
+    noName: '名前未設定の会員',
+    noNameHint: '表示名がまだありません。アカウントの画面で設定すると、名前が添えて出ます。',
+    muted: '書き込みは運営により止められています。読むことはできます。',
+    blocked: 'ご利用が停止されているため、書き込めません。',
+    delete: '削除',
+    deleteTitle: 'この書き込みを削除しますか',
+    report: '通報',
+    reportTitle: 'この書き込みを運営に知らせますか',
+    reportBody: 'ルールに反していると思われる書き込みを、運営に知らせます。運営が確かめ、必要なら非表示にします。',
+    reportNote: '通報したことは、書いた方には伝わりません。',
+    reported: '運営に知らせました',
+    reportedBody: 'ご協力ありがとうございます。',
+    loadFailed: '読み込めませんでした。電波の届く場所でもう一度お試しください。',
+    error: {
+      offline: '通信できないため送れませんでした。電波の届く場所でもう一度お試しください。',
+      tooMany: '書き込みが多すぎます。少し時間をおいてから書き込んでください。',
+      notAllowed: 'いまは書き込めません。',
+      already: 'すでに知らせています。',
+      unknown: 'うまくいきませんでした。もう一度お試しください。',
+    },
   },
 
   ranking: {
@@ -904,6 +937,38 @@ const en: Dictionary = {
     meLine: 'You this month: {n} accepted, rank {rank}',
     meNoRank: 'You this month: {n} accepted',
     readOnly: 'Read-only channel',
+    generalName: 'Driver talk',
+    generalDesc: 'A channel everyone can post in',
+    noMessages: 'No posts yet',
+  },
+
+  chatRoom: {
+    rules:
+      'Everyone can read this. Do not post anything that identifies a person or hurts others. Posts that break the rules are hidden by the operator.',
+    placeholder: 'Write a post (up to 500 characters)',
+    send: 'Send',
+    empty: 'No posts yet. Be the first.',
+    older: 'Read earlier posts',
+    noName: 'Member without a name',
+    noNameHint: 'You have no display name yet. Set one on the Account screen to show it with your posts.',
+    muted: 'Posting has been turned off for you by the operator. You can still read.',
+    blocked: 'Your account is suspended, so you cannot post.',
+    delete: 'Delete',
+    deleteTitle: 'Delete this post?',
+    report: 'Report',
+    reportTitle: 'Report this post to the operator?',
+    reportBody: 'Let the operator know about a post that seems to break the rules. They will check it and hide it if needed.',
+    reportNote: 'The writer will not be told that you reported it.',
+    reported: 'Reported to the operator',
+    reportedBody: 'Thank you for your help.',
+    loadFailed: 'Could not load. Please try again where there is a signal.',
+    error: {
+      offline: 'Could not send without a connection. Please try again where there is a signal.',
+      tooMany: 'Too many posts. Please wait a little before posting again.',
+      notAllowed: 'You cannot post right now.',
+      already: 'You have already reported this.',
+      unknown: 'Something went wrong. Please try again.',
+    },
   },
 
   ranking: {

@@ -53,12 +53,16 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   */
   const isManager = staff.profile.role === 'admin' || staff.profile.role === 'editor';
   let pendingSubmissions = 0;
+  let openChatReports = 0;
   if (isManager) {
-    const { count, error } = await createAdminClient()
-      .from('submissions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending');
-    if (!error) pendingSubmissions = count ?? 0;
+    const admin = createAdminClient();
+    const [sub, chat] = await Promise.all([
+      admin.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      /* チャットの未対応の通報（2026-10-05）。表が無ければ 0 */
+      admin.from('chat_reports').select('id', { count: 'exact', head: true }).eq('state', 'open'),
+    ]);
+    if (!sub.error) pendingSubmissions = sub.count ?? 0;
+    if (!chat.error) openChatReports = chat.count ?? 0;
   }
 
   const roleLabel = {
@@ -190,6 +194,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 facilities: t.nav.facilities,
                 categories: t.nav.categories,
                 submissions: t.nav.submissions,
+                chat: t.nav.chat,
                 members: t.nav.members,
                 push: t.nav.push,
                 accounts: t.nav.accounts,
@@ -199,6 +204,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               isAdmin={staff.profile.role === 'admin'}
               isManager={isManager}
               pendingSubmissions={pendingSubmissions}
+              openChatReports={openChatReports}
             />
           </SideNavPanel>
 

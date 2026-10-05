@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PageWidth } from '@/components/page-width';
+import { loadFeed, type ChatMessage } from '@/lib/chat';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { loadRanking, type Ranking } from '@/lib/ranking';
@@ -14,9 +15,8 @@ import { useTheme } from '@/theme-context';
 /**
  * チャット（2026-10-05）。チャンネルの一覧。
  *
- * **いまは「情報提供ランキング」の1つだけ。** 会員は読むだけ。
- * 会員どうしで書き込むチャンネルは次の段で足す。一覧の形にしておくのは、
- * そのときに並べるだけで済むようにするため。
+ *   情報提供ランキング … 読むだけ（運営からの書き込み）
+ *   情報交換           … 会員どうしで書き込める（第2段）
  *
  * 無料期間が切れて締め出されている方も、ここは開ける（ご回答 2026-10-05）。
  * 情報を送って無料を目指す入口にもなるため。
@@ -27,6 +27,8 @@ export default function ChatScreen() {
   const styles = makeStyles(c);
   const router = useRouter();
   const [ranking, setRanking] = useState<Ranking | null>(null);
+  /* 情報交換の最新の書き込み（一覧に1行だけ出す） */
+  const [last, setLast] = useState<ChatMessage | null | undefined>(undefined);
 
   /* 開くたびに引き直す（審査されると件数が変わる） */
   useFocusEffect(
@@ -34,6 +36,9 @@ export default function ChatScreen() {
       let alive = true;
       loadRanking().then((r) => {
         if (alive) setRanking(r);
+      });
+      loadFeed('general', undefined, 1).then((f) => {
+        if (alive) setLast(f ? (f.messages[0] ?? null) : undefined);
       });
       return () => {
         alive = false;
@@ -73,6 +78,28 @@ export default function ChatScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
           </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/chat-room')}
+            style={({ hovered, pressed }) => [styles.channel, hovered && styles.channelHover, pressed && styles.channelPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t.chat.generalName}
+          >
+            <View style={[styles.channelIcon, styles.channelIconTalk]}>
+              <Ionicons name="chatbubbles" size={22} color={c.accentText} />
+            </View>
+            <View style={styles.channelBody}>
+              <Text style={styles.channelName}>{t.chat.generalName}</Text>
+              <Text style={styles.channelLine} numberOfLines={1}>
+                {last === undefined
+                  ? t.chat.generalDesc
+                  : last === null
+                    ? t.chat.noMessages
+                    : `${last.mine ? t.ranking.you : (last.name ?? t.chatRoom.noName)}：${last.body}`}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+          </Pressable>
         </ScrollView>
       </PageWidth>
     </SafeAreaView>
@@ -106,6 +133,7 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    channelIconTalk: { backgroundColor: c.accentInk },
     channelBody: { flex: 1, gap: 3 },
     channelTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SPACE.sm },
     channelName: { fontSize: TEXT.bodyStrong, fontWeight: '800', color: c.text },

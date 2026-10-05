@@ -187,6 +187,16 @@ export function HistoryIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** 吹き出し — チャットの見張り */
+export function ChatIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M20 12a7.5 7.5 0 0 1-10.9 6.7L4 20l1.4-4.4A7.5 7.5 0 1 1 20 12z" />
+      <path d="M9 11h6M9 14h4" />
+    </svg>
+  );
+}
+
 /** 受け箱 — 会員からの情報提供 */
 export function InboxIcon(props: SVGProps<SVGSVGElement>) {
   return (
