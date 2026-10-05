@@ -88,7 +88,7 @@ export default function ChatScreen() {
             accessibilityRole="button"
             accessibilityLabel={t.chat.generalName}
           >
-            <View style={[styles.channelIcon, styles.channelIconTalk]}>
+            <View style={styles.channelIcon}>
               <Ionicons name="chatbubbles" size={22} color={c.accentText} />
             </View>
             <View style={styles.channelBody}>
@@ -135,6 +135,11 @@ function makeStyles(c: Palette) {
     },
     channelHover: { borderColor: c.accent },
     channelPressed: { opacity: 0.85 },
+    /*
+      記号の地は主役の緑（accent）。accentInk は「文字の色」で、暗い配色では
+      白になる。地に使うと白い記号が白い丸に溶けて見えなくなる
+      （ご指摘 2026-10-05）。チャンネルの見分けは記号（トロフィー・吹き出し）で付ける。
+    */
     channelIcon: {
       width: 44,
       height: 44,
@@ -143,7 +148,6 @@ function makeStyles(c: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    channelIconTalk: { backgroundColor: c.accentInk },
     channelBody: { flex: 1, gap: 3 },
     channelTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: SPACE.sm },
     channelName: { fontSize: TEXT.bodyStrong, fontWeight: '800', color: c.text },
