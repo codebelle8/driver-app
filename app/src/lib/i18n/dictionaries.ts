@@ -35,6 +35,7 @@ const ja = {
     search: '探す',
     favorites: 'お気に入り',
     history: '履歴',
+    chat: 'チャット',
     mypage: 'マイページ',
     /** 読み上げに、選ばれていることを添える */
     showing: '{name}（表示中）',
@@ -200,6 +201,62 @@ const ja = {
     },
   },
 
+  /*
+    チャット（2026-10-05）。いまは「情報提供ランキング」のチャンネルだけ。
+    会員どうしの書き込みは次の段で足す。
+  */
+  chat: {
+    title: 'チャット',
+    rankingName: '情報提供ランキング',
+    rankingDesc: '採用された情報の件数で、毎月の順位を出しています',
+    meLine: '今月のあなた：採用 {n}件・{rank}位',
+    meNoRank: '今月のあなた：採用 {n}件',
+    readOnly: '読むだけのチャンネル',
+  },
+
+  ranking: {
+    title: '情報提供ランキング',
+    sender: '車寄せナビ',
+    youTitle: '今月のあなた',
+    accepted: '採用',
+    sent: '送った件数',
+    rank: '順位',
+    countValue: '{n}件',
+    rankValue: '{rank}位',
+    ofPeople: '{n}名中',
+    noRank: 'まだ順位はありません',
+    excluded: {
+      surveyor: '調査員のため、順位の対象外です（はじめから無料でお使いいただけます）。',
+      owner: '運営者のアカウントのため、順位の対象外です。',
+    },
+    mySubmissions: '送った情報を見る',
+    anonymous: '匿名の会員',
+    you: 'あなた',
+    monthNow: '{y}年{m}月の順位（集計中）',
+    monthDone: '{y}年{m}月の結果',
+    empty: 'この月は、まだ採用された情報がありません。',
+    how: '施設の画面の「現地と違うところがあれば、情報を送る」から送れます。採用された件数で順位が決まります。',
+    future: '有料化のあとは、毎月の上位20名の方が翌月無料になる予定です。',
+    nameSetting: '名前の出し方は、マイページの「ランキングで名前を出さない」で変えられます。',
+    loadFailed: '読み込めませんでした。電波の届く場所でもう一度お試しください。',
+    retry: 'もう一度読み込む',
+    loading: '読み込んでいます…',
+  },
+
+  mySubmissions: {
+    title: '送った情報',
+    empty: 'まだ情報を送っていません。施設の画面の「現地と違うところがあれば、情報を送る」から送れます。',
+    status: {
+      pending: '審査待ち',
+      accepted: '採用',
+      rejected: '不採用',
+    },
+    sentAt: '{date} に送信',
+    reviewedAt: '{date} に審査',
+    facilityGone: '（削除された施設）',
+    loadFailed: '読み込めませんでした。電波の届く場所でもう一度お試しください。',
+  },
+
   /** 短い知らせ（帯） */
   notice: {
     linkCopied: 'リンクを複製しました',
@@ -302,6 +359,10 @@ const ja = {
     accountPaid: 'ご利用期間 残り {left}',
     accountEndedPaid: 'ご利用期間が終了しました',
     accountChecking: '確認しています…',
+    /* 情報提供ランキングで名前を出さない（2026-10-05） */
+    rankAnonymous: 'ランキングで名前を出さない',
+    rankAnonymousOn: '順位には「匿名の会員」と出ます',
+    rankAnonymousOff: '順位に表示名が出ます',
     about: 'このアプリについて',
     terms: '利用規約',
     privacy: 'プライバシーポリシー',
@@ -684,6 +745,7 @@ const en: Dictionary = {
     search: 'Search',
     favorites: 'Favourites',
     history: 'History',
+    chat: 'Chat',
     mypage: 'Settings',
     showing: '{name} (showing)',
   },
@@ -835,6 +897,58 @@ const en: Dictionary = {
     },
   },
 
+  chat: {
+    title: 'Chat',
+    rankingName: 'Contribution ranking',
+    rankingDesc: 'Monthly ranking by the number of accepted submissions',
+    meLine: 'You this month: {n} accepted, rank {rank}',
+    meNoRank: 'You this month: {n} accepted',
+    readOnly: 'Read-only channel',
+  },
+
+  ranking: {
+    title: 'Contribution ranking',
+    sender: 'Kurumayose Navi',
+    youTitle: 'You this month',
+    accepted: 'Accepted',
+    sent: 'Sent',
+    rank: 'Rank',
+    countValue: '{n}',
+    rankValue: '#{rank}',
+    ofPeople: 'of {n}',
+    noRank: 'Not ranked yet',
+    excluded: {
+      surveyor: 'As a field surveyor you are not ranked (you already use the app for free).',
+      owner: 'The operator account is not ranked.',
+    },
+    mySubmissions: 'See what I have sent',
+    anonymous: 'Anonymous member',
+    you: 'You',
+    monthNow: 'Ranking for {m}/{y} (in progress)',
+    monthDone: 'Results for {m}/{y}',
+    empty: 'No submissions have been accepted this month yet.',
+    how: 'Send information from "Something different on site? Send us information" on a facility page. The ranking is based on accepted submissions.',
+    future: 'After the paid launch, the top 20 each month are planned to get the following month free.',
+    nameSetting: 'You can hide your name with "Hide my name in the ranking" in Settings.',
+    loadFailed: 'Could not load. Please try again where there is a signal.',
+    retry: 'Try again',
+    loading: 'Loading…',
+  },
+
+  mySubmissions: {
+    title: 'What I have sent',
+    empty: 'You have not sent anything yet. Use "Something different on site? Send us information" on a facility page.',
+    status: {
+      pending: 'Pending',
+      accepted: 'Accepted',
+      rejected: 'Not accepted',
+    },
+    sentAt: 'Sent {date}',
+    reviewedAt: 'Reviewed {date}',
+    facilityGone: '(deleted facility)',
+    loadFailed: 'Could not load. Please try again where there is a signal.',
+  },
+
   notice: {
     linkCopied: 'Link copied',
     coordsCopied: 'Coordinates copied',
@@ -927,6 +1041,9 @@ const en: Dictionary = {
     accountPaid: '{left} left',
     accountEndedPaid: 'Your paid period has ended',
     accountChecking: 'Checking…',
+    rankAnonymous: 'Hide my name in the ranking',
+    rankAnonymousOn: 'You appear as "Anonymous member"',
+    rankAnonymousOff: 'Your display name appears in the ranking',
     about: 'About this app',
     terms: 'Terms of use',
     privacy: 'Privacy policy',

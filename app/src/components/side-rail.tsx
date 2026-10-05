@@ -60,6 +60,7 @@ const NAV = [
   { path: '/', key: 'search', on: 'search', off: 'search-outline' },
   { path: '/favorites', key: 'favorites', on: 'star', off: 'star-outline' },
   { path: '/history', key: 'history', on: 'time', off: 'time-outline' },
+  { path: '/chat', key: 'chat', on: 'chatbubbles', off: 'chatbubbles-outline' },
   { path: '/mypage', key: 'mypage', on: 'person', off: 'person-outline' },
 ] as const;
 
@@ -76,7 +77,7 @@ export function SideRail() {
     画面を広げただけで行けたり行けなかったりする。
   */
   const locked = useLocked();
-  const items = locked ? NAV.filter((t) => t.path === '/mypage') : NAV;
+  const items = locked ? NAV.filter((t) => t.path === '/mypage' || t.path === '/chat') : NAV;
 
   return (
     <View style={s.rail}>

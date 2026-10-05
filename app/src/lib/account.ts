@@ -89,6 +89,11 @@ export interface Account {
    * 無いものは「通常の会員」として扱う。
    */
   freeReason?: FreeReason | null;
+  /**
+   * 情報提供ランキングで名前を出さない（匿名）。本人が設定で選ぶ（2026-10-05）。
+   * この版より前の控えには無い（undefined）。無いものは「出す」として扱う。
+   */
+  rankAnonymous?: boolean;
 }
 
 /**
@@ -494,6 +499,16 @@ export async function updateDisplayName(userId: string, name: string): Promise<R
   return good(undefined);
 }
 
+/** 情報提供ランキングで名前を出すか（true で匿名） */
+export async function setRankAnonymous(userId: string, anonymous: boolean): Promise<Result> {
+  const { error } = await supabase
+    .from('driver_profiles')
+    .update({ rank_anonymous: anonymous })
+    .eq('user_id', userId);
+  if (error) return bad(toProblem(error));
+  return good(undefined);
+}
+
 // --- いまの状態 ---------------------------------------------------------------
 
 interface ProfileRow {
@@ -509,6 +524,8 @@ interface ProfileRow {
   member_no: number;
   /** いま使っている1台。ここと違う端末は自分から出ていく。 */
   device_id: string | null;
+  /** ランキングで名前を出さない。データベースの更新前は無い */
+  rank_anonymous?: boolean;
 }
 
 /**
@@ -794,6 +811,7 @@ export async function loadAccount(): Promise<Account | null> {
     memberNo: row.member_no,
     offline: false,
     freeReason: await loadFreeReason(),
+    rankAnonymous: row.rank_anonymous ?? false,
   };
 
   // 次に圏外で開いたときのために控える。圏外で使える日数も、いま読んで入れておく

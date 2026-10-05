@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
-import { endsAt, isExpired, remaining } from '@/lib/account';
+import { endsAt, isExpired, remaining, setRankAnonymous } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
@@ -34,7 +34,25 @@ export default function MyPageScreen() {
   const { theme, toggle } = useThemeControl();
   const t = useT();
   const { locale, setLocale } = useLocale();
-  const { account, ready } = useAccount();
+  const { account, ready, refresh } = useAccount();
+  /* ランキングで名前を出さない（2026-10-05）。押したらすぐ見た目を変え、裏で保存する */
+  const [anonBusy, setAnonBusy] = useState(false);
+  const [anonymous, setAnonymous] = useState<boolean | null>(null);
+  const anon = anonymous ?? account?.rankAnonymous ?? false;
+  async function toggleAnonymous() {
+    if (!account || anonBusy) return;
+    const next = !anon;
+    setAnonymous(next);
+    setAnonBusy(true);
+    const r = await setRankAnonymous(account.userId, next);
+    setAnonBusy(false);
+    if (!r.ok) {
+      setAnonymous(!next);
+      notify(t.account.error[r.problem], undefined, 'error');
+      return;
+    }
+    await refresh();
+  }
   const router = useRouter();
   const styles = makeStyles(c);
   const [sync, setSync] = useState<SyncResult>({ ok: true, facilityCount: 0, syncedAt: null });
@@ -310,6 +328,27 @@ export default function MyPageScreen() {
             />
           )}
         </Pressable>
+
+        {!!account && (
+          <Pressable
+            onPress={toggleAnonymous}
+            disabled={anonBusy}
+            style={styles.row}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: anon }}
+            aria-checked={anon}
+            accessibilityLabel={t.mypage.rankAnonymous}
+          >
+            <View style={styles.icon}>
+              <Ionicons name={anon ? 'eye-off' : 'eye-off-outline'} size={17} color={c.accent} />
+            </View>
+            <View style={styles.body}>
+              <Text style={styles.name}>{t.mypage.rankAnonymous}</Text>
+              <Text style={styles.hint}>{anon ? t.mypage.rankAnonymousOn : t.mypage.rankAnonymousOff}</Text>
+            </View>
+            <Ionicons name={anon ? 'toggle' : 'toggle-outline'} size={22} color={anon ? c.accent : c.textFaint} />
+          </Pressable>
+        )}
 
         <Pressable onPress={reload} disabled={busy} style={styles.row} accessibilityRole="button">
           <View style={styles.icon}>

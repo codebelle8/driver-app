@@ -38,6 +38,8 @@ const TABS = [
   { name: 'index', key: 'search', on: 'search', off: 'search-outline' },
   { name: 'favorites', key: 'favorites', on: 'star', off: 'star-outline' },
   { name: 'history', key: 'history', on: 'time', off: 'time-outline' },
+  /* チャット（2026-10-05）。締めているあいだも開ける（情報提供ランキング） */
+  { name: 'chat', key: 'chat', on: 'chatbubbles', off: 'chatbubbles-outline' },
   { name: 'mypage', key: 'mypage', on: 'person', off: 'person-outline' },
 ] as const;
 
@@ -97,7 +99,7 @@ export default function TabsLayout() {
           options={{
             title: dict.tabs[t.key],
             /* href: null で帯から外れる。設定（mypage）だけを残す。 */
-            href: locked && t.name !== 'mypage' ? null : undefined,
+            href: locked && t.name !== 'mypage' && t.name !== 'chat' ? null : undefined,
             tabBarIcon: ({ color, focused }) => (
               <Ionicons name={focused ? t.on : t.off} size={22} color={color} />
             ),

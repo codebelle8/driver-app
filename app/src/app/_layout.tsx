@@ -203,6 +203,8 @@ function Shell() {
         <Stack.Screen name="account" />
         <Stack.Screen name="plan" />
         <Stack.Screen name="submit" />
+        <Stack.Screen name="ranking" />
+        <Stack.Screen name="my-submissions" />
       </Stack>
       </PlanGate>
       </View>
