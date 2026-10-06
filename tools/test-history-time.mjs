@@ -10,7 +10,7 @@
  *
  * 見るもの
  *   1. 操作履歴のいちばん上の日時が、その記録の日本時間と一致する
- *   2. 欄の見出しに「日本時間」（英語では JST）と出る
+ *   2. 欄の見出しは「日時」のまま（添え書きはご指示で外した）
  *
  * **検査用の職員を作り、最後に消す**（作ったときの操作履歴も消す）。
  */
@@ -95,7 +95,7 @@ try {
     const utc = fmt(top.created_at, locale, 'UTC');
     check(`[${locale}] いちばん上の日時が日本時間（${jst}）`, shown === jst, `画面 ${shown} / 日本時間 ${jst} / 協定世界時 ${utc}`);
     const head = await page.locator('thead').innerText();
-    check(`[${locale}] 見出しに時刻帯が出る`, locale === 'ja' ? head.includes('日本時間') : head.includes('JST'), head);
+    check(`[${locale}] 見出しに時刻帯の添え書きが無い`, !head.includes('日本時間') && !head.includes('JST'), head);
     await ctx.close();
   }
 } catch (e) {
