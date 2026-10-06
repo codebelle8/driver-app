@@ -52,3 +52,6 @@ tools/screenshots/
 # クライアント様ご提供のロゴ原本（受領後にここへ置く）
 assets/brand/source/*
 !assets/brand/source/README.md
+
+# --- 本番のデータの控え（検査の後片付けの前に取ったもの。Git に入れない） ---
+backup/

@@ -57,9 +57,35 @@ export async function createMember({ url, svc }, tag = 'test') {
   return { userId: body.id, email, password };
 }
 
-/** 作った会員を消す。残っていないことも確かめて返す。 */
+/**
+ * 作った会員を消す。残っていないことも確かめて返す。
+ *
+ * **写真の置き場所も片付ける**（2026-10-06）。アカウントを消すと行は
+ * データベースが一緒に消すが、置き場所（avatars・submissions）のファイルは
+ * 残る。以前はここで消しておらず、持ち主のいない顔写真が54件たまっていた。
+ */
 export async function removeMember({ url, svc }, member) {
   if (!member?.userId) return true;
+  for (const bucket of ['avatars', 'submissions']) {
+    try {
+      const r = await fetch(`${url}/storage/v1/object/list/${bucket}`, {
+        method: 'POST',
+        headers: svc,
+        body: JSON.stringify({ prefix: member.userId, limit: 1000 }),
+      });
+      const list = await r.json();
+      const names = Array.isArray(list) ? list.map((f) => `${member.userId}/${f.name}`) : [];
+      if (names.length) {
+        await fetch(`${url}/storage/v1/object/${bucket}`, {
+          method: 'DELETE',
+          headers: svc,
+          body: JSON.stringify({ prefixes: names }),
+        });
+      }
+    } catch {
+      // 置き場所を片付けられなくても、会員は消す
+    }
+  }
   await fetch(`${url}/auth/v1/admin/users/${member.userId}`, { method: 'DELETE', headers: svc });
   const r = await fetch(`${url}/auth/v1/admin/users?per_page=200`, { headers: svc });
   const j = await r.json();
