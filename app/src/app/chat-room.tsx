@@ -31,6 +31,7 @@ import {
   type ChatMessage,
 } from '@/lib/chat';
 import { useChatUnread } from '@/lib/chat-unread';
+import { usePresence } from '@/lib/presence';
 import { confirmDelete } from '@/lib/confirm';
 import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
@@ -62,6 +63,8 @@ export default function ChatRoomScreen() {
   const router = useRouter();
   const { account } = useAccount();
   const { markRead } = useChatUnread();
+  /* オンライン状態（2026-10-06）。いまアプリを開いている方の目印 */
+  const { online } = usePresence();
 
   const [feed, setFeed] = useState<ChatFeed | null>(null);
   const [failed, setFailed] = useState(false);
@@ -186,6 +189,12 @@ export default function ChatRoomScreen() {
           <View style={styles.head}>
             <IconButton icon="chevron-back" label={t.common.back} onPress={() => router.back()} />
             <Text style={styles.heading}>{t.chat.generalName}</Text>
+            {online.size > 0 && (
+              <View style={styles.onlineCount} testID="online-count">
+                <View style={styles.onlineDotSmall} />
+                <Text style={styles.onlineCountText}>{fill(t.chatRoom.onlineCount, { n: String(online.size) })}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.rules}>
             <Ionicons name="shield-checkmark-outline" size={16} color={c.accent} />
@@ -225,14 +234,29 @@ export default function ChatRoomScreen() {
             {messages.length === 0 && <Text style={[styles.muted, styles.empty]}>{t.chatRoom.empty}</Text>}
             {messages.map((m) => (
               <View key={m.id} style={[styles.msg, m.mine && styles.msgMine]} testID="chat-message">
-                {!m.mine &&
-                  (m.avatarPath ? (
-                    <Image source={{ uri: avatarUrlOf(m.avatarPath) }} style={styles.avatar} contentFit="cover" />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarEmpty]}>
-                      <Text style={styles.avatarText}>{(m.name ?? '？').slice(0, 1)}</Text>
-                    </View>
-                  ))}
+                {!m.mine && (
+                  <View style={styles.avatarBox}>
+                    {m.avatarPath ? (
+                      <Image source={{ uri: avatarUrlOf(m.avatarPath) }} style={styles.avatar} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarEmpty]}>
+                        <Text style={styles.avatarText}>{(m.name ?? '？').slice(0, 1)}</Text>
+                      </View>
+                    )}
+                    {/*
+                      オンラインの印。色だけに頼らず、読み上げにも「オンライン」と伝える。
+                      地の色の縁取りで、写真の上でも見分けられるようにする。
+                    */}
+                    {!!m.author && online.has(m.author) && (
+                      <View
+                        style={styles.onlineDot}
+                        testID="online-dot"
+                        accessibilityLabel={t.chatRoom.online}
+                        accessible
+                      />
+                    )}
+                  </View>
+                )}
                 <View style={[styles.msgBody, m.mine && styles.msgBodyMine]}>
                   <Text style={styles.meta}>
                     {m.mine ? t.ranking.you : (m.name ?? t.chatRoom.noName)}
@@ -349,7 +373,22 @@ function makeStyles(c: Palette) {
 
     msg: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, maxWidth: '88%' },
     msgMine: { alignSelf: 'flex-end' },
-    avatar: { width: 32, height: 32, borderRadius: 16, marginTop: 16 },
+    avatarBox: { width: 32, height: 32, marginTop: 16 },
+    avatar: { width: 32, height: 32, borderRadius: 16 },
+    onlineDot: {
+      position: 'absolute',
+      right: -1,
+      bottom: -1,
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: '#22c55e',
+      borderWidth: 2,
+      borderColor: c.bg,
+    },
+    onlineCount: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 'auto' },
+    onlineDotSmall: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
+    onlineCountText: { fontSize: TEXT.small, color: c.textMuted },
     avatarEmpty: { backgroundColor: c.border, alignItems: 'center', justifyContent: 'center' },
     avatarText: { fontSize: TEXT.sub, fontWeight: '700', color: c.textMuted },
     msgBody: { flexShrink: 1, gap: 3, alignItems: 'flex-start' },

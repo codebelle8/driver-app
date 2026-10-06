@@ -226,6 +226,9 @@ const ja = {
     rules:
       'みんなが読める場所です。個人が特定できる情報や、人を傷つける書き込みはしないでください。ルールに反する書き込みは運営が非表示にします。',
     placeholder: '書き込む（500字まで）',
+    /* オンライン状態（2026-10-06） */
+    online: 'オンライン',
+    onlineCount: 'いまオンライン {n}人',
     send: '送る',
     empty: 'まだ書き込みはありません。最初の書き込みをどうぞ。',
     older: '前の書き込みを読む',
@@ -406,6 +409,10 @@ const ja = {
     rankAnonymous: 'ランキングで名前を出さない',
     rankAnonymousOn: '順位には「匿名の会員」と出ます',
     rankAnonymousOff: '順位に表示名が出ます',
+    /* チャットのオンライン状態（2026-10-06） */
+    presenceHidden: 'チャットでオンライン状態を出さない',
+    presenceHiddenOn: 'ほかの方からは、いつもオフラインに見えます',
+    presenceHiddenOff: 'アプリを開いているあいだ、オンラインと出ます',
     about: 'このアプリについて',
     terms: '利用規約',
     privacy: 'プライバシーポリシー',
@@ -961,6 +968,8 @@ const en: Dictionary = {
     rules:
       'Everyone can read this. Do not post anything that identifies a person or hurts others. Posts that break the rules are hidden by the operator.',
     placeholder: 'Write a post (up to 500 characters)',
+    online: 'Online',
+    onlineCount: '{n} online now',
     send: 'Send',
     empty: 'No posts yet. Be the first.',
     older: 'Read earlier posts',
@@ -1128,6 +1137,9 @@ const en: Dictionary = {
     rankAnonymous: 'Hide my name in the ranking',
     rankAnonymousOn: 'You appear as "Anonymous member"',
     rankAnonymousOff: 'Your display name appears in the ranking',
+    presenceHidden: 'Hide my online status in chat',
+    presenceHiddenOn: 'Others always see you as offline',
+    presenceHiddenOff: 'You appear online while the app is open',
     about: 'About this app',
     terms: 'Terms of use',
     privacy: 'Privacy policy',

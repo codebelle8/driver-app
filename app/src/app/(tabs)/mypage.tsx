@@ -10,6 +10,7 @@ import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
 import { endsAt, freeShown, isExpired, remaining, setRankAnonymous } from '@/lib/account';
 import { freeText } from '@/lib/free-text';
+import { usePresence } from '@/lib/presence';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
@@ -36,6 +37,8 @@ export default function MyPageScreen() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const { account, ready, refresh } = useAccount();
+  /* チャットでオンライン状態を出さない（2026-10-06）。端末に置く */
+  const { hidden: presenceHidden, setHidden: setPresenceHidden } = usePresence();
   /* ランキングで名前を出さない（2026-10-05）。押したらすぐ見た目を変え、裏で保存する */
   const [anonBusy, setAnonBusy] = useState(false);
   const [anonymous, setAnonymous] = useState<boolean | null>(null);
@@ -348,6 +351,30 @@ export default function MyPageScreen() {
               <Text style={styles.hint}>{anon ? t.mypage.rankAnonymousOn : t.mypage.rankAnonymousOff}</Text>
             </View>
             <Ionicons name={anon ? 'toggle' : 'toggle-outline'} size={22} color={anon ? c.accent : c.textFaint} />
+          </Pressable>
+        )}
+
+        {!!account && (
+          <Pressable
+            onPress={() => setPresenceHidden(!presenceHidden)}
+            style={styles.row}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: presenceHidden }}
+            aria-checked={presenceHidden}
+            accessibilityLabel={t.mypage.presenceHidden}
+          >
+            <View style={styles.icon}>
+              <Ionicons name={presenceHidden ? 'radio-button-off' : 'radio-button-on'} size={17} color={c.accent} />
+            </View>
+            <View style={styles.body}>
+              <Text style={styles.name}>{t.mypage.presenceHidden}</Text>
+              <Text style={styles.hint}>{presenceHidden ? t.mypage.presenceHiddenOn : t.mypage.presenceHiddenOff}</Text>
+            </View>
+            <Ionicons
+              name={presenceHidden ? 'toggle' : 'toggle-outline'}
+              size={22}
+              color={presenceHidden ? c.accent : c.textFaint}
+            />
           </Pressable>
         )}
 

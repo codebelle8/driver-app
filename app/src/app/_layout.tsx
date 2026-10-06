@@ -15,6 +15,7 @@ import { SideRail } from '@/components/side-rail';
 import { TopBar } from '@/components/top-bar';
 import { AccountProvider } from '@/lib/account-context';
 import { ChatUnreadProvider } from '@/lib/chat-unread';
+import { PresenceProvider } from '@/lib/presence';
 import { LocaleProvider } from '@/lib/i18n/context';
 import { useLayout } from '@/lib/layout';
 import { ensureSynced, refreshIfStale } from '@/lib/sync';
@@ -118,6 +119,8 @@ export default function RootLayout() {
       同じ数を見る。画面ごとに数えると、同じ問い合わせが画面の数だけ走る。
     */}
     <ChatUnreadProvider>
+    {/* チャットのオンライン状態（2026-10-06）。アプリを開いているあいだ名乗る */}
+    <PresenceProvider>
       <Shell />
       {/*
         導入映像。画面より上に重ね、終わるか押されたら消える。
@@ -139,6 +142,7 @@ export default function RootLayout() {
         札より後ろで構わない。札が出ている間に知らせは起きない。
       */}
       <NoticeHost />
+    </PresenceProvider>
     </ChatUnreadProvider>
     </ThemeProvider>
     </AccountProvider>

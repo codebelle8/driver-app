@@ -37,6 +37,11 @@ export interface ChatMessage {
   /** 表示名。無ければ null（画面で「名前未設定の会員」） */
   name: string | null;
   avatarPath: string | null;
+  /**
+   * 書いた方の目印（オンライン状態と結びつける。2026-10-06）。
+   * 会員の id ではなく、id から作った別の文字列。データベースの更新前は ''。
+   */
+  author: string;
 }
 
 export interface ChatFeed {
@@ -50,6 +55,8 @@ export interface ChatFeed {
     blocked: boolean;
     /** 表示名があるか */
     hasName: boolean;
+    /** 自分の目印（オンラインの出席簿に名乗るときに使う）。更新前は null */
+    key: string | null;
   };
 }
 
@@ -86,8 +93,16 @@ export async function loadFeed(
     });
     if (error || !data || typeof data !== 'object') return null;
     const j = data as {
-      messages?: { id: string; body: string; created_at: string; mine: boolean; name: string | null; avatar_path: string | null }[];
-      me?: { can_post?: boolean; muted?: boolean; blocked?: boolean; has_name?: boolean };
+      messages?: {
+        id: string;
+        body: string;
+        created_at: string;
+        mine: boolean;
+        name: string | null;
+        avatar_path: string | null;
+        author?: string;
+      }[];
+      me?: { can_post?: boolean; muted?: boolean; blocked?: boolean; has_name?: boolean; key?: string };
     };
     return {
       messages: (j.messages ?? []).map((m) => ({
@@ -97,12 +112,14 @@ export async function loadFeed(
         mine: !!m.mine,
         name: m.name ?? null,
         avatarPath: m.avatar_path ?? null,
+        author: m.author ?? '',
       })),
       me: {
         canPost: !!j.me?.can_post,
         muted: !!j.me?.muted,
         blocked: !!j.me?.blocked,
         hasName: !!j.me?.has_name,
+        key: j.me?.key ?? null,
       },
     };
   } catch {
