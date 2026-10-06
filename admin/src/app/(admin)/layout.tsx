@@ -39,6 +39,20 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
     管理者が画面を開いたときに時期を確かめる。消しはしない。
   */
   const isAdmin = staff.profile.role === 'admin';
+
+  /*
+    前の月を締める（翌月無料。2026-10-06）。仕掛け（cron）を置かず、月が替わって
+    最初にだれかが開いたときに締める。締めた月は何もしないので、毎回呼んでよい。
+    データベースの更新前（関数が無い）でも画面は止めない。
+  */
+  {
+    const supabase = await createClient();
+    await supabase.rpc('settle_free_month').then(
+      () => undefined,
+      () => undefined,
+    );
+  }
+
   let notices: Awaited<ReturnType<typeof fetchOpenNotices>> = null;
   if (isAdmin) {
     await ensurePurgeRequest();

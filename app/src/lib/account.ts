@@ -41,10 +41,9 @@ export type MemberStatus = 'trial' | 'active' | 'expired' | 'blocked';
  *
  *   surveyor … 管理画面で「調査員」として登録されている方
  *   owner    … 所有者のアカウント（管理画面の所有者と同じ。ご指示 2026-10-05）
- *
- * 毎月の上位の方を翌月無料にする段で、理由が増える。
+ *   top      … 前の月の情報提供で上位に入った方（翌月の1か月。2026-10-06）
  */
-export type FreeReason = 'surveyor' | 'owner';
+export type FreeReason = 'surveyor' | 'owner' | 'top';
 
 export interface Account {
   userId: string;
@@ -89,6 +88,8 @@ export interface Account {
    * 無いものは「通常の会員」として扱う。
    */
   freeReason?: FreeReason | null;
+  /** 無料の終わり（上位の方だけ。調査員・所有者は期限なしで null） */
+  freeUntil?: string | null;
   /**
    * 情報提供ランキングで名前を出さない（匿名）。本人が設定で選ぶ（2026-10-05）。
    * この版より前の控えには無い（undefined）。無いものは「出す」として扱う。
@@ -810,7 +811,7 @@ export async function loadAccount(): Promise<Account | null> {
     planChosenAt: row.plan_chosen_at,
     memberNo: row.member_no,
     offline: false,
-    freeReason: await loadFreeReason(),
+    ...(await loadFree()),
     rankAnonymous: row.rank_anonymous ?? false,
   };
 
@@ -821,19 +822,38 @@ export async function loadAccount(): Promise<Account | null> {
 }
 
 /**
- * 無料でお使いいただける方か（調査員など）。
+ * 前の月を締めたか（この端末で、このたび開いてから）。
  *
- * 尋ねられなかったときは、通常の会員として扱う（null）。データベースを
+ * 毎月の上位の方を翌月無料にするための締め（settle_free_month）。仕掛け
+ * （cron）を置かず、月が替わってから最初にだれかが開いたときに締める。
+ * 締めるのはデータベースが1回だけ行うので、何度呼んでも構わないが、
+ * 開くたびに呼ぶ必要もない。
+ */
+let settleAsked = false;
+
+/**
+ * 無料でお使いいただける方か（調査員・所有者・前の月の上位）。
+ *
+ * 尋ねられなかったときは、通常の会員として扱う。データベースを
  * 更新する前でも、これまでどおり動く。
  */
-async function loadFreeReason(): Promise<FreeReason | null> {
+async function loadFree(): Promise<{ freeReason: FreeReason | null; freeUntil: string | null }> {
   try {
+    if (!settleAsked) {
+      settleAsked = true;
+      /* 上位に入った方が、月が替わって最初に開いたときから無料になるよう、先に締める */
+      await supabase.rpc('settle_free_month').then(
+        () => undefined,
+        () => undefined,
+      );
+    }
     const { data, error } = await supabase.rpc('my_free_access');
-    if (error || !data || typeof data !== 'object') return null;
-    const reason = (data as { reason?: unknown }).reason;
-    return reason === 'surveyor' || reason === 'owner' ? reason : null;
+    if (error || !data || typeof data !== 'object') return { freeReason: null, freeUntil: null };
+    const j = data as { reason?: unknown; until?: unknown };
+    const reason = j.reason === 'surveyor' || j.reason === 'owner' || j.reason === 'top' ? j.reason : null;
+    return { freeReason: reason, freeUntil: typeof j.until === 'string' ? j.until : null };
   } catch {
-    return null;
+    return { freeReason: null, freeUntil: null };
   }
 }
 
@@ -931,10 +951,32 @@ export async function choosePlan(userId: string, plan: PlanId): Promise<Result> 
  * 呼ぶ側は「期限なし」として扱う。
  */
 export function endsAt(account: Account): string | null {
-  /* 無料でお使いいただいている方（調査員など）は期限なし */
-  if (account.freeReason) return null;
-  if (account.status === 'active') return account.paidUntil;
-  return account.trialEndsAt;
+  /* 調査員・所有者は期限なし */
+  if (account.freeReason === 'surveyor' || account.freeReason === 'owner') return null;
+  const base = account.status === 'active' ? account.paidUntil : account.trialEndsAt;
+  /*
+    前の月の上位（2026-10-06）。無料の終わりと、ふだんの終わりの遅いほう。
+    お支払い済みで期間のほうが長い方は、そちらのまま（期間は締めのときに
+    1か月延びている）。期限を持たない方（この欄より前からの方）もそのまま。
+  */
+  if (account.freeReason === 'top' && account.freeUntil) {
+    if (account.status === 'active' && base === null) return null;
+    if (!base || new Date(account.freeUntil).getTime() > new Date(base).getTime()) return account.freeUntil;
+  }
+  return base;
+}
+
+/**
+ * 画面に「無料」と出す理由。出さないときは null。
+ *
+ * 上位の方は、無料の終わりがふだんの終わりより遅いときだけ「無料（上位）」と
+ * 出す。お支払い済みで期間のほうが長い方は、ふだんどおり「ご利用中」と出す。
+ */
+export function freeShown(account: Account): FreeReason | null {
+  const r = account.freeReason ?? null;
+  if (r === 'surveyor' || r === 'owner') return r;
+  if (r === 'top' && account.freeUntil && endsAt(account) === account.freeUntil) return 'top';
+  return null;
 }
 
 /**

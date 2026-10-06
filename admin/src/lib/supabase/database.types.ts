@@ -194,7 +194,30 @@ export type SiteSettings = {
   law_url: string | null;
   /** 圏外で使える日数（最後に確かめてから）。1〜365、既定30。20260926000001 で追加 */
   offline_grace_days: number;
+  /** 翌月無料にする人数（既定20）と、要る採用件数（既定3）。20261006000001 で追加 */
+  free_top_count?: number;
+  free_min_accepted?: number;
   updated_at: string;
+}
+
+/** 締めた月（翌月無料）。month は集計した月で、無料になるのはその翌月 */
+export type FreeMonth = {
+  month: string;
+  settled_at: string;
+  top_count: number;
+  min_accepted: number;
+  winners: number;
+}
+
+/** 翌月無料になった方（締めのときに作る。あとから変えない） */
+export type FreeGrant = {
+  month: string;
+  user_id: string;
+  rank: number;
+  accepted: number;
+  free_from: string;
+  free_until: string;
+  extended_paid: boolean;
 }
 
 /** 知らせの種類。文面は管理画面が組み立てる。 */
@@ -425,6 +448,8 @@ export interface Database {
           | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note' | 'created_at' | 'updated_at'
         >
       >;
+      free_months: Table<FreeMonth, Insert<FreeMonth, keyof FreeMonth>>;
+      free_grants: Table<FreeGrant, Insert<FreeGrant, keyof FreeGrant>>;
       chat_messages: Table<
         ChatMessage,
         Insert<ChatMessage, 'id' | 'channel' | 'user_id' | 'hidden_at' | 'hidden_by' | 'created_at'>
@@ -455,6 +480,11 @@ export interface Database {
       my_payment_reported: {
         Args: Record<never, never>;
         Returns: string | null;
+      };
+      /** 前の月を締める（翌月無料）。締めた月は何もしない（null） */
+      settle_free_month: {
+        Args: Record<never, never>;
+        Returns: { month: string; winners: number } | null;
       };
     };
   };

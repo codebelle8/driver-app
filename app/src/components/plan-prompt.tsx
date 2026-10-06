@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { choosePlan, daysLeft, isExpired, remaining } from '@/lib/account';
+import { choosePlan, daysLeft, freeShown, isExpired, remaining } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatSpan } from '@/lib/i18n/dictionaries';
@@ -67,7 +67,7 @@ export function PlanPrompt({
 
   if (!account) return null;
   /* 無料でお使いいただいている方（調査員など）には、料金の話を出さない */
-  if (account.freeReason) return null;
+  if (freeShown(account)) return null;
 
   const over = isExpired(account);
   const left = daysLeft(account);

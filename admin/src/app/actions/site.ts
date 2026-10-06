@@ -91,6 +91,23 @@ export async function saveSiteSettings(
   }
 
   /*
+    翌月無料の人数と最低件数（2026-10-06）。空欄は既定（20名・3件）。
+    変えたあとに締める月から効く（締めた月の判断は変わらない）。
+  */
+  const num = (k: string, fallback: number) => {
+    const raw = get(k).replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+    return raw === '' ? fallback : Number(raw);
+  };
+  const topCount = num('free_top_count', 20);
+  const minAccepted = num('free_min_accepted', 3);
+  if (!Number.isInteger(topCount) || topCount < 1 || topCount > 200) {
+    errors.free_top_count = '1〜200 の整数でご指定ください';
+  }
+  if (!Number.isInteger(minAccepted) || minAccepted < 1 || minAccepted > 100) {
+    errors.free_min_accepted = '1〜100 の整数でご指定ください';
+  }
+
+  /*
     **欄の下だけでなく、上にもまとめて出す。**
 
     欄が画面の外にあると、赤い文字に気づけない。保存を押したのに
@@ -111,7 +128,12 @@ export async function saveSiteSettings(
   };
   const { error } = await admin
     .from('site_settings')
-    .update({ ...links, offline_grace_days: graceDays })
+    .update({
+      ...links,
+      offline_grace_days: graceDays,
+      free_top_count: topCount,
+      free_min_accepted: minAccepted,
+    })
     .eq('id', 1);
 
   if (error) {
@@ -119,6 +141,20 @@ export async function saveSiteSettings(
       **データベースを更新する前（列がまだ無い）。** 日数だけを外して保存し、
       ほかの項目は失わない。日数は既定の30日で動く。
     */
+    if (/free_top_count|free_min_accepted/.test(error.message)) {
+      /* 翌月無料の列がまだ無い（20261006000001_free_month.sql の前）。日数までは保存する */
+      const retry = await admin
+        .from('site_settings')
+        .update({ ...links, offline_grace_days: graceDays })
+        .eq('id', 1);
+      if (retry.error) return { message: `保存できませんでした: ${retry.error.message}` };
+      revalidatePath('/site');
+      return {
+        ok: true,
+        message:
+          '保存しました。ただし「翌月無料」の人数と件数は、データベースの更新（20261006000001_free_month.sql）の後から保存できます。それまでは20名・3件で動きます。',
+      };
+    }
     if (error.code === '42703' || /offline_grace_days/.test(error.message)) {
       const retry = await admin.from('site_settings').update(links).eq('id', 1);
       if (retry.error) return { message: `保存できませんでした: ${retry.error.message}` };

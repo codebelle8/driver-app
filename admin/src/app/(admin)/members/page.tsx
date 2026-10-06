@@ -73,6 +73,18 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
   );
   for (const id of ownerIds) free.add(id);
 
+  /*
+    前の月の情報提供の上位で、いま無料の期間にいる方（2026-10-06）。
+    無料の終わりまでは期限切れとして扱わない。表が無ければ（更新前）空。
+  */
+  const nowIso = new Date().toISOString();
+  const { data: grantRows } = await admin
+    .from('free_grants')
+    .select('user_id, free_until')
+    .lte('free_from', nowIso)
+    .gt('free_until', nowIso);
+  const topUntil = new Map((grantRows ?? []).map((g) => [g.user_id, g.free_until]));
+
   const day = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString('ja-JP', { dateStyle: 'medium' }) : '—';
 
@@ -119,8 +131,19 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
     勝手に期限を決めず、次に「入金を確認した」を押した時点で入る。
   */
   type Row = { user_id: string; status: string; trial_ends_at: string; paid_until?: string | null };
-  const endOf = (p: Row): string | null =>
-    free.has(p.user_id) ? null : p.status === 'active' ? (p.paid_until ?? null) : p.trial_ends_at;
+  const endOf = (p: Row): string | null => {
+    if (free.has(p.user_id)) return null;
+    const base = p.status === 'active' ? (p.paid_until ?? null) : p.trial_ends_at;
+    const top = topUntil.get(p.user_id);
+    if (!top) return base;
+    /* 上位の無料と、ふだんの終わりの遅いほう（期限なしの方はそのまま） */
+    if (p.status === 'active' && base === null) return null;
+    return !base || new Date(top).getTime() > new Date(base).getTime() ? top : base;
+  };
+  const isTop = (p: Row) => {
+    const top = topUntil.get(p.user_id);
+    return !!top && endOf(p) === top;
+  };
 
   const isOver = (p: Row): boolean => {
     const at = endOf(p);
@@ -251,13 +274,15 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <Badge tone={blocked || expired ? 'warn' : paid || isFree ? 'accent' : 'default'}>
+                        <Badge tone={blocked || expired ? 'warn' : paid || isFree || isTop(p) ? 'accent' : 'default'}>
                           {blocked
                             ? m.stateBlocked
                             : isFree
                               ? ownerIds.has(p.user_id)
                                 ? m.stateFreeOwner
                                 : m.stateFree
+                              : isTop(p)
+                                ? m.stateFreeTop
                               : expired
                               ? m.stateExpired
                               : paid

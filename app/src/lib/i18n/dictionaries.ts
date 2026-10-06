@@ -273,7 +273,11 @@ const ja = {
     monthDone: '{y}年{m}月の結果',
     empty: 'この月は、まだ採用された情報がありません。',
     how: '施設の画面の「現地と違うところがあれば、情報を送る」から送れます。採用された件数で順位が決まります。',
-    future: '有料化のあとは、毎月の上位20名の方が翌月無料になる予定です。',
+    /* 翌月無料の決まり（2026-10-06。人数と件数は管理画面の設定） */
+    rule: '毎月、採用{min}件以上で上位{top}名の方は、翌月の1か月が無料になります。',
+    youFree: '先月の上位に入られたため、{date}まで無料でお使いいただけます。',
+    settledNote: 'この月の締めで、{n}名の方が翌月無料になりました。',
+    freeTag: '翌月無料',
     nameSetting: '名前の出し方は、マイページの「ランキングで名前を出さない」で変えられます。',
     loadFailed: '読み込めませんでした。電波の届く場所でもう一度お試しください。',
     retry: 'もう一度読み込む',
@@ -390,6 +394,8 @@ const ja = {
     accountFree: {
       surveyor: '調査員のため無料でお使いいただけます',
       owner: '運営者のアカウントのため無料でお使いいただけます',
+      /* 前の月の情報提供の上位（2026-10-06） */
+      top: '情報提供の上位のため、{date}まで無料です',
     },
     accountEnded: '無料期間は終了しました',
     /* お支払い済みの方の期間。ご指示 2026-09-15。 */
@@ -477,10 +483,12 @@ const ja = {
     statusFree: {
       surveyor: '無料（調査員）',
       owner: '無料（運営者）',
+      top: '無料（{date}まで・情報提供の上位）',
     },
     freeBody: {
       surveyor: '調査員として登録されているため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
       owner: '運営者のアカウントのため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
+      top: '先月の情報提供で上位に入られたため、{date}まで無料でお使いいただけます。お支払いの手続きは要りません。ありがとうございます。',
     },
     statusBlocked: 'ご利用を停止しています',
 
@@ -1000,7 +1008,10 @@ const en: Dictionary = {
     monthDone: 'Results for {m}/{y}',
     empty: 'No submissions have been accepted this month yet.',
     how: 'Send information from "Something different on site? Send us information" on a facility page. The ranking is based on accepted submissions.',
-    future: 'After the paid launch, the top 20 each month are planned to get the following month free.',
+    rule: 'Each month, the top {top} members with at least {min} accepted submissions get the following month free.',
+    youFree: 'You were a top contributor last month, so the app is free until {date}.',
+    settledNote: '{n} members got the following month free from this month.',
+    freeTag: 'Next month free',
     nameSetting: 'You can hide your name with "Hide my name in the ranking" in Settings.',
     loadFailed: 'Could not load. Please try again where there is a signal.',
     retry: 'Try again',
@@ -1108,6 +1119,7 @@ const en: Dictionary = {
     accountFree: {
       surveyor: 'Free to use as a field surveyor',
       owner: 'Free to use as the operator account',
+      top: 'Free until {date} as a top contributor',
     },
     accountEnded: 'Your free month has ended',
     accountPaid: '{left} left',
@@ -1185,10 +1197,12 @@ const en: Dictionary = {
     statusFree: {
       surveyor: 'Free (field surveyor)',
       owner: 'Free (operator)',
+      top: 'Free until {date} (top contributor)',
     },
     freeBody: {
       surveyor: 'You are registered as a field surveyor, so you can use the app free of charge with no end date. No payment is needed.',
       owner: 'This is the operator account, so you can use the app free of charge with no end date. No payment is needed.',
+      top: 'You were a top contributor last month, so the app is free until {date}. No payment is needed. Thank you.',
     },
     statusBlocked: 'Suspended',
 

@@ -31,6 +31,8 @@ export function SiteSettingsForm({
     privacy_url: string | null;
     law_url: string | null;
     offline_grace_days: number;
+    free_top_count: number;
+    free_min_accepted: number;
   };
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
@@ -131,6 +133,42 @@ export function SiteSettingsForm({
             <span className="text-sm text-text-muted">{s.offlineDaysUnit}</span>
           </div>
         </Field>
+
+        {/*
+          翌月無料（2026-10-06）。毎月の情報提供の上位の方を、翌月無料にする。
+          変えると、次に締める月から効く。
+        */}
+        <div className="border-t border-border pt-4">
+          <h2 className="text-sm font-semibold text-text-muted">{s.freeTitle}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-text-faint">{s.freeHint}</p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={s.freeTop} error={err('free_top_count')}>
+            <div className="flex items-center gap-2">
+              <input
+                name="free_top_count"
+                inputMode="numeric"
+                defaultValue={String(initial.free_top_count)}
+                className={`${inputClass} w-28`}
+                placeholder="20"
+              />
+              <span className="text-sm text-text-muted">{s.freeTopUnit}</span>
+            </div>
+          </Field>
+          <Field label={s.freeMin} error={err('free_min_accepted')}>
+            <div className="flex items-center gap-2">
+              <input
+                name="free_min_accepted"
+                inputMode="numeric"
+                defaultValue={String(initial.free_min_accepted)}
+                className={`${inputClass} w-28`}
+                placeholder="3"
+              />
+              <span className="text-sm text-text-muted">{s.freeMinUnit}</span>
+            </div>
+          </Field>
+        </div>
 
         <Button type="submit" disabled={pending}>
           {pending ? s.saving : s.save}

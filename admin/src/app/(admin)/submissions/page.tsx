@@ -5,7 +5,7 @@ import { PageLink } from '@/components/page-link';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { requireManager } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
-import type { Submission, SubmissionStatus } from '@/lib/supabase/database.types';
+import type { FreeGrant, FreeMonth, Submission, SubmissionStatus } from '@/lib/supabase/database.types';
 import { createAdminClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -98,6 +98,25 @@ export default async function SubmissionsPage({ searchParams }: PageProps<'/subm
     (signed.data ?? []).filter((x) => x.path && x.signedUrl).map((x) => [x.path as string, x.signedUrl]),
   );
 
+  /*
+    毎月の上位（翌月無料。2026-10-06）。新しい2か月分。表が無ければ（更新前）出さない。
+  */
+  const { data: monthRows, error: monthErr } = await admin
+    .from('free_months')
+    .select('*')
+    .order('month', { ascending: false })
+    .limit(2);
+  const months = (monthRows ?? []) as FreeMonth[];
+  const { data: grantRows } = months.length
+    ? await admin.from('free_grants').select('*').in('month', months.map((m) => m.month)).order('rank')
+    : { data: [] as FreeGrant[] };
+  const grants = (grantRows ?? []) as FreeGrant[];
+  const grantIds = [...new Set(grants.map((g) => g.user_id))];
+  const { data: grantPeople } = grantIds.length
+    ? await admin.from('driver_profiles').select('user_id, member_no, display_name').in('user_id', grantIds)
+    : { data: [] as { user_id: string; member_no: number; display_name: string | null }[] };
+  const person = new Map((grantPeople ?? []).map((p) => [p.user_id, p]));
+
   const when = (iso: string) =>
     new Date(iso).toLocaleString('ja-JP', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tokyo' });
   const code = (n: number) => (n < 10000 ? String(n).padStart(4, '0') : String(n));
@@ -108,6 +127,64 @@ export default async function SubmissionsPage({ searchParams }: PageProps<'/subm
   return (
     <div className="space-y-6">
       <PageHeader title={s.title} description={s.description} />
+
+      {/* 毎月の上位（翌月無料） */}
+      {!monthErr && (
+        <Card className="space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold">{s.monthlyTitle}</h2>
+            <p className="mt-0.5 text-xs text-text-faint">{s.monthlyHint}</p>
+          </div>
+          {months.length === 0 ? (
+            <p className="text-sm text-text-muted">{s.monthlyNone}</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {months.map((mo) => {
+                const [y, mm] = mo.month.split('-');
+                const next = (Number(mm) % 12) + 1;
+                const list = grants.filter((g) => g.month === mo.month);
+                return (
+                  <div key={mo.month} className="space-y-1.5 rounded-lg border border-border p-3">
+                    <p className="text-sm font-semibold">
+                      {s.monthlyHead
+                        .replace('{y}', y)
+                        .replace('{m}', String(Number(mm)))
+                        .replace('{n}', String(mo.winners))
+                        .replace('{next}', String(next))}
+                    </p>
+                    <p className="text-xs text-text-faint">
+                      {s.monthlyRule.replace('{top}', String(mo.top_count)).replace('{min}', String(mo.min_accepted))}
+                    </p>
+                    {list.length === 0 ? (
+                      <p className="text-xs text-text-muted">{s.monthlyEmpty}</p>
+                    ) : (
+                      <ul className="space-y-0.5 text-sm">
+                        {list.map((g) => {
+                          const pp = person.get(g.user_id);
+                          const name = pp
+                            ? `${pp.display_name?.trim() || s.member.replace('{no}', code(pp.member_no))}（${code(pp.member_no)}）`
+                            : s.memberGone;
+                          return (
+                            <li key={g.user_id} className="tabular">
+                              {s.monthlyRow
+                                .replace('{rank}', String(g.rank))
+                                .replace('{name}', name)
+                                .replace('{n}', String(g.accepted))}
+                              {g.extended_paid && (
+                                <span className="ml-2 text-xs text-text-faint">{s.monthlyExtended}</span>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* 区分の切り替え */}
       <nav className="flex flex-wrap gap-2" aria-label={s.title}>

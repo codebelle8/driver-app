@@ -14,6 +14,7 @@ import {
   clearAvatar,
   deleteMyAccount,
   endsAt,
+  freeShown,
   isExpired,
   remaining,
   signOut,
@@ -21,6 +22,7 @@ import {
   updateDisplayName,
   uploadAvatar,
 } from '@/lib/account';
+import { freeText } from '@/lib/free-text';
 import { useAccount } from '@/lib/account-context';
 import { canPickAvatar, pickAvatar } from '@/lib/avatar';
 import { confirmDelete } from '@/lib/confirm';
@@ -320,8 +322,8 @@ function SignedIn({
           <Text style={[styles.cardValue, over && styles.cardValueWarn]}>
             {account.status === 'blocked'
               ? t.account.statusBlocked
-              : account.freeReason
-                ? t.account.statusFree[account.freeReason]
+              : freeShown(account)
+                ? freeText(t.account.statusFree, account, t)
               : /* 期限を持たない方（この欄を設ける前からの方）は日付を出さない */
                 !end
                 ? t.account.statusPaid

@@ -14,7 +14,6 @@
  *
  * 毎月の上位の方を翌月無料にする段でも、同じ順位を使う。ここで別に数えない。
  */
-import type { FreeReason } from './account';
 import { supabase } from './supabase';
 import type { SubmissionKind } from './submissions';
 
@@ -25,11 +24,17 @@ export interface RankRow {
   me: boolean;
   /** 表示名。匿名を選んだ方・表示名の無い方は null */
   name: string | null;
+  /** その月の締めで、翌月無料になった方か（2026-10-06） */
+  free: boolean;
 }
 
 export interface Ranking {
   /** 対象の月（YYYY-MM） */
   month: string;
+  /** 翌月無料の決まり（いまの設定）。上位 top 名・min 件以上 */
+  rule: { top: number; min: number };
+  /** その月を締めたか（翌月無料が決まったか） */
+  settled: boolean;
   /** 上位20名 */
   top: RankRow[];
   me: {
@@ -39,7 +44,9 @@ export interface Ranking {
     /** その月に送った件数（審査待ち・不採用も含む）。本人にだけ返る */
     sent: number;
     /** 順位から外れている理由（調査員・所有者） */
-    excluded: FreeReason | null;
+    excluded: 'surveyor' | 'owner' | null;
+    /** いま上位で無料の期間にいれば、その終わり（翌月の初日0時） */
+    freeUntil: string | null;
   };
   /** 順位に入った人数 */
   participants: number;
@@ -60,15 +67,22 @@ export async function loadRanking(month?: string): Promise<Ranking | null> {
   try {
     const { data, error } = await supabase.rpc('submission_ranking', { p_month: month ?? null });
     if (error || !data || typeof data !== 'object') return null;
-    const j = data as Ranking;
+    const j = data as Omit<Ranking, 'me' | 'top'> & {
+      top?: (Omit<RankRow, 'free'> & { free?: boolean })[];
+      me?: Partial<Ranking['me']> & { free_until?: string | null };
+    };
     return {
       month: j.month,
-      top: Array.isArray(j.top) ? j.top : [],
+      /* データベースの更新前は決まりが返らない。既定の 20名・3件で見せる */
+      rule: { top: j.rule?.top ?? 20, min: j.rule?.min ?? 3 },
+      settled: !!j.settled,
+      top: (Array.isArray(j.top) ? j.top : []).map((r) => ({ ...r, free: !!r.free })),
       me: {
         rank: j.me?.rank ?? null,
         accepted: j.me?.accepted ?? 0,
         sent: j.me?.sent ?? 0,
         excluded: j.me?.excluded === 'surveyor' || j.me?.excluded === 'owner' ? j.me.excluded : null,
+        freeUntil: j.me?.free_until ?? null,
       },
       participants: j.participants ?? 0,
     };

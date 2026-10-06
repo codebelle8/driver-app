@@ -8,7 +8,8 @@ import { useEffect, useState } from 'react';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { Flag } from '@/components/flag';
 import { PageWidth } from '@/components/page-width';
-import { endsAt, isExpired, remaining, setRankAnonymous } from '@/lib/account';
+import { endsAt, freeShown, isExpired, remaining, setRankAnonymous } from '@/lib/account';
+import { freeText } from '@/lib/free-text';
 import { useAccount } from '@/lib/account-context';
 import { useLocale, useT } from '@/lib/i18n/context';
 import { notify } from '@/lib/notice';
@@ -186,8 +187,8 @@ export default function MyPageScreen() {
                       終わった旨を出す（ご指示 2026-09-15）。状態を先に
                       見ると、切れていても「ご利用中」と出てしまう。
                     */
-                    account.freeReason
-                    ? t.mypage.accountFree[account.freeReason]
+                    freeShown(account)
+                    ? freeText(t.mypage.accountFree, account, t)
                     : isExpired(account)
                     ? account.status === 'active'
                       ? t.mypage.accountEndedPaid
@@ -223,8 +224,8 @@ export default function MyPageScreen() {
             <View style={styles.body}>
               <Text style={styles.name}>{t.mypage.payment}</Text>
               <Text style={styles.hint}>
-                {account.freeReason
-                  ? t.mypage.accountFree[account.freeReason]
+                {freeShown(account)
+                  ? freeText(t.mypage.accountFree, account, t)
                   : isExpired(account)
                   ? account.status === 'active'
                     ? t.mypage.accountEndedPaid

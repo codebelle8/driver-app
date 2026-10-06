@@ -48,6 +48,9 @@ export default async function SitePage() {
           law_url: data?.law_url ?? null,
           /* データベースを更新する前は列が無い。既定の30日を出しておく */
           offline_grace_days: (data as { offline_grace_days?: number } | null)?.offline_grace_days ?? 30,
+          /* 翌月無料（2026-10-06）。更新前は列が無いので既定を出す */
+          free_top_count: (data as { free_top_count?: number } | null)?.free_top_count ?? 20,
+          free_min_accepted: (data as { free_min_accepted?: number } | null)?.free_min_accepted ?? 3,
         }}
       />
     </div>

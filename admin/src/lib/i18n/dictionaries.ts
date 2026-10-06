@@ -134,6 +134,16 @@ const ja = {
     reopen: '審査待ちに戻す',
     saveNote: '覚え書きを保存',
     openFacility: '施設の画面を開く',
+    /* 毎月の上位（翌月無料。2026-10-06） */
+    monthlyTitle: '毎月の上位（翌月無料）',
+    monthlyHint:
+      '月が替わると、前の月の採用件数で順位を出し、上位の方の翌月を無料にします（人数と件数は「サイト設定」）。',
+    monthlyNone: 'まだ締めた月はありません。',
+    monthlyHead: '{y}年{m}月の上位（{n}名が{next}月無料）',
+    monthlyRule: '上位{top}名・{min}件以上',
+    monthlyEmpty: 'この月は、無料になった方はいませんでした。',
+    monthlyRow: '{rank}位　{name}　採用 {n}件',
+    monthlyExtended: 'お支払いの期間を1か月延長',
   },
 
   /*
@@ -194,6 +204,14 @@ const ja = {
     offlineDays: '日数（1〜365日）',
     offlineDaysHint: '既定は30日です。毎日お使いの方なら、そのあいだに必ず一度は電波のある場所で開くため、まず当たりません。',
     offlineDaysUnit: '日',
+    /* 翌月無料（2026-10-06） */
+    freeTitle: '情報提供の上位の翌月無料',
+    freeHint:
+      '毎月、採用された件数で順位を出し、上位の方の翌月を無料にします（お支払い済みの方は、ご利用期間を1か月延ばします）。月が替わってから最初にだれかがアプリか管理画面を開いたときに、前の月を締めます。変えた値は、次に締める月から効きます。',
+    freeTop: '人数（1〜200名）',
+    freeTopUnit: '名',
+    freeMin: '最低件数（1〜100件）',
+    freeMinUnit: '件以上',
 
     whyTitle: 'お金を受け取る前に、この3つが要ります',
     whyBody:
@@ -240,6 +258,8 @@ const ja = {
     /* 調査員はアプリを無料で使える（2026-10-05）。入金の確認は要らない */
     stateFree: '無料（調査員）',
     stateFreeOwner: '無料（運営者）',
+    /* 前の月の情報提供の上位（翌月無料。2026-10-06） */
+    stateFreeTop: '無料（上位）',
     /*
       料金の刻みの名前。id で引く。
       刻みは4つ（2026-09-14）。画面の側で書き分けない。
@@ -813,6 +833,15 @@ const en: Dictionary = {
     reopen: 'Back to pending',
     saveNote: 'Save note',
     openFacility: 'Open the facility page',
+    monthlyTitle: 'Monthly top contributors (next month free)',
+    monthlyHint:
+      'When the month changes, the previous month is ranked by accepted submissions and the top members get the following month free (set the numbers in Site settings).',
+    monthlyNone: 'No month has been settled yet.',
+    monthlyHead: 'Top for {m}/{y} ({n} free in month {next})',
+    monthlyRule: 'Top {top}, at least {min}',
+    monthlyEmpty: 'Nobody qualified this month.',
+    monthlyRow: '#{rank}  {name}  {n} accepted',
+    monthlyExtended: 'Paid period extended by a month',
   },
 
   push: {
@@ -866,6 +895,13 @@ const en: Dictionary = {
     offlineDays: 'Days (1-365)',
     offlineDaysHint: 'The default is 30. Members who use the app daily will almost always open it with a signal within that time.',
     offlineDaysUnit: 'days',
+    freeTitle: 'Next month free for top contributors',
+    freeHint:
+      'Each month, members are ranked by accepted submissions and the top ones get the following month free (paid members get their period extended by a month). The previous month is settled the first time anyone opens the app or this admin after the month changes. Changes apply from the next settlement.',
+    freeTop: 'Members (1-200)',
+    freeTopUnit: 'members',
+    freeMin: 'Minimum accepted (1-100)',
+    freeMinUnit: 'or more',
 
     whyTitle: 'These three are required before charging',
     whyBody:
@@ -910,6 +946,7 @@ const en: Dictionary = {
     stateTrial: 'Free month',
     stateFree: 'Free (surveyor)',
     stateFreeOwner: 'Free (operator)',
+    stateFreeTop: 'Free (top contributor)',
     planNames: {
       monthly: '1 month',
       quarterly: '3 months',

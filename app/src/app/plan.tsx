@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { PlanPrompt } from '@/components/plan-prompt';
-import { endsAt, isExpired, remaining } from '@/lib/account';
+import { endsAt, freeShown, isExpired, remaining } from '@/lib/account';
+import { freeText } from '@/lib/free-text';
 import { useAccount } from '@/lib/account-context';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatDate, formatSpan } from '@/lib/i18n/dictionaries';
@@ -150,8 +151,8 @@ export default function PlanScreen() {
               <Text style={[styles.cardValue, over && styles.warn]}>
                 {account.status === 'blocked'
                   ? t.account.statusBlocked
-                  : account.freeReason
-                    ? t.account.statusFree[account.freeReason]
+                  : freeShown(account)
+                    ? freeText(t.account.statusFree, account, t)
                   : over
                     ? paid
                       ? t.plan.statusEndedPaid
@@ -198,10 +199,10 @@ export default function PlanScreen() {
             無料でお使いいただいている方（調査員など）。料金の選択も振込先も
             出さない。選べてしまうと、払う必要があるように読める。
           */}
-          {account.freeReason ? (
+          {freeShown(account) ? (
             <View style={styles.notice}>
               <Ionicons name="checkmark-circle-outline" size={18} color={c.accent} />
-              <Text style={styles.noticeText}>{t.account.freeBody[account.freeReason]}</Text>
+              <Text style={styles.noticeText}>{freeText(t.account.freeBody, account, t)}</Text>
             </View>
           ) : (
             <>
@@ -220,7 +221,7 @@ export default function PlanScreen() {
             お振込先。ご希望の料金をお選びいただいてから出す。
             選ぶ前に出しても、いくら振り込めばよいのかが決まらない。
           */}
-          {!!current && !account.freeReason &&
+          {!!current && !freeShown(account) &&
             (isReady(transfer) ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t.plan.transferTitle}</Text>

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { useT } from '@/lib/i18n/context';
-import { fill, type Dictionary } from '@/lib/i18n/dictionaries';
+import { fill, formatDate, type Dictionary } from '@/lib/i18n/dictionaries';
 import { loadRanking, monthOf, type Ranking } from '@/lib/ranking';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -88,6 +88,14 @@ export default function RankingScreen() {
                     styles={styles}
                   />
                 </View>
+                {/* 前の月の上位で、いま無料（2026-10-06） */}
+                {!!now.me.freeUntil && (
+                  <Text style={styles.pinnedFree} testID="ranking-free">
+                    {fill(t.ranking.youFree, {
+                      date: formatDate(t, new Date(new Date(now.me.freeUntil).getTime() - 1)),
+                    })}
+                  </Text>
+                )}
                 {now.me.excluded ? (
                   <Text style={styles.pinnedNote}>{t.ranking.excluded[now.me.excluded]}</Text>
                 ) : (
@@ -111,7 +119,9 @@ export default function RankingScreen() {
 
             <Post t={t} styles={styles} c={c}>
               <Text style={styles.postText}>{t.ranking.how}</Text>
-              <Text style={styles.postText}>{t.ranking.future}</Text>
+              <Text style={styles.postText}>
+                {fill(t.ranking.rule, { top: String(now?.rule.top ?? 20), min: String(now?.rule.min ?? 3) })}
+              </Text>
               <Text style={styles.postNote}>{t.ranking.nameSetting}</Text>
             </Post>
           </ScrollView>
@@ -173,12 +183,17 @@ function MonthPost({
 }) {
   const [y, m] = ranking.month.split('-');
   const title = fill(current ? t.ranking.monthNow : t.ranking.monthDone, { y, m: String(Number(m)) });
+  /* 締めた月は、翌月無料になった方の人数を添える */
+  const winners = ranking.top.filter((r) => r.free).length;
   /* 過去の月で、採用が1件も無かった月は出さない（空の書き込みが続くだけになる） */
   if (!current && ranking.top.length === 0) return null;
 
   return (
     <Post t={t} styles={styles} c={c}>
       <Text style={styles.postTitle}>{title}</Text>
+      {ranking.settled && ranking.top.length > 0 && (
+        <Text style={styles.postNote}>{fill(t.ranking.settledNote, { n: String(winners) })}</Text>
+      )}
       {ranking.top.length === 0 ? (
         <Text style={styles.postText}>{t.ranking.empty}</Text>
       ) : (
@@ -190,6 +205,7 @@ function MonthPost({
                 {r.name ?? t.ranking.anonymous}
                 {r.me ? `（${t.ranking.you}）` : ''}
               </Text>
+              {r.free && <Text style={styles.freeTag}>{t.ranking.freeTag}</Text>}
               <Text style={styles.count}>{fill(t.ranking.countValue, { n: String(r.accepted) })}</Text>
             </View>
           ))}
@@ -240,6 +256,7 @@ function makeStyles(c: Palette) {
     },
     pinnedTitle: { fontSize: TEXT.bodyStrong, fontWeight: '800', color: c.text },
     pinnedNote: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 19 },
+    pinnedFree: { fontSize: TEXT.body, fontWeight: '800', color: c.accentInk, lineHeight: 20 },
     stats: { flexDirection: 'row', gap: SPACE.sm },
     stat: {
       flex: 1,
@@ -306,5 +323,15 @@ function makeStyles(c: Palette) {
     name: { flex: 1, fontSize: TEXT.body, color: c.text },
     nameAnon: { color: c.textMuted },
     count: { fontSize: TEXT.body, fontWeight: '700', color: c.text, fontVariant: ['tabular-nums'] },
+    freeTag: {
+      fontSize: TEXT.micro,
+      fontWeight: '700',
+      color: c.accentText,
+      backgroundColor: c.accent,
+      borderRadius: 999,
+      paddingHorizontal: 6,
+      paddingVertical: 1,
+      overflow: 'hidden',
+    },
   });
 }
