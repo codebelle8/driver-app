@@ -228,6 +228,7 @@ const ja = {
     placeholder: '書き込む（500字まで）',
     /* オンライン状態（2026-10-06） */
     online: 'オンライン',
+    offline: 'オフライン',
     onlineCount: 'いまオンライン {n}人',
     send: '送る',
     empty: 'まだ書き込みはありません。最初の書き込みをどうぞ。',
@@ -969,6 +970,7 @@ const en: Dictionary = {
       'Everyone can read this. Do not post anything that identifies a person or hurts others. Posts that break the rules are hidden by the operator.',
     placeholder: 'Write a post (up to 500 characters)',
     online: 'Online',
+    offline: 'Offline',
     onlineCount: '{n} online now',
     send: 'Send',
     empty: 'No posts yet. Be the first.',

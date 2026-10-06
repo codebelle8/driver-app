@@ -64,7 +64,7 @@ export default function ChatRoomScreen() {
   const { account } = useAccount();
   const { markRead } = useChatUnread();
   /* オンライン状態（2026-10-06）。いまアプリを開いている方の目印 */
-  const { online } = usePresence();
+  const { online, ready } = usePresence();
 
   const [feed, setFeed] = useState<ChatFeed | null>(null);
   const [failed, setFailed] = useState(false);
@@ -244,17 +244,30 @@ export default function ChatRoomScreen() {
                       </View>
                     )}
                     {/*
-                      オンラインの印。色だけに頼らず、読み上げにも「オンライン」と伝える。
-                      地の色の縁取りで、写真の上でも見分けられるようにする。
+                      オンラインは緑の丸、オフラインは灰色の輪（よくある形）。
+                      色だけに頼らず形も変え、読み上げにも伝える。地の色の縁取りで、
+                      写真の上でも見分けられるようにする。
+                      名簿が届いていないあいだ（自分が圏外など）は、どちらも出さない。
                     */}
-                    {!!m.author && online.has(m.author) && (
-                      <View
-                        style={styles.onlineDot}
-                        testID="online-dot"
-                        accessibilityLabel={t.chatRoom.online}
-                        accessible
-                      />
-                    )}
+                    {!!m.author &&
+                      ready &&
+                      (online.has(m.author) ? (
+                        <View
+                          style={[styles.statusDot, styles.onlineDot]}
+                          testID="online-dot"
+                          accessibilityLabel={t.chatRoom.online}
+                          accessible
+                        />
+                      ) : (
+                        <View
+                          style={[styles.statusDot, styles.offlineDot]}
+                          testID="offline-dot"
+                          accessibilityLabel={t.chatRoom.offline}
+                          accessible
+                        >
+                          <View style={styles.offlineHole} />
+                        </View>
+                      ))}
                   </View>
                 )}
                 <View style={[styles.msgBody, m.mine && styles.msgBodyMine]}>
@@ -375,17 +388,19 @@ function makeStyles(c: Palette) {
     msgMine: { alignSelf: 'flex-end' },
     avatarBox: { width: 32, height: 32, marginTop: 16 },
     avatar: { width: 32, height: 32, borderRadius: 16 },
-    onlineDot: {
+    statusDot: {
       position: 'absolute',
       right: -1,
       bottom: -1,
       width: 12,
       height: 12,
       borderRadius: 6,
-      backgroundColor: '#22c55e',
       borderWidth: 2,
       borderColor: c.bg,
     },
+    onlineDot: { backgroundColor: '#22c55e' },
+    offlineDot: { backgroundColor: c.textFaint, alignItems: 'center', justifyContent: 'center' },
+    offlineHole: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.bg },
     onlineCount: { flexDirection: 'row', alignItems: 'center', gap: 5, marginLeft: 'auto' },
     onlineDotSmall: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
     onlineCountText: { fontSize: TEXT.small, color: c.textMuted },

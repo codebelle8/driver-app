@@ -12,6 +12,8 @@
  *   3. その方がアプリを閉じると、印が消える
  *   4. 設定で「オンライン状態を出さない」にすると、印が消える（戻すと付く）
  *   5. 書き込みの目印に、会員の id は出ない
+ *   6. オフラインの方には灰色の輪（オフラインの印）が付く（2026-10-06 追加）
+ *   7. 見ている側が圏外のあいだは、どちらの印も出さない（分からないため）
  *
  * **検査用の会員・書き込みを作り、最後に消す。**
  */
@@ -93,8 +95,12 @@ try {
   await skipIntro(aPage);
   const bRow = () => aPage.getByTestId('chat-message').filter({ hasText: POST_B });
   const dotOn = async () => (await bRow().getByTestId('online-dot').count()) === 1;
+  const offOn = async () => (await bRow().getByTestId('offline-dot').count()) === 1;
+  /* オフラインの印だけが付いている（オンラインの印は無い） */
+  const offline = async () => (await offOn()) && !(await dotOn());
 
   check('アプリを開いているほかの方の書き込みに、オンラインの印が付く', await waitFor(dotOn, 30_000));
+  check('オンラインの方には、オフラインの印を出さない', !(await offOn()));
   const count = aPage.getByTestId('online-count');
   const n = (await count.count()) ? Number(((await count.innerText()).match(/\d+/) ?? ['0'])[0]) : 0;
   check('「いまオンライン ○人」が出る（2人以上）', n >= 2, String(n));
@@ -108,7 +114,16 @@ try {
 
   /* B がアプリを閉じる → 印が消える */
   await bCtx.close();
-  check('その方がアプリを閉じると、印が消える（60秒以内）', await waitFor(async () => !(await dotOn())));
+  check('その方がアプリを閉じると、オフラインの印に変わる（60秒以内）', await waitFor(offline));
+  check('オフラインの印は、読み上げで「オフライン」と伝える',
+    (await bRow().getByTestId('offline-dot').getAttribute('aria-label')) === 'オフライン');
+
+  /* 見ている側（A）が圏外になる → どちらの印も出さない。戻ると出る */
+  await aCtx.setOffline(true);
+  check('見ている側が圏外のあいだは、どちらの印も出さない',
+    await waitFor(async () => !(await offOn()) && !(await dotOn()), 30_000));
+  await aCtx.setOffline(false);
+  check('圏外から戻ると、印がまた出る', await waitFor(offline, 60_000));
 
   /* B がもう一度開き、設定で出さないにする → 消える。戻すと付く */
   bCtx = await browser.newContext({ viewport: { width: 420, height: 900 } });
@@ -120,7 +135,7 @@ try {
   const toggle = bPage.getByRole('switch', { name: 'チャットでオンライン状態を出さない' });
   check('設定に「チャットでオンライン状態を出さない」がある', (await toggle.count()) === 1);
   await toggle.click();
-  check('出さないにすると、印が消える', await waitFor(async () => !(await dotOn()), 30_000));
+  check('出さないにすると、オフラインの印に変わる', await waitFor(offline, 30_000));
   await toggle.click();
   check('戻すと、印が付く', await waitFor(dotOn, 30_000));
   check('画面に誤りが出ない', errors.length === 0, errors.join(' / '));
