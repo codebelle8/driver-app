@@ -37,6 +37,7 @@ export default async function NoticesPage() {
           year: 'numeric',
           month: 'short',
           day: 'numeric',
+          timeZone: 'Asia/Tokyo',
         })
       : '—';
 

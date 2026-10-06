@@ -331,7 +331,7 @@ const ja = {
   audit: {
     title: '操作履歴',
     description: '誰がいつ何を変更したかの記録です。',
-    colWhen: '日時',
+    colWhen: '日時（日本時間）',
     colWho: '操作した人',
     colWhat: '対象',
     colAction: '操作',
@@ -1012,7 +1012,7 @@ const en: Dictionary = {
   audit: {
     title: 'Activity history',
     description: 'A record of who changed what, and when.',
-    colWhen: 'When',
+    colWhen: 'When (JST)',
     colWho: 'Who',
     colWhat: 'Target',
     colAction: 'Action',

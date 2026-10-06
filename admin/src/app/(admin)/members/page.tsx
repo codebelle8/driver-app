@@ -86,7 +86,7 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
   const topUntil = new Map((grantRows ?? []).map((g) => [g.user_id, g.free_until]));
 
   const day = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString('ja-JP', { dateStyle: 'medium' }) : '—';
+    iso ? new Date(iso).toLocaleDateString('ja-JP', { dateStyle: 'medium', timeZone: 'Asia/Tokyo' }) : '—';
 
   const code = (n: number) => (n < 10000 ? String(n).padStart(4, '0') : String(n));
 

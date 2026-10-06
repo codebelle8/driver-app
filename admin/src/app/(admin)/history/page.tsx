@@ -73,12 +73,15 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
 
   const nameById = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
 
-  // 日時の並びも言語に合わせる（英語では月/日の順になる）
+  // 日時の並びも言語に合わせる（英語では日/月の順になる）
+  // **日本時間で出す**（2026-10-07）。指定しないと、表示を組み立てるサーバー
+  // （Vercel）の時刻＝協定世界時になり、9時間ずれていた。
   const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'ja-JP', {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Tokyo',
   });
 
   return (
