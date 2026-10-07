@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ChatWatermark } from '@/components/chat-watermark';
+import { ChatBackdrop } from '@/components/chat-watermark';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { avatarUrlOf } from '@/lib/account';
@@ -214,9 +214,9 @@ export default function ChatRoomScreen() {
             </Pressable>
           </View>
         ) : (
-          /* 背景のロゴ（2026-10-07）。一覧の後ろに敷き、スクロールしても動かない */
+          /* 背景（案内の女性とロゴ。2026-10-07）。一覧の後ろに敷き、スクロールしても動かない */
           <View style={styles.flex}>
-            <ChatWatermark />
+            <ChatBackdrop />
             <ScrollView
               ref={scroller}
               style={styles.flex}
