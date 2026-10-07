@@ -24,6 +24,7 @@
 import { chromium } from 'playwright';
 
 import { connect, createMember, removeMember, signInOn, skipIntro } from './lib/member.mjs';
+import { paidModeForTest } from './lib/trial.mjs';
 
 const BASE = (process.argv[2] ?? 'http://localhost:4180').replace(/\/$/, '');
 const conn = connect();
@@ -64,7 +65,11 @@ const setTrial = async (userId, { days, status = 'trial', paidDays = null }) => 
 let browser = null;
 let member = null;
 
+/* 締め出しを確かめるため、検査のあいだだけ有料の提供のときの姿にする（試験提供を外す） */
+let restoreTrial = async () => {};
+
 try {
+  restoreTrial = await paidModeForTest(conn);
   console.log(`無料期間の知らせと締めの検査: ${BASE}\n`);
   member = await createMember(conn, 'trial');
   browser = await chromium.launch();
@@ -202,8 +207,13 @@ try {
   check('振込済みの方の逃げ道がある', text.includes('お振込みが済んだ方はこちら'));
 
   const shown = await tabs();
-  check('行先は1つだけ', shown.length === 1, shown.join(' / '));
-  check('残るのは設定だけ', shown.some((n) => n.includes('マイページ')), shown.join(' / '));
+  /*
+    締めているあいだも「チャット」は残る（ご回答 2026-10-05。情報を送って無料を
+    目指す入口になるため）。それ以前は設定だけだった。
+  */
+  check('行先は2つ（チャットと設定）', shown.length === 2, shown.join(' / '));
+  check('残るのは設定', shown.some((n) => n.includes('マイページ')), shown.join(' / '));
+  check('チャットも残る', shown.some((n) => n.includes('チャット')), shown.join(' / '));
   for (const gone of ['探す', 'お気に入り', '履歴']) {
     check(`「${gone}」は出さない`, !shown.some((n) => n.includes(gone)), shown.join(' / '));
   }
@@ -227,12 +237,13 @@ try {
   text = await body();
   check('探す画面へ戻れる', !page.url().includes('/mypage'), page.url());
   const back = await tabs();
-  check('行先が4つとも戻る', back.length === 4, back.join(' / '));
-  for (const name of ['探す', 'お気に入り', '履歴', 'マイページ']) {
+  check('行先が5つとも戻る', back.length === 5, back.join(' / '));
+  for (const name of ['探す', 'お気に入り', '履歴', 'チャット', 'マイページ']) {
     check(`「${name}」が戻る`, back.some((n) => n.includes(name)), back.join(' / '));
   }
   check('締めの説明は消える', !text.includes('無料期間が終了しました'));
 } finally {
+  await restoreTrial();
   console.log('\n--- 後片付け ---');
   check('検査で作った会員を消した', await removeMember(conn, member));
 

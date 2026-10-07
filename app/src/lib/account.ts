@@ -43,7 +43,15 @@ export type MemberStatus = 'trial' | 'active' | 'expired' | 'blocked';
  *   owner    … 所有者のアカウント（管理画面の所有者と同じ。ご指示 2026-10-05）
  *   top      … 前の月の情報提供で上位に入った方（翌月の1か月。2026-10-06）
  */
-export type FreeReason = 'surveyor' | 'owner' | 'top';
+/**
+ * 無料の理由。
+ *   surveyor … 調査員（期限なし）
+ *   owner    … 所有者のアカウント（期限なし）
+ *   trial    … 試験提供の期間中（2026-10-07）。サイト設定で外すまで、止めた方を
+ *              除く全員。締めない理由で、期限そのものは変えない（下の isExpired）
+ *   top      … 前の月の情報提供の上位（翌月の1か月）
+ */
+export type FreeReason = 'surveyor' | 'owner' | 'trial' | 'top';
 
 export interface Account {
   userId: string;
@@ -850,7 +858,10 @@ async function loadFree(): Promise<{ freeReason: FreeReason | null; freeUntil: s
     const { data, error } = await supabase.rpc('my_free_access');
     if (error || !data || typeof data !== 'object') return { freeReason: null, freeUntil: null };
     const j = data as { reason?: unknown; until?: unknown };
-    const reason = j.reason === 'surveyor' || j.reason === 'owner' || j.reason === 'top' ? j.reason : null;
+    const reason =
+      j.reason === 'surveyor' || j.reason === 'owner' || j.reason === 'trial' || j.reason === 'top'
+        ? j.reason
+        : null;
     return { freeReason: reason, freeUntil: typeof j.until === 'string' ? j.until : null };
   } catch {
     return { freeReason: null, freeUntil: null };
@@ -975,6 +986,14 @@ export function endsAt(account: Account): string | null {
 export function freeShown(account: Account): FreeReason | null {
   const r = account.freeReason ?? null;
   if (r === 'surveyor' || r === 'owner') return r;
+  /*
+    試験提供の期間中（2026-10-07）は、期間が過ぎた方にだけ「試験提供のため無料」と
+    出す。期間内の方は、これまでどおり残り日数と料金のご案内を出す。
+  */
+  if (r === 'trial') {
+    const at = endsAt(account);
+    return at && new Date(at).getTime() <= Date.now() ? 'trial' : null;
+  }
   if (r === 'top' && account.freeUntil && endsAt(account) === account.freeUntil) return 'top';
   return null;
 }
@@ -1068,6 +1087,11 @@ function addMonth(from: Date): Date {
  * だった方が当てはまる。期限を勝手に決めて突然締めることはしない。
  */
 export function isExpired(account: Account, now: Date = new Date()): boolean {
+  /*
+    試験提供の期間中は、期間が過ぎても締めない（2026-10-07。利用規約 第4条第6項）。
+    サイト設定で試験提供を外すと、データベースが trial を返さなくなり、ここも効く。
+  */
+  if (account.freeReason === 'trial') return false;
   const at = endsAt(account);
   if (!at) return false;
   return new Date(at).getTime() <= now.getTime();

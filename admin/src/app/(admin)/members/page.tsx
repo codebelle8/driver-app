@@ -1,6 +1,6 @@
 import { savePaymentSettings, setMemberActive, setMemberBlocked } from '@/app/actions/members';
 import { PaymentSettingsForm } from '@/components/payment-settings-form';
-import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { PageLink } from '@/components/page-link';
 import { requireAdmin } from '@/lib/auth';
 import { isOwnerEmail } from '@/lib/owner';
@@ -48,6 +48,14 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
     .maybeSingle();
 
   const { data: rows } = await admin.from('driver_profiles').select('*');
+
+  /*
+    試験提供の期間中か（2026-10-07）。期間中は、無料期間が過ぎた方も無料で
+    使えている。一覧の「期限切れ」は、有料の提供を始めたあとに効く日付として
+    残し、上に一行添える（催促の相手と取り違えないように）。
+  */
+  const { data: site } = await admin.from('site_settings').select('*').eq('id', 1).maybeSingle();
+  const trialOpen = (site as { trial_open?: boolean } | null)?.trial_open ?? true;
 
   /*
     無料でお使いいただいている方（2026-10-05）。管理画面で「調査員」として
@@ -201,6 +209,8 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
           note: settings?.note ?? null,
         }}
       />
+
+      {trialOpen && <Alert tone="info">{m.trialNote}</Alert>}
 
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-5 py-3">

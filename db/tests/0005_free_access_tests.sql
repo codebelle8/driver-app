@@ -33,6 +33,17 @@ $$;
 
 begin;
 
+-- 試験提供の期間（20261007000001）を外し、有料の提供のときの姿で確かめる。
+-- 入れたままだと、すべての会員が「試験提供のため無料」になる。
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'site_settings'
+               and column_name = 'trial_open') then
+    execute 'update public.site_settings set trial_open = false where id = 1';
+  end if;
+end $$;
+
 insert into auth.users (id, email) values
   ('cccccccc-0000-0000-0000-000000000021', 'APrOfessional0575@gmail.com'),
   ('cccccccc-0000-0000-0000-000000000001', 'free-admin@example.com'),

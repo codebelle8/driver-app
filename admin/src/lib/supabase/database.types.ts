@@ -197,6 +197,8 @@ export type SiteSettings = {
   /** 翌月無料にする人数（既定20）と、要る採用件数（既定3）。20261006000001 で追加 */
   free_top_count?: number;
   free_min_accepted?: number;
+  /** 試験提供の期間中か（既定 true）。20261007000001 で追加 */
+  trial_open?: boolean;
   updated_at: string;
 }
 

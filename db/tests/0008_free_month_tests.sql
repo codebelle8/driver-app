@@ -33,6 +33,17 @@ $$;
 
 begin;
 
+-- 試験提供の期間（20261007000001）を外し、有料の提供のときの姿で確かめる。
+-- 入れたままだと、すべての会員が「試験提供のため無料」になる。
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'site_settings'
+               and column_name = 'trial_open') then
+    execute 'update public.site_settings set trial_open = false where id = 1';
+  end if;
+end $$;
+
 -- 設定: 上位2名・3件以上（検証のため小さくする）
 update public.site_settings set free_top_count = 2, free_min_accepted = 3 where id = 1;
 

@@ -51,6 +51,8 @@ export default async function SitePage() {
           /* 翌月無料（2026-10-06）。更新前は列が無いので既定を出す */
           free_top_count: (data as { free_top_count?: number } | null)?.free_top_count ?? 20,
           free_min_accepted: (data as { free_min_accepted?: number } | null)?.free_min_accepted ?? 3,
+          /* 試験提供の期間（2026-10-07）。更新前は列が無い。いまは期間中なので入っている扱い */
+          trial_open: (data as { trial_open?: boolean } | null)?.trial_open ?? true,
         }}
       />
     </div>

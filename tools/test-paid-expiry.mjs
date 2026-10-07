@@ -33,6 +33,7 @@ import { chromium } from 'playwright';
 
 import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
 import { signInOn, skipIntro } from './lib/member.mjs';
+import { paidModeForTest } from './lib/trial.mjs';
 
 const NL = String.fromCharCode(10);
 
@@ -125,7 +126,11 @@ let browser = null;
 let staffId = null;
 let member = null;
 
+/* 締め出しを確かめるため、検査のあいだだけ有料の提供のときの姿にする（試験提供を外す） */
+let restoreTrial = async () => {};
+
 try {
+  restoreTrial = await paidModeForTest({ url: SB, svc: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' } });
   console.log(`お支払いいただいた期間の検査${NL}  アプリ    ${APP}${NL}  管理画面  ${ADMIN}${NL}`);
 
   /* --- 検査用の会員 --- */
@@ -401,6 +406,7 @@ try {
 
   await ctx.close();
 } finally {
+  await restoreTrial();
   /* --- 後片付け --- */
   if (browser) await browser.close().catch(() => undefined);
 

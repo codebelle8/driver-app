@@ -22,6 +22,7 @@
 import { chromium } from 'playwright';
 
 import { connect, createMember, removeMember, signInOn, skipIntro } from './lib/member.mjs';
+import { paidModeForTest } from './lib/trial.mjs';
 
 const APP = (process.argv[2] ?? 'http://localhost:4291').replace(/\/$/, '');
 const conn = connect();
@@ -115,7 +116,11 @@ async function seed(member, accepted, pending = 0) {
 let browser = null;
 const members = [];
 
+/* 締め出しを確かめるため、検査のあいだだけ有料の提供のときの姿にする（試験提供を外す） */
+let restoreTrial = async () => {};
+
 try {
+  restoreTrial = await paidModeForTest(conn);
   console.log(`情報提供ランキングの検査: ${APP}\n`);
   const a = await createMember(conn, 'rank-a');
   const b = await createMember(conn, 'rank-b');
@@ -219,6 +224,7 @@ try {
   failures.push(`途中で止まった: ${e.message}`);
   console.error(e);
 } finally {
+  await restoreTrial();
   if (browser) await browser.close().catch(() => undefined);
   for (const m of members) {
     await sb(`/rest/v1/submissions?user_id=eq.${m.userId}`, { method: 'DELETE' });

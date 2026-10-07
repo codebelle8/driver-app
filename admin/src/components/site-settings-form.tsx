@@ -33,6 +33,7 @@ export function SiteSettingsForm({
     offline_grace_days: number;
     free_top_count: number;
     free_min_accepted: number;
+    trial_open: boolean;
   };
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
@@ -133,6 +134,29 @@ export function SiteSettingsForm({
             <span className="text-sm text-text-muted">{s.offlineDaysUnit}</span>
           </div>
         </Field>
+
+        {/*
+          試験提供の期間（2026-10-07）。入っているあいだは、すべての会員が無料。
+          外すと、無料期間が過ぎた方はその時点から絞られる。取り返しが利くが、
+          影響が大きいので、何が起きるかを欄の下に書いておく。
+        */}
+        <div className="border-t border-border pt-4">
+          <h2 className="text-sm font-semibold text-text-muted">{s.trialTitle}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-text-faint">{s.trialHint}</p>
+        </div>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="trial_open"
+            defaultChecked={initial.trial_open}
+            className="mt-0.5 size-4 accent-[var(--c-accent)]"
+          />
+          <span>
+            {s.trialOpen}
+            <span className="mt-1 block text-xs leading-relaxed text-warn">{s.trialOffWarn}</span>
+          </span>
+        </label>
 
         {/*
           翌月無料（2026-10-06）。毎月の情報提供の上位の方を、翌月無料にする。

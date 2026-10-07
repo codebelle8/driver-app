@@ -100,6 +100,8 @@ export async function saveSiteSettings(
   };
   const topCount = num('free_top_count', 20);
   const minAccepted = num('free_min_accepted', 3);
+  /* 試験提供の期間（2026-10-07）。欄に印があれば期間中 */
+  const trialOpen = formData.get('trial_open') === 'on';
   if (!Number.isInteger(topCount) || topCount < 1 || topCount > 200) {
     errors.free_top_count = '1〜200 の整数でご指定ください';
   }
@@ -133,10 +135,26 @@ export async function saveSiteSettings(
       offline_grace_days: graceDays,
       free_top_count: topCount,
       free_min_accepted: minAccepted,
+      trial_open: trialOpen,
     })
     .eq('id', 1);
 
   if (error) {
+    /* 試験提供の列がまだ無い（20261007000001_trial_open.sql の前）。ほかは保存する */
+    if (/trial_open/.test(error.message)) {
+      const retry = await admin
+        .from('site_settings')
+        .update({ ...links, offline_grace_days: graceDays, free_top_count: topCount, free_min_accepted: minAccepted })
+        .eq('id', 1);
+      if (!retry.error) {
+        revalidatePath('/site');
+        return {
+          ok: true,
+          message:
+            '保存しました。ただし「試験提供の期間」は、データベースの更新（20261007000001_trial_open.sql）の後から保存できます。',
+        };
+      }
+    }
     /*
       **データベースを更新する前（列がまだ無い）。** 日数だけを外して保存し、
       ほかの項目は失わない。日数は既定の30日で動く。

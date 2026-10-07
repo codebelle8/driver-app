@@ -14,12 +14,18 @@
  *   4. 調査員を止めると、無料が外れて締め出される
  *   5. 管理画面の会員の一覧で「無料（調査員）」と出て、入金の確認の釦が出ない
  *
+ * **有料の提供のときの姿で見る。** 試験提供の期間中（2026-10-07〜）は、だれも
+ * 締め出されないため、3・4 が確かめられない。検査のあいだだけ試験提供を外し、
+ * 最後に必ず戻す。外すと絞られる本物の会員がいるときは、外さずに止める
+ * （tools/lib/trial.mjs）。
+ *
  * **検査用の職員・会員を作り、最後に消す**（操作履歴も消す）。
  */
 import { chromium } from 'playwright';
 
 import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
 import { connect, createMember, removeMember, signInOn, skipIntro } from './lib/member.mjs';
+import { getTrialOpen, setTrialOpen, wouldLockReal } from './lib/trial.mjs';
 
 const APP = (process.argv[2] ?? 'http://localhost:4291').replace(/\/$/, '');
 const ADMIN = (process.argv[3] ?? 'http://localhost:3100').replace(/\/$/, '');
@@ -93,9 +99,16 @@ let browser = null;
 let surveyor = null;
 let member = null;
 let admin = null;
+let trialBefore = null;
 
 try {
   console.log(`調査員の無料の検査: アプリ ${APP} ／ 管理画面 ${ADMIN}\n`);
+  trialBefore = await getTrialOpen(conn);
+  if (trialBefore) {
+    const real = await wouldLockReal(conn);
+    if (real > 0) throw new Error(`試験提供を外すと絞られる本物の会員が ${real} 名いるため、検査しない`);
+    await setTrialOpen(conn, false);
+  }
   surveyor = await makeStaff('surveyor');
   admin = await makeStaff('admin');
   member = await createMember(conn, 'notfree');
@@ -187,6 +200,11 @@ try {
   console.error(e);
 } finally {
   if (browser) await browser.close().catch(() => undefined);
+  /* 試験提供を外したまま終わらせない */
+  if (trialBefore !== null && (await getTrialOpen(conn)) !== trialBefore) {
+    const back = await setTrialOpen(conn, trialBefore);
+    console.log(`  試験提供の期間を元（${trialBefore}）に戻した: ${back ? 'はい' : 'いいえ（要確認）'}`);
+  }
   for (const s of [surveyor, admin].filter(Boolean)) {
     await sb(`/rest/v1/admin_profiles?user_id=eq.${s.userId}`, { method: 'DELETE' });
     await sb(`/auth/v1/admin/users/${s.userId}`, { method: 'DELETE' });

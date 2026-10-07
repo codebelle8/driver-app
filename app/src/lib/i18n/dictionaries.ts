@@ -398,6 +398,8 @@ const ja = {
     accountFree: {
       surveyor: '調査員のため無料でお使いいただけます',
       owner: '運営者のアカウントのため無料でお使いいただけます',
+      /* 試験提供の期間中（2026-10-07） */
+      trial: '試験提供の期間中のため、無料でお使いいただけます',
       /* 前の月の情報提供の上位（2026-10-06） */
       top: '情報提供の上位のため、{date}まで無料です',
     },
@@ -491,11 +493,14 @@ const ja = {
     statusFree: {
       surveyor: '無料（調査員）',
       owner: '無料（運営者）',
+      trial: '無料（試験提供の期間中）',
       top: '無料（{date}まで・情報提供の上位）',
     },
     freeBody: {
       surveyor: '調査員として登録されているため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
       owner: '運営者のアカウントのため、期限なく無料でお使いいただけます。お支払いの手続きは要りません。',
+      trial:
+        'いまは試験提供の期間中のため、無料でお使いいただけます。無料期間（1か月）が過ぎても、引き続きお使いいただけます。有料での提供を始めるときは、30日前までにお知らせします。お支払いの手続きは要りません。',
       top: '先月の情報提供で上位に入られたため、{date}まで無料でお使いいただけます。お支払いの手続きは要りません。ありがとうございます。',
     },
     statusBlocked: 'ご利用を停止しています',
@@ -1130,6 +1135,7 @@ const en: Dictionary = {
     accountFree: {
       surveyor: 'Free to use as a field surveyor',
       owner: 'Free to use as the operator account',
+      trial: 'Free to use during the trial period',
       top: 'Free until {date} as a top contributor',
     },
     accountEnded: 'Your free month has ended',
@@ -1211,11 +1217,14 @@ const en: Dictionary = {
     statusFree: {
       surveyor: 'Free (field surveyor)',
       owner: 'Free (operator)',
+      trial: 'Free (trial period)',
       top: 'Free until {date} (top contributor)',
     },
     freeBody: {
       surveyor: 'You are registered as a field surveyor, so you can use the app free of charge with no end date. No payment is needed.',
       owner: 'This is the operator account, so you can use the app free of charge with no end date. No payment is needed.',
+      trial:
+        'The app is in its trial period, so it is free to use. You can keep using it after your free month ends. We will let you know at least 30 days before paid service begins. No payment is needed.',
       top: 'You were a top contributor last month, so the app is free until {date}. No payment is needed. Thank you.',
     },
     statusBlocked: 'Suspended',
