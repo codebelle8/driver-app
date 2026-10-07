@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ChatWatermark } from '@/components/chat-watermark';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
 import { avatarUrlOf } from '@/lib/account';
@@ -213,86 +214,90 @@ export default function ChatRoomScreen() {
             </Pressable>
           </View>
         ) : (
-          <ScrollView
-            ref={scroller}
-            style={styles.flex}
-            contentContainerStyle={styles.list}
-            onScroll={(e) => {
-              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-              atBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
-            }}
-            scrollEventThrottle={200}
-            onContentSizeChange={() => {
-              if (atBottom.current) scroller.current?.scrollToEnd({ animated: false });
-            }}
-          >
-            {more && (
-              <Pressable onPress={loadOlder} style={styles.older} accessibilityRole="button">
-                <Text style={styles.olderText}>{t.chatRoom.older}</Text>
-              </Pressable>
-            )}
-            {messages.length === 0 && <Text style={[styles.muted, styles.empty]}>{t.chatRoom.empty}</Text>}
-            {messages.map((m) => (
-              <View key={m.id} style={[styles.msg, m.mine && styles.msgMine]} testID="chat-message">
-                {!m.mine && (
-                  <View style={styles.avatarBox}>
-                    {m.avatarPath ? (
-                      <Image source={{ uri: avatarUrlOf(m.avatarPath) }} style={styles.avatar} contentFit="cover" />
-                    ) : (
-                      <View style={[styles.avatar, styles.avatarEmpty]}>
-                        <Text style={styles.avatarText}>{(m.name ?? '？').slice(0, 1)}</Text>
-                      </View>
-                    )}
-                    {/*
-                      オンラインは緑の丸、オフラインは灰色の輪（よくある形）。
-                      色だけに頼らず形も変え、読み上げにも伝える。地の色の縁取りで、
-                      写真の上でも見分けられるようにする。
-                      名簿が届いていないあいだ（自分が圏外など）は、どちらも出さない。
-                    */}
-                    {!!m.author &&
-                      ready &&
-                      (online.has(m.author) ? (
-                        <View
-                          style={[styles.statusDot, styles.onlineDot]}
-                          testID="online-dot"
-                          accessibilityLabel={t.chatRoom.online}
-                          accessible
-                        />
+          /* 背景のロゴ（2026-10-07）。一覧の後ろに敷き、スクロールしても動かない */
+          <View style={styles.flex}>
+            <ChatWatermark />
+            <ScrollView
+              ref={scroller}
+              style={styles.flex}
+              contentContainerStyle={styles.list}
+              onScroll={(e) => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                atBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
+              }}
+              scrollEventThrottle={200}
+              onContentSizeChange={() => {
+                if (atBottom.current) scroller.current?.scrollToEnd({ animated: false });
+              }}
+            >
+              {more && (
+                <Pressable onPress={loadOlder} style={styles.older} accessibilityRole="button">
+                  <Text style={styles.olderText}>{t.chatRoom.older}</Text>
+                </Pressable>
+              )}
+              {messages.length === 0 && <Text style={[styles.muted, styles.empty]}>{t.chatRoom.empty}</Text>}
+              {messages.map((m) => (
+                <View key={m.id} style={[styles.msg, m.mine && styles.msgMine]} testID="chat-message">
+                  {!m.mine && (
+                    <View style={styles.avatarBox}>
+                      {m.avatarPath ? (
+                        <Image source={{ uri: avatarUrlOf(m.avatarPath) }} style={styles.avatar} contentFit="cover" />
                       ) : (
-                        <View
-                          style={[styles.statusDot, styles.offlineDot]}
-                          testID="offline-dot"
-                          accessibilityLabel={t.chatRoom.offline}
-                          accessible
-                        >
-                          <View style={styles.offlineHole} />
+                        <View style={[styles.avatar, styles.avatarEmpty]}>
+                          <Text style={styles.avatarText}>{(m.name ?? '？').slice(0, 1)}</Text>
                         </View>
-                      ))}
-                  </View>
-                )}
-                <View style={[styles.msgBody, m.mine && styles.msgBodyMine]}>
-                  <Text style={styles.meta}>
-                    {m.mine ? t.ranking.you : (m.name ?? t.chatRoom.noName)}
-                    {'　'}
-                    {when(m.createdAt)}
-                  </Text>
-                  <View style={[styles.bubble, m.mine && styles.bubbleMine]}>
-                    <Text style={styles.text} selectable>
-                      {m.body}
+                      )}
+                      {/*
+                        オンラインは緑の丸、オフラインは灰色の輪（よくある形）。
+                        色だけに頼らず形も変え、読み上げにも伝える。地の色の縁取りで、
+                        写真の上でも見分けられるようにする。
+                        名簿が届いていないあいだ（自分が圏外など）は、どちらも出さない。
+                      */}
+                      {!!m.author &&
+                        ready &&
+                        (online.has(m.author) ? (
+                          <View
+                            style={[styles.statusDot, styles.onlineDot]}
+                            testID="online-dot"
+                            accessibilityLabel={t.chatRoom.online}
+                            accessible
+                          />
+                        ) : (
+                          <View
+                            style={[styles.statusDot, styles.offlineDot]}
+                            testID="offline-dot"
+                            accessibilityLabel={t.chatRoom.offline}
+                            accessible
+                          >
+                            <View style={styles.offlineHole} />
+                          </View>
+                        ))}
+                    </View>
+                  )}
+                  <View style={[styles.msgBody, m.mine && styles.msgBodyMine]}>
+                    <Text style={styles.meta}>
+                      {m.mine ? t.ranking.you : (m.name ?? t.chatRoom.noName)}
+                      {'　'}
+                      {when(m.createdAt)}
                     </Text>
+                    <View style={[styles.bubble, m.mine && styles.bubbleMine]}>
+                      <Text style={styles.text} selectable>
+                        {m.body}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => (m.mine ? onDelete(m) : onReport(m))}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={m.mine ? t.chatRoom.delete : t.chatRoom.report}
+                    >
+                      <Text style={styles.action}>{m.mine ? t.chatRoom.delete : t.chatRoom.report}</Text>
+                    </Pressable>
                   </View>
-                  <Pressable
-                    onPress={() => (m.mine ? onDelete(m) : onReport(m))}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={m.mine ? t.chatRoom.delete : t.chatRoom.report}
-                  >
-                    <Text style={styles.action}>{m.mine ? t.chatRoom.delete : t.chatRoom.report}</Text>
-                  </Pressable>
                 </View>
-              </View>
-            ))}
-          </ScrollView>
+              ))}
+            </ScrollView>
+          </View>
         )}
 
           {/* 書く */}
