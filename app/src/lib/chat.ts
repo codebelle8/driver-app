@@ -25,8 +25,22 @@ export type ChatChannel = 'general';
 /** 1件の上限（データベースの制約と同じ） */
 export const MAX_MESSAGE = 500;
 
-/** 一度に読む件数 */
+/** 一度に読む件数（日数で区切らないとき） */
 export const PAGE = 50;
+
+/**
+ * 10日ずつ読む（2026-10-08 ご指示）。
+ *
+ *   最初は直近の10日ぶん。上へスクロールしたら、その前の10日ぶんを取りに行く。
+ *   90日ぶんを一度に端末へ送らないので、会員が増えても軽いまま。
+ *   10日のあいだが少なくても画面が空にならないよう、少なくとも MIN_MESSAGES 件、
+ *   多すぎるときは WINDOW_LIMIT 件まで（続きはスクロールで読む）。
+ *
+ * **90日を過ぎた書き込みは、データベースが返さない**（会員の画面から外れる）。
+ */
+export const WINDOW_DAYS = 10;
+export const MIN_MESSAGES = 20;
+export const WINDOW_LIMIT = 300;
 
 export interface ChatMessage {
   id: string;
@@ -47,6 +61,13 @@ export interface ChatMessage {
 export interface ChatFeed {
   /** 新しい順 */
   messages: ChatMessage[];
+  /**
+   * 返した中でいちばん古いものより前に、まだ書き込みがあるか（90日の線まで）。
+   * データベースの更新前は null（呼ぶ側が件数で見る）。
+   */
+  more: boolean | null;
+  /** 会員の画面に残す日数（90）。更新前は null */
+  retentionDays: number | null;
   me: {
     canPost: boolean;
     /** 運営が書き込みを止めている */
@@ -79,17 +100,22 @@ function toProblem(error: RawError | null | undefined): ChatProblem {
   return 'unknown';
 }
 
-/** 読む。before を渡すと、それより前の書き込み（さかのぼり） */
+/**
+ * 読む。before を渡すと、それより前の書き込み（さかのぼり）。
+ * window を渡すと日数で区切る（直近10日ぶん、など）。
+ */
 export async function loadFeed(
   channel: ChatChannel = 'general',
   before?: string,
   limit = PAGE,
+  window?: { days: number; min: number },
 ): Promise<ChatFeed | null> {
   try {
     const { data, error } = await supabase.rpc('chat_feed', {
       p_channel: channel,
       p_before: before ?? null,
       p_limit: limit,
+      ...(window ? { p_days: window.days, p_min: window.min } : {}),
     });
     if (error || !data || typeof data !== 'object') return null;
     const j = data as {
@@ -103,6 +129,8 @@ export async function loadFeed(
         author?: string;
       }[];
       me?: { can_post?: boolean; muted?: boolean; blocked?: boolean; has_name?: boolean; key?: string };
+      more?: boolean;
+      retention_days?: number;
     };
     return {
       messages: (j.messages ?? []).map((m) => ({
@@ -114,6 +142,8 @@ export async function loadFeed(
         avatarPath: m.avatar_path ?? null,
         author: m.author ?? '',
       })),
+      more: typeof j.more === 'boolean' ? j.more : null,
+      retentionDays: typeof j.retention_days === 'number' ? j.retention_days : null,
       me: {
         canPost: !!j.me?.can_post,
         muted: !!j.me?.muted,

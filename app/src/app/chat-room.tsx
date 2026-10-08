@@ -24,7 +24,10 @@ import {
   deleteMessage,
   loadFeed,
   MAX_MESSAGE,
+  MIN_MESSAGES,
   PAGE,
+  WINDOW_DAYS,
+  WINDOW_LIMIT,
   postMessage,
   reportMessage,
   watchChat,
@@ -71,21 +74,38 @@ export default function ChatRoomScreen() {
   const [failed, setFailed] = useState(false);
   /** さかのぼって読んだ分（古い順に足していく） */
   const [older, setOlder] = useState<ChatMessage[]>([]);
-  const [more, setMore] = useState(false);
+  /*
+    さらに前があるか。最新の分（feed）と、さかのぼった分（older）で別に持つ。
+    さかのぼったあとは、最後に読んだ前の分の答えを使う。
+  */
+  const [moreLatest, setMoreLatest] = useState(false);
+  const [moreOlder, setMoreOlder] = useState<boolean | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadingOlderRef = useRef(false);
+  /* 読み足したときに、見ていた位置を保つ（上に足すと、そのぶん下へずれるため） */
+  const contentHeight = useRef(0);
+  const offsetY = useRef(0);
+  const keepPosition = useRef<{ height: number; y: number } | null>(null);
+  /*
+    いちばん下へ動かした時刻。開いた直後は一覧が上端から始まり、下へ動かす前に
+    「上端にいる」と見えてしまう。その直後は読み足さない。
+  */
+  const settledAt = useRef(0);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const atBottom = useRef(true);
 
   const reload = useCallback(async () => {
-    const f = await loadFeed('general');
+    /* 直近の10日ぶん（少なくとも20件・多くて300件）。2026-10-08 */
+    const f = await loadFeed('general', undefined, WINDOW_LIMIT, { days: WINDOW_DAYS, min: MIN_MESSAGES });
     if (!f) {
       setFailed(true);
       return;
     }
     setFailed(false);
     setFeed(f);
-    setMore(f.messages.length >= PAGE);
+    setMoreLatest(f.more ?? f.messages.length >= PAGE);
     /*
       開いているあいだに読み込んだ分までを既読にする（2026-10-05）。
       時刻はサーバーの書き込みの時刻を使う（端末の時計はずれうる）。
@@ -97,11 +117,23 @@ export default function ChatRoomScreen() {
   useFocusEffect(
     useCallback(() => {
       reload();
-      const stop = watchChat(() => reload());
+      /*
+        合図が続けて来たら、まとめて1回読み直す（2026-10-08）。会員が増えると
+        書き込みの合図が立て続けに届き、そのたびに10日ぶんを読み直すと重くなる。
+      */
+      let soon: ReturnType<typeof setTimeout> | null = null;
+      const stop = watchChat(() => {
+        if (soon) return;
+        soon = setTimeout(() => {
+          soon = null;
+          reload();
+        }, 800);
+      });
       const timer = setInterval(reload, POLL_MS);
       return () => {
         stop();
         clearInterval(timer);
+        if (soon) clearTimeout(soon);
       };
     }, [reload]),
   );
@@ -117,13 +149,22 @@ export default function ChatRoomScreen() {
     if (atBottom.current) scroller.current?.scrollToEnd({ animated: false });
   }, [lastId]);
 
+  const more = older.length > 0 && moreOlder !== null ? moreOlder : moreLatest;
+
+  /** その前の10日ぶんを読み足す（上へスクロールしたとき・釦を押したとき） */
   async function loadOlder() {
     const first = messages[0];
-    if (!first) return;
-    const f = await loadFeed('general', first.createdAt);
-    if (!f) return;
-    setOlder((list) => [...[...f.messages].reverse(), ...list]);
-    setMore(f.messages.length >= PAGE);
+    if (!first || loadingOlderRef.current) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    const f = await loadFeed('general', first.createdAt, WINDOW_LIMIT, { days: WINDOW_DAYS, min: MIN_MESSAGES });
+    if (f) {
+      keepPosition.current = { height: contentHeight.current, y: offsetY.current };
+      setOlder((list) => [...[...f.messages].reverse(), ...list]);
+      setMoreOlder(f.more ?? f.messages.length >= PAGE);
+    }
+    loadingOlderRef.current = false;
+    setLoadingOlder(false);
   }
 
   async function onSend() {
@@ -224,16 +265,50 @@ export default function ChatRoomScreen() {
               onScroll={(e) => {
                 const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
                 atBottom.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 80;
+                offsetY.current = contentOffset.y;
+                /* いちばん上の近くまで来たら、その前を読み足す */
+                if (
+                  contentOffset.y < 120 &&
+                  more &&
+                  !loadingOlderRef.current &&
+                  Date.now() - settledAt.current > 800
+                ) {
+                  loadOlder();
+                }
               }}
-              scrollEventThrottle={200}
-              onContentSizeChange={() => {
-                if (atBottom.current) scroller.current?.scrollToEnd({ animated: false });
+              scrollEventThrottle={100}
+              onContentSizeChange={(_w, h) => {
+                const keep = keepPosition.current;
+                contentHeight.current = h;
+                if (keep) {
+                  /* 上に足したぶんだけ下へずらし、見ていた書き込みをそのまま見せる */
+                  keepPosition.current = null;
+                  scroller.current?.scrollTo({ y: keep.y + (h - keep.height), animated: false });
+                } else if (atBottom.current) {
+                  settledAt.current = Date.now();
+                  scroller.current?.scrollToEnd({ animated: false });
+                }
               }}
             >
-              {more && (
-                <Pressable onPress={loadOlder} style={styles.older} accessibilityRole="button">
+              {/*
+                いちばん上。読み込み中・さらに前を読む釦（スクロールできないほど
+                少ないとき、キーボードで操作するとき）・ここが最初の書き込み、のどれか。
+              */}
+              {loadingOlder ? (
+                <View style={styles.older} testID="chat-loading-older">
+                  <ActivityIndicator color={c.accent} />
+                  <Text style={styles.olderNote}>{t.chatRoom.loadingOlder}</Text>
+                </View>
+              ) : more ? (
+                <Pressable onPress={loadOlder} style={styles.older} accessibilityRole="button" testID="chat-older">
                   <Text style={styles.olderText}>{t.chatRoom.older}</Text>
                 </Pressable>
+              ) : (
+                messages.length > 0 && (
+                  <Text style={[styles.olderNote, styles.olderEnd]} testID="chat-no-older">
+                    {fill(t.chatRoom.noOlder, { days: String(feed?.retentionDays ?? 90) })}
+                  </Text>
+                )
               )}
               {messages.length === 0 && <Text style={[styles.muted, styles.empty]}>{t.chatRoom.empty}</Text>}
               {messages.map((m) => (
@@ -386,8 +461,17 @@ function makeStyles(c: Palette) {
       paddingVertical: SPACE.sm,
       gap: SPACE.md,
     },
-    older: { alignSelf: 'center', paddingVertical: SPACE.sm, paddingHorizontal: SPACE.md },
+    older: {
+      alignSelf: 'center',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.sm,
+      paddingVertical: SPACE.sm,
+      paddingHorizontal: SPACE.md,
+    },
     olderText: { fontSize: TEXT.sub, fontWeight: '700', color: c.accentInk },
+    olderNote: { fontSize: TEXT.small, color: c.textMuted, textAlign: 'center' },
+    olderEnd: { paddingVertical: SPACE.sm },
 
     msg: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.sm, maxWidth: '88%' },
     msgMine: { alignSelf: 'flex-end' },

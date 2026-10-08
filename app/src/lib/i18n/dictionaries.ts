@@ -233,6 +233,9 @@ const ja = {
     send: '送る',
     empty: 'まだ書き込みはありません。最初の書き込みをどうぞ。',
     older: '前の書き込みを読む',
+    /* 10日ずつ読む・90日で外れる（2026-10-08） */
+    loadingOlder: '前の書き込みを読み込んでいます…',
+    noOlder: 'これより前の書き込みはありません（{days}日を過ぎた書き込みは表示されません）',
     noName: '名前未設定の会員',
     noNameHint: '表示名がまだありません。アカウントの画面で設定すると、名前が添えて出ます。',
     muted: '書き込みは運営により止められています。読むことはできます。',
@@ -980,6 +983,8 @@ const en: Dictionary = {
     send: 'Send',
     empty: 'No posts yet. Be the first.',
     older: 'Read earlier posts',
+    loadingOlder: 'Loading earlier posts…',
+    noOlder: 'No earlier posts (posts older than {days} days are not shown)',
     noName: 'Member without a name',
     noNameHint: 'You have no display name yet. Set one on the Account screen to show it with your posts.',
     muted: 'Posting has been turned off for you by the operator. You can still read.',
