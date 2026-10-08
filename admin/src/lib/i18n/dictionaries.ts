@@ -77,7 +77,7 @@ const ja = {
   chatAdmin: {
     title: 'チャット',
     description:
-      '会員どうしの書き込み（情報交換）を見張ります。ルールに反する書き込みは「非表示」にしてください。会員には見えなくなりますが、この画面と操作履歴には残ります。',
+      '会員どうしの書き込み（情報交換）を見張ります。ルールに反する書き込みは「非表示」にしてください。会員には見えなくなりますが、この画面と操作履歴には残ります。新しい書き込みと通報は、画面を開いたままで自動的に出ます。',
     tabReports: '通報（未対応）',
     tabAll: 'すべての書き込み',
     noReports: '未対応の通報はありません。',
@@ -790,7 +790,7 @@ const en: Dictionary = {
   chatAdmin: {
     title: 'Chat',
     description:
-      'Watch member posts (Driver talk). Hide posts that break the rules. Hidden posts disappear for members but stay here and in the history.',
+      'Watch member posts (Driver talk). Hide posts that break the rules. Hidden posts disappear for members but stay here and in the history. New posts and reports appear automatically while this page is open.',
     tabReports: 'Reports (open)',
     tabAll: 'All posts',
     noReports: 'No open reports.',

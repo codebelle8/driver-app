@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { hideChatMessage, resolveChatReports, setChatMuted } from '@/app/actions/chat';
+import { LiveRefresh } from '@/components/live-refresh';
 import { Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { requireManager } from '@/lib/auth';
 import { getDictionary } from '@/lib/i18n/server';
@@ -74,6 +75,8 @@ export default async function ChatAdminPage({ searchParams }: PageProps<'/chat'>
   return (
     <div className="space-y-6">
       <PageHeader title={s.title} description={s.description} />
+      {/* 新しい書き込み・通報を、読み直さなくても出す（2026-10-08） */}
+      <LiveRefresh table="chat_messages" />
 
       <nav className="flex flex-wrap gap-2" aria-label={s.title}>
         {(
