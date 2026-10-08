@@ -70,13 +70,24 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   let openChatReports = 0;
   if (isManager) {
     const admin = createAdminClient();
-    const [sub, chat] = await Promise.all([
+    const [sub, chat, flagged] = await Promise.all([
       admin.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
       /* チャットの未対応の通報（2026-10-05）。表が無ければ 0 */
       admin.from('chat_reports').select('id', { count: 'exact', head: true }).eq('state', 'open'),
+      /*
+        要確認（自動の旗。2026-10-08）。手を打つ必要があるものとして通報と足す。
+        「未確認」は数えない（会員が増えるといつも0より多く、合図にならない）。
+      */
+      admin
+        .from('chat_messages')
+        .select('id', { count: 'exact', head: true })
+        .filter('flags', 'neq', '{}')
+        .is('flag_cleared_at', null)
+        .is('hidden_at', null),
     ]);
     if (!sub.error) pendingSubmissions = sub.count ?? 0;
     if (!chat.error) openChatReports = chat.count ?? 0;
+    if (!flagged.error) openChatReports += flagged.count ?? 0;
   }
 
   const roleLabel = {

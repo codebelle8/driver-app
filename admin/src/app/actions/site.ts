@@ -102,6 +102,24 @@ export async function saveSiteSettings(
   const minAccepted = num('free_min_accepted', 3);
   /* 試験提供の期間（2026-10-07）。欄に印があれば期間中 */
   const trialOpen = formData.get('trial_open') === 'on';
+
+  /*
+    チャットの気をつける言葉（2026-10-08）。1行に1つ（読点・カンマで区切ってもよい）。
+    空の行と重なりは除く。多すぎる・長すぎるものは弾く（書き込みのたびに照らすため）。
+  */
+  const flagWords = [
+    ...new Set(
+      get('chat_flag_words')
+        .split(/\r?\n|、|,/)
+        .map((w) => w.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (flagWords.length > 200) {
+    errors.chat_flag_words = '200 語までにしてください';
+  } else if (flagWords.some((w) => w.length > 30)) {
+    errors.chat_flag_words = '1語は30文字までにしてください';
+  }
   if (!Number.isInteger(topCount) || topCount < 1 || topCount > 200) {
     errors.free_top_count = '1〜200 の整数でご指定ください';
   }
@@ -186,6 +204,18 @@ export async function saveSiteSettings(
     return { message: `保存できませんでした: ${error.message}` };
   }
 
+  /*
+    気をつける言葉は別に保存する（列が無い＝データベースの更新前でも、ほかの
+    項目の保存を失わないため）。
+  */
+  const words = await admin.from('site_settings').update({ chat_flag_words: flagWords }).eq('id', 1);
   revalidatePath('/site');
+  if (words.error) {
+    return {
+      ok: true,
+      message:
+        '保存しました。ただし「チャットの気をつける言葉」は、データベースの更新（20261008000001_chat_review_and_retention.sql）の後から保存できます。',
+    };
+  }
   return { ok: true, message: '保存しました' };
 }

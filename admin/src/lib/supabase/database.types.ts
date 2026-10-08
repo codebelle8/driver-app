@@ -199,6 +199,8 @@ export type SiteSettings = {
   free_min_accepted?: number;
   /** 試験提供の期間中か（既定 true）。20261007000001 で追加 */
   trial_open?: boolean;
+  /** チャットで「要確認」の旗を立てる言葉。20261008000001 で追加 */
+  chat_flag_words?: string[];
   updated_at: string;
 }
 
@@ -288,7 +290,22 @@ export type ChatMessage = {
   hidden_at: string | null;
   hidden_by: string | null;
   created_at: string;
+  /** 自動の旗（20261008000001 で追加。更新前は無い） */
+  flags?: ChatFlag[];
+  flag_cleared_at?: string | null;
+  flag_cleared_by?: string | null;
 }
+
+/** 自動の旗の種類（データベースの chat_flags_of と同じ） */
+export type ChatFlag = 'phone' | 'email' | 'url' | 'plate' | 'word';
+
+/** チャットの見張りの「ここまで確認した」の印（職員で共有。2026-10-08） */
+export type ChatReviewState = {
+  id: number;
+  checked_until: string | null;
+  checked_by: string | null;
+  checked_at: string | null;
+};
 
 /** チャットの通報。誰が通報したかは会員に見せない */
 export type ChatReport = {
@@ -460,6 +477,7 @@ export interface Database {
         ChatReport,
         Insert<ChatReport, 'id' | 'reporter_id' | 'reason' | 'state' | 'created_at'>
       >;
+      chat_review_state: Table<ChatReviewState, Insert<ChatReviewState, keyof ChatReviewState>>;
       admin_notices: Table<
         AdminNotice,
         Insert<
@@ -487,6 +505,11 @@ export interface Database {
       settle_free_month: {
         Args: Record<never, never>;
         Returns: { month: string; winners: number } | null;
+      };
+      /** 「ここまで確認した」の印を進める（管理者・編集者。戻らない）。新しい印を返す */
+      chat_mark_checked: {
+        Args: { p_until: string };
+        Returns: string | null;
       };
     };
   };

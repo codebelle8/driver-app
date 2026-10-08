@@ -53,6 +53,8 @@ export default async function SitePage() {
           free_min_accepted: (data as { free_min_accepted?: number } | null)?.free_min_accepted ?? 3,
           /* 試験提供の期間（2026-10-07）。更新前は列が無い。いまは期間中なので入っている扱い */
           trial_open: (data as { trial_open?: boolean } | null)?.trial_open ?? true,
+          /* チャットの気をつける言葉（2026-10-08）。更新前は列が無いので空 */
+          chat_flag_words: (data as { chat_flag_words?: string[] } | null)?.chat_flag_words ?? [],
         }}
       />
     </div>

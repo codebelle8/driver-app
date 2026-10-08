@@ -34,6 +34,7 @@ export function SiteSettingsForm({
     free_top_count: number;
     free_min_accepted: number;
     trial_open: boolean;
+    chat_flag_words: string[];
   };
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(action, {});
@@ -193,6 +194,24 @@ export function SiteSettingsForm({
             </div>
           </Field>
         </div>
+
+        {/*
+          チャットの気をつける言葉（2026-10-08）。含まれる書き込みは、チャットの
+          「要確認」に出る。書き込みそのものは止めない（職員が見て判断する）。
+        */}
+        <div className="border-t border-border pt-4">
+          <h2 className="text-sm font-semibold text-text-muted">{s.flagWordsTitle}</h2>
+          <p className="mt-1 text-xs leading-relaxed text-text-faint">{s.flagWordsHint}</p>
+        </div>
+
+        <Field label={s.flagWords} error={err('chat_flag_words')}>
+          <textarea
+            name="chat_flag_words"
+            rows={6}
+            defaultValue={initial.chat_flag_words.join('\n')}
+            className={inputClass}
+          />
+        </Field>
 
         <Button type="submit" disabled={pending}>
           {pending ? s.saving : s.save}

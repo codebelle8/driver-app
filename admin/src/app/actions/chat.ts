@@ -52,6 +52,35 @@ export async function resolveChatReports(formData: FormData): Promise<void> {
   done();
 }
 
+/**
+ * 自動の旗を下ろす（問題なし）。2026-10-08。
+ * 誰がいつ下ろしたかはデータベースが入れる。旗の記録そのものは残る。
+ */
+export async function clearChatFlag(formData: FormData): Promise<void> {
+  await requireManager();
+  const id = String(formData.get('id') ?? '');
+  if (!id) return;
+  const supabase = await createClient();
+  await supabase.from('chat_messages').update({ flag_cleared_at: new Date().toISOString() }).eq('id', id);
+  done();
+}
+
+/**
+ * 「ここまで確認した」（未確認の一覧）。2026-10-08。
+ *
+ * 渡すのは、画面に出していたいちばん新しい書き込みの時刻。押した時刻まで
+ * 進めると、画面を開いてから押すまでに来た書き込みを、読まずに確認済みに
+ * してしまう。印は職員で共有し、戻らない（データベースの chat_mark_checked）。
+ */
+export async function markChatChecked(formData: FormData): Promise<void> {
+  await requireManager();
+  const until = String(formData.get('until') ?? '');
+  if (!until || Number.isNaN(new Date(until).getTime())) return;
+  const supabase = await createClient();
+  await supabase.rpc('chat_mark_checked', { p_until: until });
+  done();
+}
+
 /** 会員の書き込みを止める／止めるのをやめる（アプリは使えるまま） */
 export async function setChatMuted(formData: FormData): Promise<void> {
   const me = await requireManager();

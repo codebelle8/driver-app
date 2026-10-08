@@ -79,7 +79,27 @@ const ja = {
     description:
       '会員どうしの書き込み（情報交換）を見張ります。ルールに反する書き込みは「非表示」にしてください。会員には見えなくなりますが、この画面と操作履歴には残ります。新しい書き込みと通報は、画面を開いたままで自動的に出ます。',
     tabReports: '通報（未対応）',
+    /* 要確認（自動の旗）・未確認（2026-10-08） */
+    tabFlags: '要確認（自動の旗）',
+    tabNew: '未確認',
     tabAll: 'すべての書き込み',
+    flagsHint:
+      '電話番号・メールアドレス・URL・車の番号らしきものや、サイト設定の「気をつける言葉」を含む書き込みです（古い順）。ルールに反していれば「非表示にする」、問題なければ「問題なし（旗を下ろす）」を押してください。',
+    newHint:
+      'まだだれも確認していない書き込みです（古い順）。読み終えたら、いちばん下の「ここまで確認した」を押してください。ほかの職員の画面からも消えます。',
+    noFlags: '要確認の書き込みはありません。',
+    noNew: '未確認の書き込みはありません。',
+    clearFlag: '問題なし（旗を下ろす）',
+    markChecked: 'ここまで確認した（{n} 件）',
+    markCheckedHint: '表示している書き込みを確認済みにします。ほかの職員の「未確認」からも消えます。',
+    moreNew: '残り {n} 件は、「ここまで確認した」を押すと続けて出ます。',
+    flag: {
+      phone: '電話番号らしきもの',
+      email: 'メールアドレス',
+      url: 'URL',
+      plate: '車の番号らしきもの',
+      word: '気をつける言葉',
+    },
     noReports: '未対応の通報はありません。',
     noMessages: 'まだ書き込みはありません。',
     reportCount: '通報 {n} 件',
@@ -205,6 +225,10 @@ const ja = {
     offlineDaysHint: '既定は30日です。毎日お使いの方なら、そのあいだに必ず一度は電波のある場所で開くため、まず当たりません。',
     offlineDaysUnit: '日',
     /* 翌月無料（2026-10-06） */
+    flagWordsTitle: 'チャットの気をつける言葉',
+    flagWordsHint:
+      '書き込みにこの言葉が含まれると、管理画面のチャットの「要確認（自動の旗）」に出ます。書き込みそのものは止めません。電話番号・メールアドレス・URL・車の番号らしきものは、ここに書かなくても自動で拾います。',
+    flagWords: '1行に1つ（200語まで・1語30文字まで）',
     trialTitle: '試験提供の期間',
     trialHint:
       '試験提供の期間中は、すべての会員が無料で使えます。無料期間（登録から1か月）が過ぎた方も、引き続き使えます（利用規約 第4条第6項）。アプリには「試験提供の期間中のため、無料」と出ます。',
@@ -792,7 +816,26 @@ const en: Dictionary = {
     description:
       'Watch member posts (Driver talk). Hide posts that break the rules. Hidden posts disappear for members but stay here and in the history. New posts and reports appear automatically while this page is open.',
     tabReports: 'Reports (open)',
+    tabFlags: 'Needs review (auto flags)',
+    tabNew: 'Unchecked',
     tabAll: 'All posts',
+    flagsHint:
+      'Posts that contain what looks like a phone number, email address, URL or licence plate, or a word from "Words to watch" in Site settings (oldest first). Hide posts that break the rules; otherwise press "No problem (clear flag)".',
+    newHint:
+      'Posts nobody has checked yet (oldest first). When you have read them, press "Checked up to here" at the bottom. They also disappear from the other staff members’ lists.',
+    noFlags: 'No posts need review.',
+    noNew: 'No unchecked posts.',
+    clearFlag: 'No problem (clear flag)',
+    markChecked: 'Checked up to here ({n})',
+    markCheckedHint: 'Marks the posts shown as checked. They also disappear from the other staff members’ "Unchecked" lists.',
+    moreNew: '{n} more will appear after you press "Checked up to here".',
+    flag: {
+      phone: 'Phone number?',
+      email: 'Email address',
+      url: 'URL',
+      plate: 'Licence plate?',
+      word: 'Word to watch',
+    },
     noReports: 'No open reports.',
     noMessages: 'No posts yet.',
     reportCount: '{n} reports',
@@ -903,6 +946,10 @@ const en: Dictionary = {
     offlineDays: 'Days (1-365)',
     offlineDaysHint: 'The default is 30. Members who use the app daily will almost always open it with a signal within that time.',
     offlineDaysUnit: 'days',
+    flagWordsTitle: 'Words to watch in chat',
+    flagWordsHint:
+      'Posts containing any of these words appear under "Needs review (auto flags)" in Chat. The posts are not blocked. Phone numbers, email addresses, URLs and licence plates are caught automatically without listing them here.',
+    flagWords: 'One per line (up to 200 words, 30 characters each)',
     trialTitle: 'Trial period',
     trialHint:
       'During the trial period every member can use the app for free, including those whose free month has ended (Terms, Article 4(6)). The app shows "Free (trial period)".',
