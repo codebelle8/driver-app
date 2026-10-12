@@ -15,11 +15,27 @@ export async function getTrialOpen({ url, svc }) {
 }
 
 export async function setTrialOpen({ url, svc }, open) {
+  /*
+    外すと、データベースが「無料期間を過ぎた方に1か月」を付け、操作履歴に1行
+    残す（20261012000001。検査では対象 0 名）。検査が残したその行は消す
+    （発注元の操作履歴に、検査の跡を混ぜない）。
+  */
+  const newest = async () => {
+    const q = await fetch(`${url}/rest/v1/audit_logs?select=id&order=id.desc&limit=1`, { headers: svc });
+    return (await q.json().catch(() => []))?.[0]?.id ?? 0;
+  };
+  const before = open ? 0 : await newest();
   const r = await fetch(`${url}/rest/v1/site_settings?id=eq.1`, {
     method: 'PATCH',
     headers: svc,
     body: JSON.stringify({ trial_open: open }),
   });
+  if (!open && r.ok) {
+    await fetch(`${url}/rest/v1/audit_logs?id=gt.${before}&table_name=eq.site_settings&actor_id=is.null`, {
+      method: 'DELETE',
+      headers: svc,
+    });
+  }
   return r.ok;
 }
 

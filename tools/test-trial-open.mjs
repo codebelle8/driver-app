@@ -15,8 +15,12 @@
  *   管理画面
  *     4. サイト設定の「試験提供の期間中」に印が入っている
  *     5. 会員の一覧に「試験提供の期間中のため…」の一行
- *     6. 印を外して保存すると、データベースが外れる → アプリが絞られる
- *     7. 印を戻して保存すると、データベースが戻る → アプリがまた使える
+ *     6. 印を外して保存すると、データベースが外れる。無料期間を過ぎていた方に、
+ *        その日から1か月の無料期間が付く（利用規約 第4条第7項。2026-10-12）
+ *        → 締め出されず「無料期間 残り…」。保存のお知らせに何名に付けたかが出て、
+ *        操作履歴に外した職員と人数が残る
+ *     7. その1か月も過ぎれば、締め出される（有料の提供のときの姿）
+ *     8. 印を戻して保存すると、データベースが戻る → アプリがまた使える
  *
  * **6〜7 は本番の全体に効く切り替え。** 外すと絞られる本物の会員がいる
  * ときは飛ばす（tools/lib/trial.mjs）。外したら必ず戻す。
@@ -146,7 +150,28 @@ try {
     await ap.getByRole('button', { name: '保存', exact: true }).click();
     await ap.waitForTimeout(3000);
     check('印を外して保存すると、試験提供が外れる', (await getTrialOpen(conn)) === false);
-    check('外すと、無料期間が過ぎた方は絞られる', await lockedOn(page), page.url());
+    const saved = await ap.locator('body').innerText();
+    check('保存のお知らせに「1 名に、今日から1か月の無料期間を付けました」',
+      saved.includes('無料期間を過ぎていた 1 名に、今日から1か月の無料期間を付けました'),
+      (saved.match(/保存しました[^\n]*/) ?? [''])[0]);
+    const prof = (await sb(`/rest/v1/driver_profiles?select=trial_ends_at,status&user_id=eq.${member.userId}`)).body?.[0];
+    const days = prof ? (new Date(prof.trial_ends_at).getTime() - Date.now()) / 86_400_000 : 0;
+    check('無料期間を過ぎていた方に、その日から1か月の無料期間が付く', days > 27 && days < 32 && prof?.status === 'trial',
+      JSON.stringify(prof));
+    const log = (await sb(`/rest/v1/audit_logs?select=actor_id,diff&table_name=eq.site_settings&order=id.desc&limit=1`)).body?.[0];
+    check('操作履歴に、外した職員と人数が残る',
+      log?.actor_id === staff.id && log?.diff?.trial_end_grant?.members === 1, JSON.stringify(log));
+    check('外しても、1か月が付いた方は締め出されない', !(await lockedOn(page)), page.url());
+    await page.goto(`${APP}/mypage`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(3000);
+    check('「無料期間 残り…」と出る', (await page.locator('body').innerText()).includes('無料期間 残り'));
+
+    /* その1か月も過ぎたら（有料の提供のときの姿） */
+    await sb(`/rest/v1/driver_profiles?user_id=eq.${member.userId}`, {
+      method: 'PATCH',
+      body: { trial_ends_at: '2026-01-01T00:00:00Z' },
+    });
+    check('その1か月も過ぎれば、締め出される', await lockedOn(page), page.url());
 
     await ap.goto(`${ADMIN}/site`, { waitUntil: 'networkidle' });
     await ap.locator('input[name="trial_open"]').check();
@@ -170,6 +195,8 @@ try {
   }
   const ids = [];
   if (staff) {
+    /* 切り替えの操作履歴（record_id を持たないので、外した職員で消す） */
+    await sb(`/rest/v1/audit_logs?table_name=eq.site_settings&actor_id=eq.${staff.id}`, { method: 'DELETE' });
     await sb(`/rest/v1/admin_profiles?user_id=eq.${staff.id}`, { method: 'DELETE' });
     await sb(`/auth/v1/admin/users/${staff.id}`, { method: 'DELETE' });
     ids.push(staff.id);

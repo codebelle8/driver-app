@@ -234,7 +234,7 @@ const ja = {
       '試験提供の期間中は、すべての会員が無料で使えます。無料期間（登録から1か月）が過ぎた方も、引き続き使えます（利用規約 第4条第6項）。アプリには「試験提供の期間中のため、無料」と出ます。',
     trialOpen: '試験提供の期間中（すべての会員が無料で使える）',
     trialOffWarn:
-      '印を外して保存すると、無料期間が過ぎた方は、その時点から設定などの画面にしか入れなくなります。有料での提供を始める30日前までに会員へお知らせしてから外してください（利用規約 第4条第4項）。',
+      '印を外して保存すると、有料での提供が始まります。無料期間（登録から1か月）を過ぎている方には、その日から1か月の無料期間が付きます（利用規約 第4条第7項）。無料期間の途中の方は、残りの日数のままです。外す30日前までに、会員へお知らせしてください（利用規約 第4条第4項）。',
     freeTitle: '情報提供の上位の翌月無料',
     freeHint:
       '毎月、採用された件数で順位を出し、上位の方の翌月を無料にします（お支払い済みの方は、ご利用期間を1か月延ばします）。月が替わってから最初にだれかがアプリか管理画面を開いたときに、前の月を締めます。変えた値は、次に締める月から効きます。',
@@ -955,7 +955,7 @@ const en: Dictionary = {
       'During the trial period every member can use the app for free, including those whose free month has ended (Terms, Article 4(6)). The app shows "Free (trial period)".',
     trialOpen: 'Trial period is on (every member can use the app for free)',
     trialOffWarn:
-      'If you untick this and save, members whose free month has ended can only reach Settings and a few other screens from that moment. Notify members at least 30 days before paid service begins, then untick (Terms, Article 4(4)).',
+      'If you untick this and save, paid service begins. Members whose free month has already ended get one more free month from that day (Terms, Article 4(7)); members still in their free month keep the days they have left. Notify members at least 30 days before you untick (Terms, Article 4(4)).',
     freeTitle: 'Next month free for top contributors',
     freeHint:
       'Each month, members are ranked by accepted submissions and the top ones get the following month free (paid members get their period extended by a month). The previous month is settled the first time anyone opens the app or this admin after the month changes. Changes apply from the next settlement.',

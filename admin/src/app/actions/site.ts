@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireAdmin } from '@/lib/auth';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { ActionState } from './facilities';
 
 /**
@@ -138,6 +138,9 @@ export async function saveSiteSettings(
   }
 
   const admin = createAdminClient();
+  /* 試験提供の期間を切り替えるかどうか（いまの値と比べる） */
+  const { data: current } = await admin.from('site_settings').select('trial_open').eq('id', 1).maybeSingle();
+  const trialBefore = (current as { trial_open?: boolean } | null)?.trial_open ?? true;
   const links = {
     // 空欄は null。空文字を入れると、アプリが「入っている」と見て空の行を出す。
     operator_name: v.operatorName || null,
@@ -153,26 +156,10 @@ export async function saveSiteSettings(
       offline_grace_days: graceDays,
       free_top_count: topCount,
       free_min_accepted: minAccepted,
-      trial_open: trialOpen,
     })
     .eq('id', 1);
 
   if (error) {
-    /* 試験提供の列がまだ無い（20261007000001_trial_open.sql の前）。ほかは保存する */
-    if (/trial_open/.test(error.message)) {
-      const retry = await admin
-        .from('site_settings')
-        .update({ ...links, offline_grace_days: graceDays, free_top_count: topCount, free_min_accepted: minAccepted })
-        .eq('id', 1);
-      if (!retry.error) {
-        revalidatePath('/site');
-        return {
-          ok: true,
-          message:
-            '保存しました。ただし「試験提供の期間」は、データベースの更新（20261007000001_trial_open.sql）の後から保存できます。',
-        };
-      }
-    }
     /*
       **データベースを更新する前（列がまだ無い）。** 日数だけを外して保存し、
       ほかの項目は失わない。日数は既定の30日で動く。
@@ -209,13 +196,50 @@ export async function saveSiteSettings(
     項目の保存を失わないため）。
   */
   const words = await admin.from('site_settings').update({ chat_flag_words: flagWords }).eq('id', 1);
+
+  /*
+    試験提供の期間の切り替え（2026-10-12）。
+
+    **職員の鍵で切り替える。** 外したときは、データベースが無料期間を過ぎている
+    方に1か月の無料期間を付け、操作履歴に「何名に付けたか」を残す
+    （20261012000001_trial_end_grant.sql）。職員の鍵なら、その履歴に「誰が外したか」も
+    残る。鍵で切り替えられなかったとき（権限の誤りなど）は、service_role で切り替える
+    （付ける処理は同じに効く。履歴の「操作した人」だけ空になる）。
+  */
+  let trialNote = '';
+  if (trialOpen !== trialBefore) {
+    const supabase = await createClient();
+    const mine = await supabase.from('site_settings').update({ trial_open: trialOpen }).eq('id', 1).select('id');
+    if (mine.error || !mine.data?.length) {
+      const retry = await admin.from('site_settings').update({ trial_open: trialOpen }).eq('id', 1);
+      if (retry.error) return { message: `保存できませんでした: ${retry.error.message}` };
+    }
+    if (!trialOpen) {
+      const { data: log } = await admin
+        .from('audit_logs')
+        .select('diff')
+        .eq('table_name', 'site_settings')
+        .order('id', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const granted = (log?.diff as { trial_end_grant?: { members?: number } } | null)?.trial_end_grant?.members;
+      trialNote =
+        typeof granted === 'number'
+          ? `試験提供を終えました。無料期間を過ぎていた ${granted} 名に、今日から1か月の無料期間を付けました（利用規約 第4条第7項）。`
+          : '試験提供を終えました。';
+    } else {
+      trialNote = '試験提供の期間中に戻しました。';
+    }
+  }
+
   revalidatePath('/site');
+  revalidatePath('/members');
+  const saved = trialNote ? `保存しました。${trialNote}` : '保存しました';
   if (words.error) {
     return {
       ok: true,
-      message:
-        '保存しました。ただし「チャットの気をつける言葉」は、データベースの更新（20261008000001_chat_review_and_retention.sql）の後から保存できます。',
+      message: `${saved} ただし「チャットの気をつける言葉」は、データベースの更新（20261008000001_chat_review_and_retention.sql）の後から保存できます。`,
     };
   }
-  return { ok: true, message: '保存しました' };
+  return { ok: true, message: saved };
 }
