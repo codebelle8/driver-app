@@ -51,6 +51,14 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
       () => undefined,
       () => undefined,
     );
+    /*
+      1年を過ぎたチャットの書き込みを消す（2026-10-12）。締めと同じく、開いたときに
+      呼ぶ。消すものが無ければ何もしない。更新前（関数が無い）でも画面は止めない。
+    */
+    await supabase.rpc('purge_old_chat').then(
+      () => undefined,
+      () => undefined,
+    );
   }
 
   let notices: Awaited<ReturnType<typeof fetchOpenNotices>> = null;

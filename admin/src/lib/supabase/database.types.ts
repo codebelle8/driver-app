@@ -506,6 +506,11 @@ export interface Database {
         Args: Record<never, never>;
         Returns: { month: string; winners: number } | null;
       };
+      /** 1年を過ぎたチャットの書き込みを消す。消した件数を返す（2026-10-12） */
+      purge_old_chat: {
+        Args: Record<never, never>;
+        Returns: number;
+      };
       /** 「ここまで確認した」の印を進める（管理者・編集者。戻らない）。新しい印を返す */
       chat_mark_checked: {
         Args: { p_until: string };

@@ -871,6 +871,15 @@ async function loadFree(): Promise<{ freeReason: FreeReason | null; freeUntil: s
         () => undefined,
         () => undefined,
       );
+      /*
+        1年を過ぎたチャットの書き込みを消す（2026-10-12。プライバシーポリシー）。
+        仕掛け（cron）を置かず、開いたときに呼ぶ。画面には関わらないので待たない。
+        消すものが無ければデータベースは何もしない。
+      */
+      void supabase.rpc('purge_old_chat').then(
+        () => undefined,
+        () => undefined,
+      );
     }
     const { data, error } = await supabase.rpc('my_free_access');
     if (error || !data || typeof data !== 'object') return { freeReason: null, freeUntil: null };
