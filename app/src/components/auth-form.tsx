@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   PASSWORD_MIN,
@@ -17,6 +17,7 @@ import { useT } from '@/lib/i18n/context';
 import { fill } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
 import { loadRemembered, remember } from '@/lib/remember';
+import { loadSite, type Site } from '@/lib/site';
 import { HIT_SLOP, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
 
@@ -38,12 +39,17 @@ import { useTheme } from '@/theme-context';
  * **登録には確認の欄を置く**
  *   打ち間違えたまま登録すると、本人にも二度と入れない。
  *   いまはメールの送信口が無く、再設定でも救えない。
+ *
+ * **登録には、利用規約とプライバシーポリシーへの同意を求める**（2026-10-08 ご回答）
+ *   規約を会員との約束として効かせるには、登録の前に示しておく必要がある。
+ *   掲載先（サイト設定）が入っているときだけ欄を出す。読めない規約に同意を
+ *   求めても意味が無いため。掲載先を入れた時点で、自動的に出るようになる。
  */
 
 type Mode = 'in' | 'up' | 'reset';
 
 /** 欄のすぐ下に出す言い分。Problem に、こちらで見つけるぶんを足す。 */
-export type Trouble = Problem | 'empty' | 'emptyEmail' | 'short';
+export type Trouble = Problem | 'empty' | 'emptyEmail' | 'short' | 'agree';
 
 export function AuthForm() {
   const c = useTheme();
@@ -74,6 +80,22 @@ export function AuthForm() {
   const [trouble, setTrouble] = useState<Trouble | null>(null);
   /** 確認メール・再設定メールを送った先。送った後の案内に使う。 */
   const [sentTo, setSentTo] = useState<string | null>(null);
+  /* 規約類の掲載先（ログインする前でも読める）。同意の欄に使う */
+  const [site, setSite] = useState<Site | null>(null);
+  const [agreed, setAgreed] = useState(false);
+  const termsUrl = site?.termsUrl || null;
+  const privacyUrl = site?.privacyUrl || null;
+  const needsConsent = mode === 'up' && !!(termsUrl || privacyUrl);
+
+  useEffect(() => {
+    let alive = true;
+    loadSite().then((v) => {
+      if (alive) setSite(v);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   /* 控えてあるものを入れておく。押すだけで入れるように。 */
   useEffect(() => {
@@ -105,6 +127,8 @@ export function AuthForm() {
       if (password.length < PASSWORD_MIN) return setTrouble('short');
       // 登録のときだけ、確認と突き合わせる
       if (mode === 'up' && password !== confirm) return setTrouble('mismatch');
+      // 登録のときは、規約類への同意も（掲載先があるときだけ）
+      if (needsConsent && !agreed) return setTrouble('agree');
     }
 
     setBusy(true);
@@ -118,7 +142,7 @@ export function AuthForm() {
       }
 
       if (mode === 'up') {
-        const r = await signUp(email, password);
+        const r = await signUp(email, password, needsConsent ? { termsUrl, privacyUrl } : undefined);
         if (!r.ok) return setTrouble(r.problem);
         await remember(email, password, keep);
         setConfirm('');
@@ -313,6 +337,42 @@ export function AuthForm() {
           )}
 
           {/*
+            利用規約・プライバシーポリシーへの同意（2026-10-08）。登録のときだけ、
+            掲載先があるときだけ。言葉を押すと文面が開く（web では本物のリンク）。
+          */}
+          {needsConsent && (
+            <View style={s.check} testID="signup-consent">
+              <Pressable
+                onPress={() => {
+                  setAgreed(!agreed);
+                  setTrouble(null);
+                }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+                aria-checked={agreed}
+                accessibilityLabel={
+                  termsUrl && privacyUrl
+                    ? t.account.agreeBoth
+                    : termsUrl
+                      ? t.account.agreeTermsOnly
+                      : t.account.agreePrivacyOnly
+                }
+                hitSlop={HIT_SLOP}
+              >
+                <View style={[s.box, agreed && s.boxOn]}>
+                  {agreed && <Ionicons name="checkmark" size={15} color={c.accentText} />}
+                </View>
+              </Pressable>
+              <Text style={[s.checkBody, s.checkText]}>
+                {!!termsUrl && <LegalLink url={termsUrl} label={t.account.agreeTerms} />}
+                {!!termsUrl && !!privacyUrl && t.account.agreeAnd}
+                {!!privacyUrl && <LegalLink url={privacyUrl} label={t.account.agreePrivacy} />}
+                {t.account.agreeTail}
+              </Text>
+            </View>
+          )}
+
+          {/*
             記憶する。
 
             パスワードを端末へそのまま残すことになる。伏せずに書く。
@@ -376,6 +436,27 @@ export function AuthForm() {
         <Text style={s.link}>{mode === 'reset' ? t.common.back : t.account.forgot}</Text>
       </Pressable>
     </View>
+  );
+}
+
+/**
+ * 規約類へのリンク（同意の欄の中）。web では本物の <a>（新しいタブで開く）。
+ * 長押しの「新しいタブで開く」や、宛先の確認ができるように。
+ */
+function LegalLink({ url, label }: { url: string; label: string }) {
+  const c = useTheme();
+  const s = makeStyles(c);
+  const asAnchor =
+    Platform.OS === 'web' ? ({ href: url, hrefAttrs: { target: '_blank', rel: 'noreferrer' } } as object) : null;
+  return (
+    <Text
+      {...asAnchor}
+      onPress={Platform.OS === 'web' ? undefined : () => void Linking.openURL(url)}
+      accessibilityRole="link"
+      style={s.legalLink}
+    >
+      {label}
+    </Text>
   );
 }
 
@@ -559,6 +640,7 @@ const makeStyles = (c: Palette) =>
     boxOn: { backgroundColor: c.accent, borderColor: c.accent },
     checkBody: { flex: 1, gap: 2 },
     checkText: { fontSize: TEXT.body, fontWeight: '700', color: c.text },
+    legalLink: { color: c.accentInk, textDecorationLine: 'underline' },
 
     trouble: {
       flexDirection: 'row',

@@ -289,11 +289,28 @@ export function scrubUrlFragment(): void {
 export async function signUp(
   email: string,
   password: string,
+  /**
+   * 利用規約・プライバシーポリシーへの同意（2026-10-08）。同意した日時と、
+   * そのときの掲載先を、会員の登録情報（auth の user_metadata）に残す。
+   * 掲載先がまだ無いとき（同意の欄を出していないとき）は渡さない。
+   */
+  consent?: { termsUrl: string | null; privacyUrl: string | null },
 ): Promise<Result<{ needsConfirm: boolean }>> {
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
-    options: { emailRedirectTo: redirectTo() },
+    options: {
+      emailRedirectTo: redirectTo(),
+      ...(consent
+        ? {
+            data: {
+              terms_agreed_at: new Date().toISOString(),
+              terms_url: consent.termsUrl,
+              privacy_url: consent.privacyUrl,
+            },
+          }
+        : {}),
+    },
   });
   if (error) return bad(toProblem(error));
 

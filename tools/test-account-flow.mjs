@@ -35,6 +35,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
+import { paidModeForTest } from './lib/trial.mjs';
 import sharp from 'sharp';
 
 const BASE = (process.argv[2] ?? 'http://localhost:4173').replace(/\/$/, '');
@@ -109,7 +110,14 @@ await sharp({
 let browser = null;
 let userId = null;
 
+/*
+  無料期間が切れたときの締め出しも見るため、検査のあいだだけ有料の提供の
+  ときの姿にする（試験提供を外す。2026-10-12）。終わったら必ず戻す。
+*/
+let restoreTrial = async () => {};
+
 try {
+  restoreTrial = await paidModeForTest({ url: URL_, svc });
   console.log(`会員登録の通しの検査: ${BASE}\n`);
 
   // --- 1. Supabase 側の設定 ---------------------------------------------------
@@ -591,6 +599,7 @@ try {
     }
   }
 } finally {
+  await restoreTrial();
   // --- 8. 後片付け -------------------------------------------------------------
   console.log('\n--- 後片付け ---');
   if (!userId) userId = (await findUser(EMAIL))?.id ?? null;
