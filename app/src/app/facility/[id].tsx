@@ -329,7 +329,7 @@ export default function FacilityScreen() {
     const url =
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? window.location.href
-        : `https://kurumayose-navi.vercel.app/facility/${id}`;
+        : `https://app.kurumayosenavi.com/facility/${id}`;
 
     const r = await shareFacility({ name: facilityName(facility, locale), url, t });
     if (r.how === 'copied') notify(t.notice.linkCopied, r.text);

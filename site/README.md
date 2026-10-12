@@ -146,7 +146,8 @@ UP、塊が上へ戻しても出るか、目印が浮き沈みしふくらむか
 
 ## 確認用に公開している
 
-**https://kurumayose-navi-site.vercel.app**（2026-09-19〜）
+**https://kurumayosenavi.com**（2026-10-12〜。`www.` は本体へ移す）
+それまでの **https://kurumayose-navi-site.vercel.app**（2026-09-19〜）も、当面は開ける。
 
 作業中のため、**検索には載せない設定**にしてある。
 

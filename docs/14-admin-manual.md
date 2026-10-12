@@ -2,7 +2,7 @@
 
 車寄せナビの管理画面で行う操作を、画面ごとにまとめています。
 
-  **開く場所** https://kurumayose-navi-admin.vercel.app
+  **開く場所** https://admin.kurumayosenavi.com
 
 上から順に読む必要はありません。**やりたいことの章だけ**お読みください。
 

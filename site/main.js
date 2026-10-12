@@ -40,7 +40,7 @@
  *
  * いまは試験提供の住所。本番の住所に移るときは、ここだけを差し替える。
  */
-const APP_URL = 'https://kurumayose-navi.vercel.app/';
+const APP_URL = 'https://app.kurumayosenavi.com/';
 
 /**
  * 立ち上がりの動画。**アプリと同じ3本を、同じ順に流す。**

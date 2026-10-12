@@ -97,8 +97,8 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
 7. **動くことを確かめる**
 
    ```
-   node tools/test-login.mjs https://kurumayose-navi.vercel.app
-   node tools/test-navigation.mjs https://kurumayose-navi.vercel.app
+   node tools/test-login.mjs https://app.kurumayosenavi.com
+   node tools/test-navigation.mjs https://app.kurumayosenavi.com
    ```
 
 8. **当方の手元の鍵を消す**
@@ -125,8 +125,10 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
    （手順は `docs/06-supabase-setup.md` の手順6）
 2. **必ず制限をかける**
    * アプリケーションの制限 … HTTP リファラー
-     `https://kurumayose-navi.vercel.app/*`
-     `https://kurumayose-navi-admin.vercel.app/*`
+     `https://app.kurumayosenavi.com/*`
+     `https://admin.kurumayosenavi.com/*`
+     （独自ドメインへ移す前の `https://kurumayose-navi.vercel.app/*` と
+     `https://kurumayose-navi-admin.vercel.app/*` は、移し終えたら外す）
    * API の制限 … Maps JavaScript API のみ
 3. Vercel の環境変数を差し替え、配備し直す
 
@@ -167,17 +169,17 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
   主なもの（本番へ向けて回せます）
 
   ```
-  node tools/test-login.mjs https://kurumayose-navi.vercel.app
-  node tools/test-navigation.mjs https://kurumayose-navi.vercel.app
-  node tools/test-offline.mjs https://kurumayose-navi.vercel.app
-  node tools/test-scroll.mjs https://kurumayose-navi.vercel.app
-  node tools/test-change-notice.mjs https://kurumayose-navi.vercel.app
-  node tools/test-scroll-top.mjs https://kurumayose-navi.vercel.app
-  node tools/test-contrast.mjs https://kurumayose-navi.vercel.app
-  node tools/test-admin-contrast.mjs https://kurumayose-navi-admin.vercel.app
+  node tools/test-login.mjs https://app.kurumayosenavi.com
+  node tools/test-navigation.mjs https://app.kurumayosenavi.com
+  node tools/test-offline.mjs https://app.kurumayosenavi.com
+  node tools/test-scroll.mjs https://app.kurumayosenavi.com
+  node tools/test-change-notice.mjs https://app.kurumayosenavi.com
+  node tools/test-scroll-top.mjs https://app.kurumayosenavi.com
+  node tools/test-contrast.mjs https://app.kurumayosenavi.com
+  node tools/test-admin-contrast.mjs https://admin.kurumayosenavi.com
   node tools/check-palette.mjs
-  node tools/test-notices.mjs https://kurumayose-navi-admin.vercel.app
-  node tools/test-settings-save.mjs https://kurumayose-navi-admin.vercel.app
+  node tools/test-notices.mjs https://admin.kurumayosenavi.com
+  node tools/test-settings-save.mjs https://admin.kurumayosenavi.com
   node tools/check-account-guard.mjs
   node tools/check-bundle.mjs
   ```

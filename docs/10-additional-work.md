@@ -1023,6 +1023,40 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
 ---
 
+### P-93. 独自ドメイン kurumayosenavi.com への切り替え（途中） — 依頼 / 0.5人日
+
+ご指示（2026-10-12）「購入したドメイン kurumayosenavi.com を、サイト・アプリ・
+管理画面で使う」。ドメインは ConoHa で取得、DNS も ConoHa。
+
+| 使い道 | ドメイン | Vercel の箱 |
+|---|---|---|
+| 紹介サイト | `kurumayosenavi.com`（`www.` は本体へ 308 で移す） | kurumayose-navi-site |
+| アプリ | `app.kurumayosenavi.com` | kurumayose-navi |
+| 管理画面 | `admin.kurumayosenavi.com` | kurumayose-navi-admin |
+
+**済んだこと**
+  * Vercel の3つの箱へドメインを登録し、`www` を本体へ移す設定を入れた
+  * ConoHa に入れる値を Vercel から取り出して渡した（本体は A 2行
+    `216.198.79.1`・`64.29.17.1`、ほかは箱ごとの CNAME）。入力のとき本体の1行が
+    `206…` になっていたのを見つけて直していただいた。4つとも Vercel で
+    「正しく設定済み」・証明書あり
+  * 中に直接書かれた URL を新しいドメインへ（紹介サイトの「アプリを開く」5か所と
+    共有用の URL、アプリの共有の予備の URL、手順書・引き継ぎ書）。紹介サイトと
+    アプリを配備し直した
+  * 新しいドメインで、ログイン・地図・管理画面・紹介サイトが動くことを確かめた
+
+**残っていること**
+  * **Supabase のログイン設定**（Site URL・Redirect URLs）— まだ古いまま。
+    パスワード再設定などのメールのリンクが vercel.app へ戻る（確かめ済み）
+  * Google マップの鍵の制限に新しいドメインが入っているかの確認（地図は出ている）
+  * 古い vercel.app から新しいドメインへ移す設定と、会員へのお知らせ（ログインの
+    し直し・ホーム画面の追加し直し・通知の受け取り直し）。ご相談のうえで行う
+
+関連: `site/index.html`, `site/main.js`, `app/src/app/facility/[id].tsx`,
+`docs/14-admin-manual.md`, `docs/15-handover.md`
+
+---
+
 ### P-92. チャット：1年を過ぎた書き込みをデータベースから消す — 依頼 / 0.3人日
 
 ご回答（2026-10-08）「運営側でも期限を決めて消す（1年）」。利用規約 第15条第9項・
