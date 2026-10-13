@@ -44,6 +44,12 @@ const ja = {
   brand: {
     tagline1: 'スムーズな到着を、',
     tagline2: 'もっと快適に。',
+    /*
+      ご要望（2026-10-13）。導入の最後と、情報提供の画面に出す。手書き風の書体
+      （lib/voice-font.ts）は、この一文の字だけを持つ。変えたら書体も作り直す
+    */
+    /* 「、」のあとで必ず改行する（狭い画面で「進化させ／る。」と折れないように） */
+    voice: 'あなたの声が、\nアプリを進化させる。',
     /** ロゴを押したときの行き先。読み上げに使う。 */
     toSearch: '探す画面へ',
     toSettings: '設定へ',
@@ -823,6 +829,7 @@ const en: Dictionary = {
   brand: {
     tagline1: 'Arrive smoothly,',
     tagline2: 'every time.',
+    voice: 'Your voice helps\nthe app evolve.',
     toSearch: 'Go to search',
     toSettings: 'Go to settings',
   },

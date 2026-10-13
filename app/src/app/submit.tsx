@@ -24,6 +24,7 @@ import {
   type SubmissionKind,
 } from '@/lib/submissions';
 import { ensureSynced } from '@/lib/sync';
+import { useVoiceFont, VOICE_FONT } from '@/lib/voice-font';
 import type { EntryPoint } from '@/lib/types';
 import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -59,6 +60,8 @@ export default function SubmitScreen() {
   const router = useRouter();
   const c = useTheme();
   const t = useT();
+  /* 「あなたの声が、アプリを進化させる。」の手書き風の書体（2026-10-13） */
+  const voiceFont = useVoiceFont();
   const { locale } = useLocale();
   const styles = makeStyles(c);
   const { account } = useAccount();
@@ -171,6 +174,10 @@ export default function SubmitScreen() {
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           {!!name && <Text style={styles.facility}>{name}</Text>}
+          {/* ご要望（2026-10-13）。手書き風の書体で、送る方への一言として */}
+          <Text style={[styles.voice, voiceFont && { fontFamily: VOICE_FONT }]} testID="submit-voice">
+            {t.brand.voice}
+          </Text>
           <Text style={styles.lead}>{t.submit.lead}</Text>
 
           {/* 種類 */}
@@ -353,6 +360,7 @@ function makeStyles(c: Palette) {
       gap: SPACE.lg,
     },
     facility: { fontSize: TEXT.title, fontWeight: '800', color: c.text },
+    voice: { fontSize: 21, lineHeight: 32, letterSpacing: 0.5, color: c.accentInk },
     lead: { fontSize: TEXT.sub, color: c.textMuted, lineHeight: 20, marginTop: -SPACE.sm },
 
     section: { gap: SPACE.sm },

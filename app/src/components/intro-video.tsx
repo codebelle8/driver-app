@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { IntroVoice } from '@/components/intro-voice';
 import { useT } from '@/lib/i18n/context';
 import { TEXT } from '@/theme';
 
@@ -26,6 +27,10 @@ import { TEXT } from '@/theme';
  * **下では画面が組み上がっている**
  *   これは上に重ねているだけなので、終わった時点ですぐ操作できる。
  *
+ * **最後のロゴの下に「あなたの声が、アプリを進化させる。」**（ご要望 2026-10-13）
+ *   映像そのものは作り直さず、ロゴの下に手書き風の書体で浮かび上がらせる。
+ *   読む時間をとるため、ロゴを見せる時間を 2秒 から 3秒 にした（押せば飛ばせる）。
+ *
  * **音を出す**（ご指摘 2026-09-25「導入の映像に音が出ない」）
  *   映像には音声が入っている。端末（Expo Go・APK）では、そのまま鳴らす。
  *   ブラウザは、利用者がまだ何も押していないと「音ありの自動再生」を断る。
@@ -41,8 +46,8 @@ const SOURCES = [
 
 const LOGO = require('@/assets/brand/splash.png');
 
-/** ロゴを見せる時間 */
-const LOGO_MS = 2000;
+/** ロゴを見せる時間（一文を読む時間を含む。2026-10-13 に 2秒 から延ばした） */
+const LOGO_MS = 3000;
 
 /** 消えるまでの時間。ふっと消すことで、切り替わりを目で追える。 */
 const FADE_MS = 280;
@@ -254,6 +259,7 @@ export function IntroVideo({ onDone }: { onDone?: () => void }) {
           <View style={styles.logoWrap}>
             {/* ロゴは切らない。文字まで含めて収める。 */}
             <Image source={LOGO} style={styles.logo} contentFit="contain" />
+            <IntroVoice />
           </View>
         )}
 
@@ -300,8 +306,8 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   fill: { flex: 1, alignSelf: 'stretch' },
-  logoWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logo: { width: '72%', aspectRatio: 1 },
+  logoWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: 24 },
+  logo: { width: '72%', maxWidth: 420, aspectRatio: 1 },
   skipRow: {
     position: 'absolute',
     left: 0,
