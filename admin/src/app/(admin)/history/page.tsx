@@ -38,6 +38,26 @@ function describe(log: AuditLog): string {
   return pick('name') ?? pick('display_name') ?? pick('body') ?? pick('caption') ?? '—';
 }
 
+/** 「内容」に出す長さの上限（文字数）。超えた分は「…」で略す */
+const SUMMARY_MAX = 30;
+
+/**
+ * 長い文を「…」で略す（ご指摘 2026-10-13「細かいところまで全部は要らない」）。
+ *
+ * 写真の説明などは1文が長く、表の幅を取って、ほかの列（「変更」など）が
+ * 縦に折れていた。上限の手前に「、」「。」があれば、そこで切って読みやすくする。
+ * 全文は、文字にマウスを重ねると出る。
+ */
+function abbreviate(text: string): string {
+  const line = text.split(/\r?\n/)[0].trim();
+  const chars = Array.from(line);
+  if (chars.length <= SUMMARY_MAX && line === text.trim()) return line;
+  const head = chars.slice(0, SUMMARY_MAX).join('');
+  const cut = Math.max(head.lastIndexOf('、'), head.lastIndexOf('。'), head.lastIndexOf('，'));
+  const short = cut >= SUMMARY_MAX / 2 ? head.slice(0, cut) : head;
+  return `${short}…`;
+}
+
 /** 変更の場合、どの項目が変わったかを列挙する */
 function changedKeys(log: AuditLog): string[] {
   const diff = log.diff as Record<string, unknown> | null;
@@ -97,7 +117,7 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs text-text-muted">
+                <tr className="whitespace-nowrap border-b border-border text-left text-xs text-text-muted">
                   <th className="px-5 py-3 font-medium">{h.colWhen}</th>
                   <th className="px-5 py-3 font-medium">{h.colWho}</th>
                   <th className="px-5 py-3 font-medium">{h.colWhat}</th>
@@ -108,6 +128,7 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
               <tbody className="divide-y divide-border">
                 {(logs ?? []).map((log) => {
                   const keys = changedKeys(log);
+                  const summary = describe(log);
                   return (
                     <tr key={log.id}>
                       <td className="tabular whitespace-nowrap px-5 py-3 text-text-muted">
@@ -121,15 +142,20 @@ export default async function HistoryPage({ searchParams }: PageProps<'/history'
                       <td className="whitespace-nowrap px-5 py-3 text-text-muted">
                         {t.auditTable[log.table_name as keyof typeof t.auditTable] ?? log.table_name}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="whitespace-nowrap px-5 py-3">
                         <Badge tone={log.action === 'publish' ? 'accent' : undefined}>
                           {t.auditAction[log.action as keyof typeof t.auditAction] ?? log.action}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3">
-                        <span className="font-medium">{describe(log)}</span>
+                      {/* 名前が無い変更は「—」を出さず、件数だけにする */}
+                      <td className="whitespace-nowrap px-5 py-3">
+                        {(summary !== '—' || keys.length === 0) && (
+                          <span className="font-medium" title={summary !== '—' ? summary : undefined}>
+                            {summary === '—' ? summary : abbreviate(summary)}
+                          </span>
+                        )}
                         {keys.length > 0 && (
-                          <span className="ml-2 text-xs text-text-muted">
+                          <span className={`text-xs text-text-muted${summary !== '—' ? ' ml-2' : ''}`}>
                             {keys.length} {h.changedFields}
                           </span>
                         )}

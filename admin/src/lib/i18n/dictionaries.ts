@@ -66,6 +66,10 @@ const ja = {
     admin_profiles: 'アカウント',
     submissions: '情報提供',
     chat_messages: 'チャットの書き込み',
+    /* 英語の名前がそのまま出ていた（ご指摘 2026-10-13） */
+    driver_profiles: '会員',
+    site_settings: 'サイト設定',
+    audit_logs: '操作履歴',
   },
 
   /*
@@ -809,6 +813,9 @@ const en: Dictionary = {
     admin_profiles: 'Account',
     submissions: 'Submission',
     chat_messages: 'Chat post',
+    driver_profiles: 'Member',
+    site_settings: 'Site settings',
+    audit_logs: 'History',
   },
 
   chatAdmin: {
