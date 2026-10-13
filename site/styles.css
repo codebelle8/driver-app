@@ -1503,6 +1503,16 @@ a {
   align-items: center;
   text-align: center;
 }
+/* 「あなたの声が、アプリを進化させる。」— ドライバー一人ひとりの「声」を、人の手で
+   書いたような書体で（Klee One。鉛筆で丁寧に書いた手書き風）。読み込めないときは
+   いつもの見出しの書体に落ちる */
+.voice__title {
+  font-family: 'Klee One', var(--font-jp);
+  font-weight: 600;
+  font-size: clamp(32px, 5vw, 58px);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
 .voice__lead {
   max-width: 640px;
   margin: 18px 0 40px;
