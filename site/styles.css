@@ -1905,6 +1905,152 @@ a {
 }
 
 /* ---------------------------------------------------------------------------
+   右側の縦の一文（ご指示 2026-10-13）
+   画面の右端に、すりガラスの細い札を浮かべ、縦書きの一文を1文字ずつ
+   せり上げる（main.js の startRail）。上に地図の目印、下に「いま何番目の文か」の点。
+
+   **本文に掛からない幅にする。** 札の幅は左右の余白（--gutter）から決め、
+   その中に収める。スマホでは余白が 20px しかないため、字を 11px にし、
+   札を画面の端に付けた「つまみ」の形にする。広い画面では、本文の外の
+   余白に少し内側へ寄せて置く。高さの足りない画面では、字を小さくする
+   （横向きのスマホのように低すぎる画面では出さない）。
+   色は地の色にかかわらず読めるよう、札の地を白いすりガラスにしている。
+   --------------------------------------------------------------------------- */
+
+.vrail {
+  --vr-fs: min(clamp(11px, calc(var(--gutter) * 0.32), 19px), calc((100vh - 320px) / 26));
+  --vr-pad: clamp(4px, calc((var(--gutter) - var(--vr-fs)) / 2 - 4px), 12px);
+  --vr-w: calc(var(--vr-fs) + var(--vr-pad) * 2);
+  position: fixed;
+  z-index: 80;
+  top: calc(var(--header) + 12px);
+  bottom: 100px;
+  right: max(calc((var(--gutter) - var(--vr-w)) / 2), min(44px, calc((100vw - 1180px) / 2 - var(--vr-w) - 40px)));
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  font-family: 'Klee One', var(--font-jp);
+  font-weight: 600;
+  font-size: var(--vr-fs);
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--navy);
+}
+.vrail__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7em;
+  width: var(--vr-w);
+  padding: calc(var(--vr-pad) + 0.35em) 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: 0 0 0 1px rgba(11, 25, 47, 0.07), 0 18px 40px -22px rgba(11, 25, 47, 0.5);
+  pointer-events: auto;
+}
+.vrail__mark {
+  width: 0.95em;
+  height: 0.95em;
+  background: var(--green);
+  -webkit-mask: var(--i-pin) center / contain no-repeat;
+  mask: var(--i-pin) center / contain no-repeat;
+}
+/* 文は同じ場所に重ねて置き、入れ替える（札の高さは、長いほうの文に合う） */
+.vrail__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vrail__line {
+  grid-area: 1 / 1;
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+/* 動きが付く前（動きが使えない環境では、このまま）は、1つ目の文だけ */
+.vrail__line + .vrail__line {
+  visibility: hidden;
+}
+/* 1文字ずつに分けたあと。文字は1つずつ縦書きの枠に入れ、枠の下から出す */
+.vrail.is-split .vrail__line {
+  writing-mode: horizontal-tb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  visibility: visible;
+}
+.vrail__cell {
+  display: block;
+  writing-mode: vertical-rl;
+  width: 1em;
+  height: 1.12em;
+  overflow: hidden;
+}
+/* 「、」「。」「っ」は、書体が縦書き用の形（右上に寄った形）を持っているので、そのまま */
+.vrail__ch {
+  display: block;
+}
+.vrail__dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+}
+.vrail__dots i {
+  width: 0.3em;
+  height: 0.3em;
+  border-radius: 999px;
+  background: rgba(11, 25, 47, 0.2);
+  transition: height 0.45s cubic-bezier(0.23, 1, 0.32, 1), background 0.45s;
+}
+.vrail__dots i.is-on {
+  height: 0.95em;
+  background: var(--green);
+}
+
+/* 動きを付けるときは、始まるまで隠しておき、右からふわっと出す */
+.js .vrail {
+  opacity: 0;
+  translate: 12px 0;
+  transition: opacity 0.8s ease, translate 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.js .vrail.is-on,
+.js .vrail.is-still {
+  opacity: 1;
+  translate: none;
+}
+/* 脇の写真（案内役・端末の絵）と重なるあいだは、右へ引いて道を譲る（main.js） */
+.js .vrail.is-away {
+  opacity: 0;
+  translate: 16px 0;
+}
+.vrail.is-away .vrail__card {
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .vrail {
+    right: 0;
+  }
+  .vrail__card {
+    border-radius: 10px 0 0 10px;
+    box-shadow: 0 0 0 1px rgba(11, 25, 47, 0.07), 0 10px 26px -16px rgba(11, 25, 47, 0.5);
+  }
+}
+@media (max-height: 520px) {
+  .vrail {
+    display: none;
+  }
+}
+@media print {
+  .vrail {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    動きのある場合（.motion）。出方は GSAP が受け持つため、CSS の出方は止める
    --------------------------------------------------------------------------- */
 

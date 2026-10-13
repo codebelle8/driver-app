@@ -38,7 +38,7 @@
 import { chromium } from 'playwright';
 
 const BASE = (process.argv[2] ?? 'http://localhost:4300/').replace(/\/?$/, '/');
-const APP_URL = 'https://kurumayose-navi.vercel.app/';
+const APP_URL = 'https://app.kurumayosenavi.com/';
 
 /** 発注元からいただいた文面（2026-09-19）。**画面に出た文字と突き合わせる。** */
 const CLIENT_TEXT = [

@@ -1006,6 +1006,166 @@ function startTagline() {
   })();
 }
 
+/* --- 右側の縦の一文：1文字ずつせり上がり、出そろったら上へ抜けて次の文へ ------- */
+
+/**
+ * ご指示（2026-10-13）。「みんなで、このアプリをもっと良くしていく。」「みんなが、
+ * このアプリの管理者であり、利用者。」を、サイトの右側に、1文字ずつ上へ流れて
+ * 出そろうように。くり返し回す。おしゃれで今風に（文は英語でいただき、日本語にして
+ * kara さんにご確認いただいたもの）。
+ *
+ * 1文字ずつ、自分の枠の下からせり上がる（上から順に）。出そろったら
+ * RAIL_HOLD とどまり、上の文字から順に枠の上へ抜けていく。続けて次の文。
+ * 札にマウスを重ねているあいだは止まる（読み終えるまで待てるように）。
+ * 画面を見ていないあいだ（別のタブ）は、とどまる時間を数えない。
+ * 動きを減らす場合（.calm）は、位置を動かさず、濃さだけで1文字ずつ出す。
+ */
+const RAIL_START = 2400; /* 開いてから。最初の画面の組み上がりと重ねない */
+const RAIL_ENTER = 620;
+const RAIL_ENTER_GAP = 75;
+const RAIL_HOLD = 4000;
+const RAIL_LEAVE = 520;
+const RAIL_LEAVE_GAP = 40;
+const RAIL_REST = 350;
+const rail = $('#vrail');
+
+/** 1文字ずつ枠に入れる。読み上げには、元の文を1つにまとめて渡す */
+function splitRail(line) {
+  const text = line.textContent.trim();
+  line.textContent = '';
+  const chars = Array.from(text).map((c) => {
+    const cell = document.createElement('span');
+    cell.className = 'vrail__cell';
+    cell.setAttribute('aria-hidden', 'true');
+    const ch = document.createElement('span');
+    ch.className = 'vrail__ch';
+    ch.textContent = c;
+    cell.append(ch);
+    line.append(cell);
+    return ch;
+  });
+  const read = document.createElement('span');
+  read.className = 'visually-hidden';
+  read.textContent = text;
+  line.append(read);
+  return chars;
+}
+
+async function startRail() {
+  if (!rail) return;
+  if (!canAnimate) {
+    /* 動きが使えない環境では、1つ目の文をそのまま出す */
+    rail.classList.add('is-still');
+    return;
+  }
+  /* 書体が届くのを少し待つ（出ている途中で字形が替わらないように）。届かなければ端末の書体で */
+  const sample = $$('.vrail__line', rail)
+    .map((l) => l.textContent)
+    .join('');
+  await Promise.race([document.fonts?.load(`600 16px "Klee One"`, sample), sleep(3000)]).catch(() => undefined);
+
+  const lines = $$('.vrail__line', rail).map(splitRail);
+  const dots = $$('.vrail__dots i', rail);
+  const below = reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(105%)' };
+  const shown = { opacity: 1, transform: 'none' };
+  const above = reduceMotion ? { opacity: 0 } : { opacity: 0, transform: 'translateY(-105%)' };
+  lines.flat().forEach((ch) => {
+    ch.style.opacity = '0';
+    if (!reduceMotion) ch.style.transform = 'translateY(105%)';
+  });
+  rail.classList.add('is-split', 'is-on');
+
+  /*
+    止める理由（どれか1つでもあれば止める）。
+      hover … マウスを重ねているあいだ（指で触れたときは止めない。離す合図が来ないため）
+      away  … 脇の写真に道を譲って、隠れているあいだ（戻ったら続きから）
+  */
+  const holds = new Set();
+  let paused = false;
+  let running = [];
+  const setHold = (key, on) => {
+    if (on) holds.add(key);
+    else holds.delete(key);
+    if (paused === holds.size > 0) return;
+    paused = holds.size > 0;
+    running.forEach((a) => (paused ? a.pause() : a.play()));
+  };
+  const card = $('.vrail__card', rail);
+  card.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse') setHold('hover', true);
+  });
+  card.addEventListener('pointerleave', () => setHold('hover', false));
+
+  /*
+    **脇の写真（案内役・端末の絵）に道を譲る。** 広い画面では、写真が右の余白まで
+    張り出していて、札と重なる。重なっているあいだは、札を右へ引いて隠す。
+    札が引いた分（16px）で重なりが外れて、出たり隠れたりをくり返さないよう、
+    札の左に 24px の余裕を見て判定する。
+  */
+  const photos = $$('.guide img');
+  let awayQueued = false;
+  const paintAway = () => {
+    awayQueued = false;
+    const c = card.getBoundingClientRect();
+    const away = photos.some((img) => {
+      const r = img.getBoundingClientRect();
+      if (!r.width || !r.height) return false;
+      return r.right > c.left - 24 && r.left < c.right && r.bottom > c.top && r.top < c.bottom;
+    });
+    rail.classList.toggle('is-away', away);
+    setHold('away', away);
+  };
+  const queueAway = () => {
+    if (awayQueued) return;
+    awayQueued = true;
+    requestAnimationFrame(paintAway);
+  };
+  window.addEventListener('scroll', queueAway, { passive: true });
+  window.addEventListener('resize', queueAway);
+  /* 写真は、送り終えてから下からふわっと出てくる（送りの合図が来ない）。間をおいても見る */
+  window.setInterval(() => {
+    if (!document.hidden) queueAway();
+  }, 300);
+  paintAway();
+
+  /** 止めているあいだと、画面を見ていないあいだは数えない待ち */
+  const hold = (ms) =>
+    new Promise((resolve) => {
+      let left = ms;
+      let last = performance.now();
+      const id = window.setInterval(() => {
+        const now = performance.now();
+        if (!paused && !document.hidden) left -= now - last;
+        last = now;
+        if (left <= 0) {
+          window.clearInterval(id);
+          resolve();
+        }
+      }, 100);
+    });
+  const run = (chars, frames, duration, gap, easing) => {
+    const anims = chars.map((ch, i) => ch.animate(frames, { duration, delay: i * gap, easing, fill: 'both' }));
+    if (paused) anims.forEach((a) => a.pause());
+    return anims;
+  };
+  const settle = (anims) => Promise.all(anims.map((a) => a.finished.catch(() => undefined)));
+
+  for (let n = 0; ; n = (n + 1) % lines.length) {
+    const chars = lines[n];
+    dots.forEach((d, i) => d.classList.toggle('is-on', i === n));
+    chars.forEach((ch) => ch.getAnimations().forEach((a) => a.cancel()));
+    const enter = run(chars, [below, shown], RAIL_ENTER, RAIL_ENTER_GAP, EASE_OUT);
+    running = enter;
+    await settle(enter);
+    await hold(RAIL_HOLD);
+    const leave = run(chars, [shown, above], RAIL_LEAVE, RAIL_LEAVE_GAP, 'cubic-bezier(0.6, 0, 0.8, 0.2)');
+    running = leave;
+    enter.forEach((a) => a.cancel());
+    await settle(leave);
+    await hold(RAIL_REST);
+  }
+}
+
 /* --- 問いかけ：1文字ずつ打ち込む ----------------------------------------------- */
 
 /**
@@ -1432,3 +1592,4 @@ if (motion) {
 
 showHero();
 if (motion) requestAnimationFrame(() => ScrollTrigger.refresh());
+window.setTimeout(startRail, RAIL_START);
