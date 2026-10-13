@@ -1430,21 +1430,26 @@ a {
   font-size: 14px;
 }
 /* 提供中と準備中の札（ご指示 2026-10-13「提供が開始している物と、していない物を色分け」）。
-   色だけに頼らず、札の中の小さな文字でも状態を伝える */
+   色はご回答（同日）どおり、始めている種類は青、まだの種類は黄色。色だけに頼らず、
+   札の中の小さな文字でも状態を伝える。文字と地の濃さの差は、どちらも十分にとってある */
+:root {
+  --chip-blue: #1f5fae;
+  --chip-blue-deep: #17487f;
+}
 .chips li {
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 .chips .chip--live {
-  background: var(--green);
-  border-color: var(--green);
+  background: var(--chip-blue);
+  border-color: var(--chip-blue);
   color: var(--white);
 }
 .chips .chip--soon {
-  background: transparent;
-  border: 1px dashed var(--muted);
-  color: var(--muted);
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink);
 }
 .chip__state {
   padding: 2px 8px;
@@ -1455,11 +1460,11 @@ a {
   letter-spacing: 0.04em;
 }
 .chip--live .chip__state {
-  background: var(--green-deep);
+  background: var(--chip-blue-deep);
   color: var(--white);
 }
 .chip--soon .chip__state {
-  background: var(--line);
+  background: rgba(255, 255, 255, 0.7);
   color: var(--ink);
 }
 .chips-legend {
