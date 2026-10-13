@@ -1429,6 +1429,44 @@ a {
   font-weight: 700;
   font-size: 14px;
 }
+/* 提供中と準備中の札（ご指示 2026-10-13「提供が開始している物と、していない物を色分け」）。
+   色だけに頼らず、札の中の小さな文字でも状態を伝える */
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chips .chip--live {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white);
+}
+.chips .chip--soon {
+  background: transparent;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+}
+.chip__state {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.chip--live .chip__state {
+  background: var(--green-deep);
+  color: var(--white);
+}
+.chip--soon .chip__state {
+  background: var(--line);
+  color: var(--ink);
+}
+.chips-legend {
+  margin: -28px 0 40px;
+  font-size: 13px;
+  color: var(--muted);
+}
 .notice-box {
   width: 100%;
   max-width: 620px;
@@ -1448,6 +1486,71 @@ a {
   font-weight: 900;
   font-size: 18px;
   color: var(--ink) !important;
+}
+
+/* ---------------------------------------------------------------------------
+   あなたの声が、アプリを進化させる（ご指示 2026-10-13）
+   --------------------------------------------------------------------------- */
+
+.voice {
+  position: relative;
+  padding: var(--section) 0;
+  background: var(--mint);
+}
+.voice__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.voice__lead {
+  max-width: 640px;
+  margin: 18px 0 40px;
+  color: var(--muted);
+  line-height: 1.9;
+  /* 日本語を文節で折り返す（対応していないブラウザは、ふつうの折り返し） */
+  word-break: auto-phrase;
+  text-wrap: pretty;
+}
+.voice__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.voice__steps li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px 22px;
+  border-radius: var(--radius);
+  background: var(--white);
+  text-align: left;
+}
+.voice__no {
+  font-family: var(--font-sign);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--green);
+}
+.voice__steps strong {
+  font-family: var(--font-jp);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink);
+}
+.voice__steps li > span:last-child {
+  font-size: 14px;
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  .voice__steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------------------------------------------------------------------------

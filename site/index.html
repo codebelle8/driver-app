@@ -371,23 +371,62 @@
   <div class="wrap wrap--narrow area__body">
     <p class="eyebrow" data-reveal>AREA</p>
     <h2 class="section-title section-title--center split" id="area-title">
-      東京都外の、<br><span class="count">193</span>施設から。
+      東京都内外の<br><span class="count">193</span>施設から。
     </h2>
     <p class="area__note">2026年9月時点。対応する施設は、順に増やしています。</p>
 
+    <!--
+      提供中と準備中を色分けする（ご指示 2026-10-13）。色だけに頼らず、札の中にも
+      「提供中」「準備中」と書く。施設の種類に施設が載ったら、chip--soon を
+      chip--live に替え、札の中の文字も「提供中」にする。
+    -->
     <ul class="chips" aria-label="対応している施設の種類" data-anime="fade-right">
-      <li>ホテル</li>
-      <li>レジデンス</li>
-      <li>商業施設</li>
-      <li>オフィスビル</li>
-      <li>病院・クリニック</li>
-      <li>駅・空港</li>
+      <li class="chip--live">ホテル<span class="chip__state">提供中</span></li>
+      <li class="chip--soon">レジデンス<span class="chip__state">準備中</span></li>
+      <li class="chip--soon">商業施設<span class="chip__state">準備中</span></li>
+      <li class="chip--soon">オフィスビル<span class="chip__state">準備中</span></li>
+      <li class="chip--soon">病院・クリニック<span class="chip__state">準備中</span></li>
+      <li class="chip--soon">駅・空港<span class="chip__state">準備中</span></li>
     </ul>
+    <p class="chips-legend">緑の札は提供中、点線の札は準備中です。準備中の種類も、順に対応していきます。</p>
 
     <div class="notice-box" data-reveal>
       <p class="notice-box__title">ただいま試験提供中です</p>
       <p>試験提供の期間中は、無料でお使いいただけます。有料での提供を始める際は、事前にお知らせします。</p>
     </div>
+  </div>
+</section>
+
+<!-- ===================================================================== -->
+<!-- あなたの声が、アプリを進化させる（ご指示 2026-10-13）                 -->
+<!--   ドライバーから寄せられる情報で、案内が育っていくことを伝える。      -->
+<!--   アプリの「情報提供」（送る → 運営が確かめる → 反映）の流れを添える。 -->
+<!-- ===================================================================== -->
+<section class="voice" id="voice" aria-labelledby="voice-title">
+  <div class="wrap wrap--narrow voice__body">
+    <p class="eyebrow" data-reveal>VOICE</p>
+    <h2 class="section-title section-title--center split" id="voice-title">
+      あなたの声が、<br>アプリを進化させる。
+    </h2>
+    <!-- 日本語の文の途中で改行すると、そこに空白が入る。1行で書く -->
+    <p class="voice__lead" data-reveal>入口の位置が違っていた。新しい入口ができた。工事で通れなかった。走っているドライバーの気づきを、アプリの「情報提供」から送れます。運営が確かめたうえで、次のドライバーの案内に生かします。</p>
+    <ol class="voice__steps" aria-label="情報提供の流れ" data-anime="fade-right">
+      <li>
+        <span class="voice__no" aria-hidden="true">01</span>
+        <strong>送る</strong>
+        <span>アプリの「情報提供」から。写真も添えられます。</span>
+      </li>
+      <li>
+        <span class="voice__no" aria-hidden="true">02</span>
+        <strong>確かめる</strong>
+        <span>運営が、内容を一つずつ確かめます。</span>
+      </li>
+      <li>
+        <span class="voice__no" aria-hidden="true">03</span>
+        <strong>反映する</strong>
+        <span>施設の案内に反映し、みんなで使える情報になります。</span>
+      </li>
+    </ol>
   </div>
 </section>
 
@@ -419,7 +458,7 @@
       </details>
       <details class="qa">
         <summary>どの地域に対応していますか？</summary>
-        <p>2026年9月時点で、東京都外の193施設に対応しています。対応する施設は順に増やしています。</p>
+        <p>2026年9月時点で、東京都内外の193施設に対応しています。対応する施設は順に増やしています。</p>
       </details>
       <details class="qa">
         <summary>電波が届かない場所でも使えますか？</summary>
