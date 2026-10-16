@@ -772,6 +772,22 @@ const phoneState = (page) =>
     };
   });
 
+/** 押してもどこへも移らない点（リンクや釦の上を避ける）。いまの画面の中から探す */
+const quietPoint = (page) =>
+  page.evaluate(() => {
+    for (let y = 0.2; y < 0.9; y += 0.05) {
+      for (let x = 0.2; x < 0.8; x += 0.1) {
+        const px = Math.round(innerWidth * x);
+        const py = Math.round(innerHeight * y);
+        const el = document.elementFromPoint(px, py);
+        if (el && !el.closest('a, button, summary, label, input, select, textarea, [role="button"], [tabindex]')) {
+          return { x: px, y: py };
+        }
+      }
+    }
+    return null;
+  });
+
 /** 実例の端末が、画面の真ん中に来るまで送る */
 const toPhone = (page) =>
   page.evaluate(() => {
@@ -1401,7 +1417,14 @@ try {
       `${label}：見出しは弾ませず、砂ぼこりも出さない`,
       (await page.evaluate(() => document.querySelectorAll('.dust').length)) === 0,
     );
-    await page.mouse.move(200, 300);
+    /*
+      押す点は、リンクや釦の上を避けて選ぶ（2026-10-16）。決まった点（200, 300）を
+      押していたため、スマホ幅でいちばん下まで送ったあとは「車寄せナビを開く」を
+      押してアプリへ移ってしまい、以降の項目を確かめないまま検査が止まっていた。
+    */
+    const spot = await quietPoint(page);
+    if (!spot) throw new Error(`${label}：押してもどこへも移らない点が、画面の中に見つからない`);
+    await page.mouse.move(spot.x, spot.y);
     await page.mouse.down();
     const rings = await page.evaluate(() => document.querySelectorAll('.click-ring').length);
     await page.mouse.up();
@@ -1442,6 +1465,10 @@ try {
     check('設定に従う場合：UP を押すと、先頭へ戻る', (await page.evaluate(() => window.scrollY)) < 5);
     await ctx.close();
   }
+} catch (e) {
+  /* 途中で止まったら、不合格として数える（数えないと、止まる前の結果だけで「合格」と出る） */
+  failures.push(`途中で止まった: ${String(e.message).split(String.fromCharCode(10))[0]}`);
+  console.error(e);
 } finally {
   await browser.close();
   console.log(`\n合格 ${pass} / 不合格 ${failures.length}`);
