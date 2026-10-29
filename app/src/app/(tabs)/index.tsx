@@ -1088,63 +1088,69 @@ function ResultList({
 }) {
   const t = useT();
   return (
-    <FlatList
-      ref={listRef}
-      data={facilities}
-      keyExtractor={(f) => f.id}
-      contentContainerStyle={styles.list}
-      keyboardShouldPersistTaps="handled"
-      onScroll={(e) => onScrollChange(e.nativeEvent.contentOffset.y < 240)}
-      scrollEventThrottle={64}
-      onEndReached={onEndReached}
-      onEndReachedThreshold={0.4}
-      ListHeaderComponent={
-        <View style={styles.resultHead}>
-          {/*
-            何で絞ったのかと、当てはまった件数、そして全体の件数を出す。
-            「35 件」とだけ書くと、それが全部なのか一部なのかが分からない。
-          */}
-          <Text style={styles.resultCount} numberOfLines={1}>
-            {label}
-            <Text style={styles.resultCountNum}>
-              {fill(t.search.matched, { matched, total })}
-            </Text>
+    <View style={styles.resultPane}>
+      {/*
+        何で絞ったのかと、当てはまった件数、そして全体の件数を出す。
+        「35 件」とだけ書くと、それが全部なのか一部なのかが分からない。
+
+        **一覧の外に置き、送っても動かさない**（ご指示 2026-10-29）。
+        一覧の頭に入れていたため、送ると一緒に流れて消えた。下の方で
+        何の一覧を見ているのか分からず、絞り込みを外すにも上まで戻る
+        ことになる。
+      */}
+      <View style={styles.resultHead}>
+        <Text style={styles.resultCount} numberOfLines={1}>
+          {label}
+          <Text style={styles.resultCountNum}>
+            {fill(t.search.matched, { matched, total })}
           </Text>
-          <Pressable onPress={onClear} hitSlop={HIT_SLOP}>
-            <Text style={styles.resultClear}>{t.search.clearFilter}</Text>
-          </Pressable>
-        </View>
-      }
-      ListEmptyComponent={
-        loading ? (
-          <ActivityIndicator style={styles.spinner} color={c.accent} />
-        ) : (
-          <View style={styles.empty}>
-            <Ionicons name="search-outline" size={28} color={c.textFaint} />
-            <Text style={styles.emptyTitle}>{t.search.emptyTitle}</Text>
-            <Text style={styles.emptyBody}>
-              {t.search.emptyBody}
-            </Text>
-          </View>
-        )
-      }
-      ListFooterComponent={
-        loadingMore ? (
-          <View style={styles.loadingMore}>
-            <ActivityIndicator color={c.accent} />
-          </View>
-        ) : null
-      }
-      renderItem={({ item }) => (
-        <FacilityRow
-          facility={item}
-          active={item.id === activeId}
-          onHover={onHover}
-          styles={styles}
-          c={c}
-        />
-      )}
-    />
+        </Text>
+        <Pressable onPress={onClear} hitSlop={HIT_SLOP}>
+          <Text style={styles.resultClear}>{t.search.clearFilter}</Text>
+        </Pressable>
+      </View>
+
+      <FlatList
+        ref={listRef}
+        data={facilities}
+        keyExtractor={(f) => f.id}
+        contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
+        onScroll={(e) => onScrollChange(e.nativeEvent.contentOffset.y < 240)}
+        scrollEventThrottle={64}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.4}
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator style={styles.spinner} color={c.accent} />
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="search-outline" size={28} color={c.textFaint} />
+              <Text style={styles.emptyTitle}>{t.search.emptyTitle}</Text>
+              <Text style={styles.emptyBody}>
+                {t.search.emptyBody}
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator color={c.accent} />
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <FacilityRow
+            facility={item}
+            active={item.id === activeId}
+            onHover={onHover}
+            styles={styles}
+            c={c}
+          />
+        )}
+      />
+    </View>
   );
 }
 
@@ -1510,7 +1516,7 @@ function makeStyles(c: Palette) {
       24 のままでは、一覧の最後の行に釦がかぶっていた。
       お気に入り・履歴と同じ値を使う。
     */
-    list: { paddingHorizontal: SPACE.lg, paddingBottom: SCROLL_TOP_CLEARANCE },
+    list: { paddingHorizontal: SPACE.lg, paddingTop: SPACE.sm, paddingBottom: SCROLL_TOP_CLEARANCE },
 
     /*
       一覧と地図の左右分割。
@@ -1538,11 +1544,20 @@ function makeStyles(c: Palette) {
       borderLeftWidth: 1,
       borderLeftColor: c.border,
     },
+    resultPane: { flex: 1 },
+    /*
+      下に線を引く。一覧が線の下へ潜っていくことで、この行が
+      止まっていて一覧だけが動いていると分かる。
+    */
     resultHead: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingBottom: SPACE.sm,
+      paddingHorizontal: SPACE.lg,
+      paddingVertical: SPACE.sm,
+      backgroundColor: c.bg,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
     },
     resultCount: { flex: 1, fontSize: TEXT.sub, color: c.text, fontWeight: '700' },
     resultCountNum: { color: c.textMuted, fontWeight: '400' },
