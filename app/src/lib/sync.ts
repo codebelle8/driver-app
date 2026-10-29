@@ -32,14 +32,13 @@ async function fetchAll<T>(
   table: string,
   columns: string,
   order: string,
+  match?: Record<string, string>,
 ): Promise<T[]> {
   const rows: T[] = [];
   for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from(table)
-      .select(columns)
-      .order(order)
-      .range(from, from + PAGE_SIZE - 1);
+    let query = supabase.from(table).select(columns);
+    if (match) query = query.match(match);
+    const { data, error } = await query.order(order).range(from, from + PAGE_SIZE - 1);
 
     if (error) throw error;
     const page = (data ?? []) as T[];
@@ -73,8 +72,11 @@ export interface SyncResult {
  *   分けておくと「サーバーから正しく取れるか」を、端末が無くても
  *   確かめられる（tools/test-app-data.mjs がこれを使う）。
  *
- * 公開済みのものしか返らない。絞り込みはサーバー側の RLS が行うため、
- * ここで条件を書いていなくても下書きは届かない。
+ * **公開済みのものだけを返す。絞り込みはここで行う**（2026-10-29）。
+ *   以前はサーバー側の RLS に任せていた。RLS は管理画面の権限を持つ
+ *   方には下書きも見せる（管理画面で直すため）。その方がアプリに入ると、
+ *   座標の無い下書き79件まで取り込み、「302件」と出ていた。
+ *   アプリに出すものは、誰が入っても運転手の方と同じにする。
  */
 export async function fetchCatalog(): Promise<CatalogPayload> {
   const [categories, facilities, entryPoints, cautions, photos] = await Promise.all([
@@ -95,6 +97,7 @@ export async function fetchCatalog(): Promise<CatalogPayload> {
         'id, code, name, name_en, name_kana, aliases, category_id, prefecture, prefecture_en, city, city_en, address_line, address_line_en, summary, summary_en, lat, lng, sort_order, updated_at',
         // クライアント様の表の番号順。よみが揃っていないため、かな順にはしない。
         'sort_order',
+        { status: 'published' },
       ),
       fetchAll<EntryPoint>(
         'entry_points',
@@ -125,7 +128,28 @@ export async function fetchCatalog(): Promise<CatalogPayload> {
       ),
   ]);
 
-  return { categories, facilities, entryPoints, cautions, photos };
+  /*
+    入口・注意事項・写真は、公開済みの施設に属するものだけを残す。
+
+    これらには施設の公開状態が無く、問い合わせでは絞れない。管理画面の
+    権限で入ると、下書きの施設のものも届く。親の無い入口が端末に残ると、
+    施設の件数と入口の件数が食い違う。
+  */
+  const shownFacilities = new Set(facilities.map((f) => f.id));
+  const shownEntryPoints = entryPoints.filter((e) => shownFacilities.has(e.facility_id));
+  const shownEntryIds = new Set(shownEntryPoints.map((e) => e.id));
+
+  return {
+    categories,
+    facilities,
+    entryPoints: shownEntryPoints,
+    cautions: cautions.filter((c) => shownEntryIds.has(c.entry_point_id)),
+    photos: photos.filter(
+      (p) =>
+        (p.facility_id !== null && shownFacilities.has(p.facility_id)) ||
+        (p.entry_point_id !== null && shownEntryIds.has(p.entry_point_id)),
+    ),
+  };
 }
 
 /** 取り込みを試みる。取得して端末へ保存するところまで。 */

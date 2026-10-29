@@ -36,7 +36,9 @@ const KEY = adminEnv.SUPABASE_SERVICE_ROLE_KEY;
 // facilities.ts は端末内データベースを読むため Node では動かせない。
 // 検証したいのは「サーバーから正しく取れるか」なので、取得の層を直接見る。
 const { fetchCatalog } = await import('../app/src/lib/sync.ts');
+const { supabase } = await import('../app/src/lib/supabase.ts');
 const { toSearchPattern, normalizeSearchText } = await import('../app/src/lib/search.ts');
+const { connect, createMember, removeMember } = await import('./lib/member.mjs');
 
 let pass = 0;
 const failures = [];
@@ -74,6 +76,8 @@ async function sb(path, { method = 'GET', body, prefer } = {}) {
 
 let facilityId = null;
 let draftId = null;
+/** 管理画面の権限を付けた検査用の会員。会員を消せば権限も消える。 */
+let staff = null;
 /** 作った行の id。操作履歴を確実に消すため控えておく。 */
 const createdIds = [];
 
@@ -119,6 +123,14 @@ try {
   });
   draftId = draft.body?.[0]?.id;
   if (draftId) createdIds.push(draftId);
+
+  // 下書きにも入口を付ける。管理画面の権限で入ったとき、親の無い入口が漏れないかを見る。
+  const draftEp = await sb('/rest/v1/entry_points', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: { facility_id: draftId, code: 'A', kind: 'dropoff', name: '下書きの入口' },
+  });
+  if (draftEp.body?.[0]?.id) createdIds.push(draftEp.body[0].id);
 
   const ep = await sb('/rest/v1/entry_points', {
     method: 'POST',
@@ -181,6 +193,50 @@ try {
   );
 
   console.log('');
+  console.log('--- 管理画面の権限で入ったとき ---');
+
+  /*
+    RLS は管理画面の権限を持つ方に下書きも見せる。アプリはそれに任せて
+    いたため、その方がアプリに入ると下書きまで取り込み、座標の無い施設が
+    並んでいた（ご報告 2026-10-29）。
+
+    権限を付けた検査用の会員で入り、ログイン前と同じものだけが届くかを見る。
+    権限はいちばん弱い「調査員」にする。
+  */
+  const conn = connect();
+  staff = await createMember(conn, 'staff');
+  const role = await sb('/rest/v1/admin_profiles', {
+    method: 'POST',
+    body: { user_id: staff.userId, display_name: '検査用（消す）', role: 'surveyor' },
+  });
+  check('検査用の会員に調査員の権限を付けられる', role.ok, JSON.stringify(role.body).slice(0, 160));
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: staff.email,
+    password: staff.password,
+  });
+  check('権限を付けた会員で入れる', !signInError, signInError?.message);
+
+  const { data: raw } = await supabase.from('facilities').select('id').eq('id', draftId);
+  check('（前提）この権限では、サーバーは下書きも返す', raw?.length === 1, JSON.stringify(raw));
+
+  const asStaff = await fetchCatalog();
+  check(
+    '管理画面の権限で入っても、下書きは取り込まれない',
+    !asStaff.facilities.some((f) => f.id === draftId),
+  );
+  check(
+    '管理画面の権限で入っても、下書きの入口は取り込まれない',
+    !asStaff.entryPoints.some((e) => e.facility_id === draftId),
+  );
+  check(
+    '施設の件数がログイン前と同じ',
+    asStaff.facilities.length === catalog.facilities.length,
+    `${asStaff.facilities.length} / ${catalog.facilities.length}`,
+  );
+  await supabase.auth.signOut();
+
+  console.log('');
   console.log('--- 検索語の照合 ---');
 
   // 端末側は search_text（正規化済み）への部分一致で引く。
@@ -211,6 +267,10 @@ try {
   check('無関係な語では出ない', !hits('まったく存在しない施設名'));
 } finally {
   console.log('\n--- 後片付け ---');
+  if (staff) {
+    const gone = await removeMember(connect(), staff);
+    console.log(`  ${gone ? '削除' : '削除失敗'}  権限を付けた検査用の会員`);
+  }
   for (const [label, id] of [['公開済み', facilityId], ['下書き', draftId]]) {
     if (!id) continue;
     const r = await sb(`/rest/v1/facilities?id=eq.${id}`, { method: 'DELETE' });
