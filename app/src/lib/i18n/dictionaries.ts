@@ -459,6 +459,43 @@ const ja = {
     resetLead: 'ご登録のメールアドレスへ、再設定のご案内をお送りします。',
     resetSent: '再設定のメールをお送りしました',
     resetSentBody: '届いたメールのリンクをお開きください。',
+    /*
+      送った後の画面（2026-10-29）。リンクを開くまでの手順を、その場に残す。
+      件名と差出人は Supabase の標準のメールのもの。送信の業者と文面を
+      替えたら、ここも合わせる。
+    */
+    /* 再設定の画面でアイコンの下に添える名前 */
+    resetBrand: '車寄せナビ',
+    resetSentTitle: 'メールをお送りしました',
+    // 送り先はすぐ下に出す。320px でも1行に収める
+    resetSentLead: '再設定のリンクをお送りしました。',
+    resetChangeEmail: '変更',
+    resetChangeEmailLabel: 'メールアドレスを変える',
+    resetStepsTitle: 'このあとの手順',
+    resetStepOpen: 'メールを開く',
+    resetStepOpenHint: '件名は「Reset Your Password」、差出人は「Supabase Auth」です',
+    resetStepLink: 'メールの「Reset Password」を押す',
+    // 360px でも1行に収まる長さ。「開いた画面で」は2の流れで伝わる
+    resetStepSet: '新しいパスワードを決める',
+    resetStepSetHintApp:
+      'リンクはブラウザで開きます。決めたあと、ホーム画面のアプリへ戻ってログインしてください',
+    resetOpenMail: '{name}を開く',
+    resetMailNames: {
+      gmail: 'Gmail',
+      outlook: 'Outlook',
+      yahoo: 'Yahoo!メール',
+      icloud: 'iCloud メール',
+    },
+    resetHelpTitle: 'メールが届かないときは',
+    resetHelpSpam: '迷惑メールのフォルダもご確認ください',
+    resetHelpWait: '届くまで数分かかることがあります',
+    resetHelpTypo: 'アドレスに打ち間違いがないか、上の表示でご確認ください',
+    resetHelpCarrier:
+      '携帯会社のメール（docomo・au・SoftBank など）は、パソコンから送られたメールを受け取らない設定になっていることがあります。受信の設定をご確認ください',
+    resetResend: 'もう一度送る',
+    resetResendIn: 'もう一度送る（{s}秒後）',
+    resetResent: 'もう一度お送りしました',
+    resetBack: 'ログインへ戻る',
 
     recoveryTitle: '新しいパスワードを決める',
     recoveryLead: '新しいパスワードをご入力ください。',
@@ -1196,6 +1233,35 @@ const en: Dictionary = {
     resetLead: 'We will email you a link to set a new password.',
     resetSent: 'Reset email sent',
     resetSentBody: 'Open the link in the email we sent you.',
+    resetBrand: 'Kurumayose Navi',
+    resetSentTitle: 'Check your email',
+    resetSentLead: 'We sent a password reset link to:',
+    resetChangeEmail: 'Change',
+    resetChangeEmailLabel: 'Use a different email address',
+    resetStepsTitle: 'What to do next',
+    resetStepOpen: 'Open the email',
+    resetStepOpenHint: 'The subject is “Reset Your Password” and the sender is “Supabase Auth”',
+    resetStepLink: 'Tap “Reset Password” in the email',
+    resetStepSet: 'Set a new password',
+    resetStepSetHintApp:
+      'The link opens in your browser. Afterwards, go back to the app on your home screen and sign in.',
+    resetOpenMail: 'Open {name}',
+    resetMailNames: {
+      gmail: 'Gmail',
+      outlook: 'Outlook',
+      yahoo: 'Yahoo! Mail',
+      icloud: 'iCloud Mail',
+    },
+    resetHelpTitle: 'Didn’t get the email?',
+    resetHelpSpam: 'Check your spam or junk folder',
+    resetHelpWait: 'It can take a few minutes to arrive',
+    resetHelpTypo: 'Make sure the address above is spelled correctly',
+    resetHelpCarrier:
+      'Mobile carrier addresses (docomo, au, SoftBank and others) may be set to reject email sent from computers. Check your mail filter settings.',
+    resetResend: 'Send again',
+    resetResendIn: 'Send again ({s}s)',
+    resetResent: 'Sent again',
+    resetBack: 'Back to sign in',
 
     recoveryTitle: 'Set a new password',
     recoveryCancel: 'Cancel and go back to sign in',

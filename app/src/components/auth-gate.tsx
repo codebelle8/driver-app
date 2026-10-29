@@ -54,6 +54,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const s = makeStyles(c);
   const { account, ready, recovering, takenOver, offlineLimit, refresh } = useAccount();
   const [checking, setChecking] = useState(false);
+  /*
+    再設定のあいだは、上のロゴと「ようこそ」を下げる（2026-10-29）。
+    「ログインしてください」の下で再設定の案内を読むと、どちらの話か迷う。
+    ロゴは再設定の画面の頭（アイコン）が引き継ぐ。
+  */
+  const [resetting, setResetting] = useState(false);
 
   // 調べ終えるまでは、地の色だけ出しておく
   if (!ready && !recovering) return <View style={s.blank} />;
@@ -113,11 +119,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={s.pane} showsVerticalScrollIndicator={false}>
         <View style={s.body}>
-          <View style={s.head}>
-            <BrandLogo height={44} />
-            <Text style={s.welcome}>{t.account.welcomeTitle}</Text>
-            <Text style={s.lead}>{t.account.welcomeBody}</Text>
-          </View>
+          {!(resetting && !recovering) && (
+            <View style={s.head}>
+              <BrandLogo height={44} />
+              <Text style={s.welcome}>{t.account.welcomeTitle}</Text>
+              <Text style={s.lead}>{t.account.welcomeBody}</Text>
+            </View>
+          )}
 
           {/*
             ほかの端末で入られて出された場合。
@@ -143,7 +151,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
             余白だけで示していた。
           */}
           <View style={s.formCard}>
-            <AuthForm />
+            <AuthForm onModeChange={(m) => setResetting(m === 'reset')} />
           </View>
         </View>
       </ScrollView>

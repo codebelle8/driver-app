@@ -82,11 +82,74 @@ try {
     route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }),
   );
 
-  await page.getByLabel(/メールアドレス|Email/).fill(member.email);
-  await page.getByRole('button', { name: '再設定のメールを送る' }).last().click();
-  await page.waitForTimeout(4000);
+  check(
+    '再設定のあいだは「ようこそ」を下げる',
+    !text.includes('ご登録のメールアドレスでログインしてください'),
+    text.slice(0, 120),
+  );
+
+  const send = async (email) => {
+    await page.getByLabel(/メールアドレス|Email/).fill(email);
+    await page.getByRole('button', { name: '再設定のメールを送る' }).last().click();
+    await page.waitForTimeout(2500);
+    return page.locator('body').innerText();
+  };
+
+  // --- 送った後の画面（2026-10-29）----------------------------------------------
+  console.log('\n--- 送った後の画面 ---');
+  text = await send(member.email);
+  check('送った後の画面に替わる', text.includes('メールをお送りしました'), text.slice(0, 160));
+  check('送り先をそのまま出す（打ち間違いに気づける）', text.includes(member.email));
+  check(
+    'このあとの手順が3つ並ぶ',
+    ['メールを開く', 'メールの「Reset Password」を押す', '新しいパスワードを決める'].every((x) =>
+      text.includes(x),
+    ),
+  );
+  check('件名と差出人を書いてある（英語のメールを見分けられる）', text.includes('Supabase Auth'));
+
+  const resend = page.getByRole('button', { name: /もう一度送る/ });
+  check(
+    '送り直しは60秒あける（押せない・残りを出す）',
+    /もう一度送る（\d+秒後）/.test(text) && (await resend.isDisabled()),
+    text.slice(-160),
+  );
+  check(
+    'よく使われるメールでない宛先には、受信箱のボタンを出さない',
+    !/(Gmail|Outlook|Yahoo!メール|iCloud メール)を開く/.test(text),
+  );
+
+  await page.getByRole('button', { name: 'メールが届かないときは' }).click();
+  await page.waitForTimeout(300);
   text = await page.locator('body').innerText();
-  check('送った後の案内が出る', text.includes('届いたメールのリンクをお開きください'), text.slice(0, 160));
+  check('届かないときの案内を開ける', text.includes('迷惑メールのフォルダもご確認ください'));
+
+  await page.getByRole('button', { name: 'メールアドレスを変える' }).click();
+  await page.waitForTimeout(600);
+  check(
+    '「変更」で入力へ戻り、打ったアドレスは残る',
+    (await page.getByLabel(/メールアドレス|Email/).inputValue()) === member.email,
+  );
+
+  text = await send('kn-reset-check@gmail.com');
+  check('Gmail の宛先には「Gmailを開く」を出す', text.includes('Gmailを開く'), text.slice(0, 200));
+
+  await page.getByRole('button', { name: 'メールアドレスを変える' }).click();
+  await page.waitForTimeout(600);
+  text = await send('kn-reset-check@docomo.ne.jp');
+  await page.getByRole('button', { name: 'メールが届かないときは' }).click();
+  await page.waitForTimeout(300);
+  text = await page.locator('body').innerText();
+  check('携帯会社の宛先には、受信の設定の案内を足す', text.includes('携帯会社のメール'));
+
+  await page.getByRole('button', { name: 'ログインへ戻る' }).click();
+  await page.waitForTimeout(800);
+  text = await page.locator('body').innerText();
+  check(
+    '「ログインへ戻る」でログインの画面へ（「ようこそ」も戻る）',
+    text.includes('ご登録のメールアドレスでログインしてください'),
+    text.slice(0, 120),
+  );
   await page.unroute('**/auth/v1/recover*');
 
   // --- 届いたリンクを開く -------------------------------------------------------
