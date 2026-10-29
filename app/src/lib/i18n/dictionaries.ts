@@ -473,8 +473,17 @@ const ja = {
     resetChangeEmailLabel: 'メールアドレスを変える',
     resetStepsTitle: 'このあとの手順',
     resetStepOpen: 'メールを開く',
-    resetStepOpenHint: '件名は「Reset Your Password」、差出人は「Supabase Auth」です',
-    resetStepLink: 'メールの「Reset Password」を押す',
+    /*
+      件名・差出人・ボタンの名前は、届くメールに合わせる。メールの文面は
+      supabase/templates/reset-password.html を Supabase に貼ったもので、
+      件名と差出人は Supabase の設定にある。片方だけ変えると、案内と
+      届くメールが食い違い、迷惑メールと見分けられなくなる。
+    */
+    // 「です」まで書くと、360px で「す」だけが次の行へ落ちた
+    resetStepOpenHint: '件名「【車寄せナビ】パスワードの再設定」、差出人「車寄せナビ」',
+    // ボタンの名前を見出しに入れると、名前の途中で折れた（「再設定す／る」）。名前は下へ
+    resetStepLink: 'メールのボタンを押す',
+    resetStepLinkHint: '「パスワードを再設定する」と書かれた緑のボタンです',
     // 360px でも1行に収まる長さ。「開いた画面で」は2の流れで伝わる
     resetStepSet: '新しいパスワードを決める',
     resetStepSetHintApp:
@@ -487,11 +496,12 @@ const ja = {
       icloud: 'iCloud メール',
     },
     resetHelpTitle: 'メールが届かないときは',
-    resetHelpSpam: '迷惑メールのフォルダもご確認ください',
+    // 320px でも1行に収める（「〜もご確認ください」では「い」だけが落ちた）
+    resetHelpSpam: '迷惑メールに入っていませんか',
     resetHelpWait: '届くまで数分かかることがあります',
     resetHelpTypo: 'アドレスに打ち間違いがないか、上の表示でご確認ください',
     resetHelpCarrier:
-      '携帯会社のメール（docomo・au・SoftBank など）は、パソコンから送られたメールを受け取らない設定になっていることがあります。受信の設定をご確認ください',
+      '携帯会社のメール（docomo・au・SoftBank など）は、パソコンから送られたメールを受け取らない設定になっていることがあります。「kurumayosenavi.com」からのメールを受け取れるよう、受信の設定をご確認ください',
     resetResend: 'もう一度送る',
     resetResendIn: 'もう一度送る（{s}秒後）',
     resetResent: 'もう一度お送りしました',
@@ -1240,8 +1250,10 @@ const en: Dictionary = {
     resetChangeEmailLabel: 'Use a different email address',
     resetStepsTitle: 'What to do next',
     resetStepOpen: 'Open the email',
-    resetStepOpenHint: 'The subject is “Reset Your Password” and the sender is “Supabase Auth”',
-    resetStepLink: 'Tap “Reset Password” in the email',
+    resetStepOpenHint:
+      'The subject is “【車寄せナビ】パスワードの再設定” and the sender is “車寄せナビ”. The English text is at the bottom.',
+    resetStepLink: 'Tap the button in the email',
+    resetStepLinkHint: 'The green “パスワードを再設定する” button, or “Reset password” in the English text',
     resetStepSet: 'Set a new password',
     resetStepSetHintApp:
       'The link opens in your browser. Afterwards, go back to the app on your home screen and sign in.',
@@ -1257,7 +1269,7 @@ const en: Dictionary = {
     resetHelpWait: 'It can take a few minutes to arrive',
     resetHelpTypo: 'Make sure the address above is spelled correctly',
     resetHelpCarrier:
-      'Mobile carrier addresses (docomo, au, SoftBank and others) may be set to reject email sent from computers. Check your mail filter settings.',
+      'Mobile carrier addresses (docomo, au, SoftBank and others) may be set to reject email sent from computers. Allow email from “kurumayosenavi.com” in your mail filter settings.',
     resetResend: 'Send again',
     resetResendIn: 'Send again ({s}s)',
     resetResent: 'Sent again',

@@ -23,6 +23,8 @@
  *   「メールが実際に届くか」。送信元をどうするか次第で、こちらでは
  *   決められない。それ以外は全部見る。
  */
+import { readFileSync } from 'node:fs';
+
 import { chromium } from 'playwright';
 
 import { connect, createMember, removeMember, skipIntro } from './lib/member.mjs';
@@ -102,11 +104,20 @@ try {
   check('送り先をそのまま出す（打ち間違いに気づける）', text.includes(member.email));
   check(
     'このあとの手順が3つ並ぶ',
-    ['メールを開く', 'メールの「Reset Password」を押す', '新しいパスワードを決める'].every((x) =>
+    ['メールを開く', 'メールのボタンを押す', '「パスワードを再設定する」と書かれた緑のボタン', '新しいパスワードを決める'].every((x) =>
       text.includes(x),
     ),
   );
-  check('件名と差出人を書いてある（英語のメールを見分けられる）', text.includes('Supabase Auth'));
+  // 届くメール（supabase/templates/reset-password.html と Supabase の設定）と同じ名前か
+  const mail = readFileSync(new URL('../supabase/templates/reset-password.html', import.meta.url), 'utf8');
+  check(
+    'メールのボタンの名前が、手順2の案内と同じ',
+    mail.includes('>パスワードを再設定する</a>') && mail.includes('{{ .ConfirmationURL }}'),
+  );
+  check(
+    '件名と差出人を書いてある（届くメールと同じ名前）',
+    text.includes('【車寄せナビ】パスワードの再設定') && text.includes('差出人「車寄せナビ」'),
+  );
 
   const resend = page.getByRole('button', { name: /もう一度送る/ });
   check(
@@ -122,7 +133,7 @@ try {
   await page.getByRole('button', { name: 'メールが届かないときは' }).click();
   await page.waitForTimeout(300);
   text = await page.locator('body').innerText();
-  check('届かないときの案内を開ける', text.includes('迷惑メールのフォルダもご確認ください'));
+  check('届かないときの案内を開ける', text.includes('迷惑メールに入っていませんか'));
 
   await page.getByRole('button', { name: 'メールアドレスを変える' }).click();
   await page.waitForTimeout(600);
@@ -140,7 +151,10 @@ try {
   await page.getByRole('button', { name: 'メールが届かないときは' }).click();
   await page.waitForTimeout(300);
   text = await page.locator('body').innerText();
-  check('携帯会社の宛先には、受信の設定の案内を足す', text.includes('携帯会社のメール'));
+  check(
+    '携帯会社の宛先には、受け取れるようにするドメインまで案内する',
+    text.includes('携帯会社のメール') && text.includes('kurumayosenavi.com'),
+  );
 
   await page.getByRole('button', { name: 'ログインへ戻る' }).click();
   await page.waitForTimeout(800);

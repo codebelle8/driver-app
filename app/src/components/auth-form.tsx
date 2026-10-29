@@ -60,10 +60,13 @@ import { useTheme } from '@/theme-context';
  *
  * **再設定は、送った後の画面を独り立ちさせる**（2026-10-29）
  *   以前は「届いたメールのリンクをお開きください」の一行だけだった。
- *   届くメールは英語で、差出人も「Supabase Auth」と見慣れない名前のため、
- *   迷惑メールと見分けがつかない。どこへ送ったか・何を押すか・届かない
+ *   知らない差出人からのメールは、迷惑メールと見分けがつかない。
+ *   どこへ送ったか・何という件名と差出人で届くか・何を押すか・届かない
  *   ときどうするかを、その場に残す。送り直しは 60 秒あける（Supabase も
  *   同じ宛先へは 60 秒あけないと受け付けない）。
+ *
+ *   件名・差出人・ボタンの名前は、届くメール（supabase/templates/
+ *   reset-password.html と Supabase の設定）に合わせてある。
  */
 
 type Mode = 'in' | 'up' | 'reset';
@@ -677,7 +680,7 @@ function ResetSent({
 
   const steps = [
     { text: t.account.resetStepOpen, hint: t.account.resetStepOpenHint },
-    { text: t.account.resetStepLink, hint: null },
+    { text: t.account.resetStepLink, hint: t.account.resetStepLinkHint },
     { text: t.account.resetStepSet, hint: fromApp ? t.account.resetStepSetHintApp : null },
   ];
 
