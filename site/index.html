@@ -145,6 +145,18 @@
 
   </div>
 
+  <!--
+    回るキューブ（ご指示 2026-10-30「resend.com のキューブと同じ動きで、面にアプリのロゴを」）。
+    案内役と左右で向き合う、右の余白に置く。作りと動きは cube.js。
+    幅 1320px 以下では出さない（案内役の写真と同じ）。
+  -->
+  <figure class="cube reveal">
+    <div class="cube__stage">
+      <canvas class="cube__canvas" role="img"
+              aria-label="車寄せナビのロゴを各面に貼った、回るキューブ。ドラッグすると向きを変えられます"></canvas>
+    </div>
+  </figure>
+
   <a class="scroll-cue" href="#about" aria-label="下へ進む">
     <span>SCROLL</span>
     <i></i><i></i><i></i>
@@ -597,5 +609,6 @@
 <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="assets/vendor/lenis.min.js" defer></script>
 <script src="main.js" defer></script>
+<script src="cube.js" type="module"></script>
 </body>
 </html>

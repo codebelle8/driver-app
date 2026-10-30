@@ -759,6 +759,9 @@ async function checkGuide(page, label, wide) {
   check(`${label}：写真を入れても、横にはみ出さない`, over <= 0, `${over}px`);
 }
 
+/** 回るキューブのいまの向き・描いた回数（site/cube.js の検査用の口） */
+const cubeView = (page) => page.evaluate(() => document.querySelector('.cube').cubeView?.() ?? null);
+
 const phoneState = (page) =>
   page.evaluate(() => {
     const p = document.getElementById('case-phone');
@@ -1071,6 +1074,13 @@ try {
   {
     const { ctx, page } = await fresh();
     await page.goto(BASE, { waitUntil: 'networkidle' });
+    /*
+      回るキューブの立ち上げが済んでから測る（2026-10-30）。GPU の無いパソコンでは、
+      開いた直後の立ち上げ（three.js を読む・最初の1コマの準備）が重なると、横送りが
+      2秒ほど遅れることがあった（キューブを外すと毎回 84〜92px、重なると 11〜93px）
+    */
+    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1500);
     await page.locator('#features').scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     /*
@@ -1410,6 +1420,114 @@ try {
     await page.waitForTimeout(80);
     const rings = await page.evaluate(() => document.querySelectorAll('.click-ring').length);
     check('指で触れたときは、赤い輪を出さない', rings === 0, `${rings} 個`);
+    await ctx.close();
+  }
+
+  /* =================================================================== */
+  console.log('\n--- 回るキューブ ---');
+  /* =================================================================== */
+  {
+    /*
+      ご指示（2026-10-30）「resend.com のキューブを、同じ動きで。面にはアプリのロゴを」。
+      右の余白に出て、回り続ける。ドラッグでカメラがまわりを回り、手を離すとその場で
+      止まる（惰性なし）。ホイールはページの送りのまま。本文と右側の縦の一文に掛からない。
+    */
+    const { ctx, page, errors } = await fresh();
+    const three = [];
+    page.on('request', (r) => {
+      if (r.url().includes('three.module')) three.push(r.url());
+    });
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
+    /* 最初の画面の出方（キューブが濃くなる）が終わるまで */
+    await page.waitForTimeout(3500);
+    const a = await cubeView(page);
+    await page.waitForTimeout(1000);
+    const b = await cubeView(page);
+    check('キューブが出て、回り続ける', Boolean(a && b && b.frames > a.frames), JSON.stringify({ a, b }));
+
+    const gaps = await page.evaluate(() => {
+      const c = document.querySelector('.cube').getBoundingClientRect();
+      const text = ['.hero__tagline', '.hero__logo', '.hero__question', '.hero__answer'].map(
+        (s) => document.querySelector(s).getBoundingClientRect().right,
+      );
+      return {
+        text: Math.round(c.left - Math.max(...text)),
+        rail: Math.round(document.querySelector('.vrail__card').getBoundingClientRect().left - c.right),
+      };
+    });
+    check('キューブは、本文にも右側の縦の一文にも掛からない', gaps.text >= 8 && gaps.rail >= 8, JSON.stringify(gaps));
+
+    /* 右へ 90px・上へ 45px。枠の高さぶん動かすと1周（resend と同じ） */
+    const box = await page.locator('.cube__canvas').boundingBox();
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    const before = await cubeView(page);
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 90, cy - 45, { steps: 6 });
+    await page.mouse.up();
+    const after = await cubeView(page);
+    await page.waitForTimeout(600);
+    const later = await cubeView(page);
+    const want = { theta: (-2 * Math.PI * 90) / box.height, phi: (2 * Math.PI * 45) / box.height };
+    check(
+      'ドラッグすると、カメラがキューブのまわりを回る（横にも縦にも）',
+      Math.abs(after.theta - before.theta - want.theta) < 0.05 && Math.abs(after.phi - before.phi - want.phi) < 0.05,
+      JSON.stringify({ before, after, want }),
+    );
+    check(
+      '手を離すと、その場で止まる（惰性で回らない）',
+      later.theta === after.theta && later.phi === after.phi,
+      JSON.stringify({ after, later }),
+    );
+
+    await page.mouse.move(cx, cy);
+    const y0 = await page.evaluate(() => window.scrollY);
+    await page.mouse.wheel(0, 300);
+    await page.waitForTimeout(1200);
+    const y1 = await page.evaluate(() => window.scrollY);
+    check('キューブの上でも、ホイールでページが送れる', y1 - y0 > 100, `${y0} → ${y1}`);
+    check('three.js は1回だけ読む', three.length === 1, three.join(' / '));
+    check('キューブを出しても、画面に誤りが出ない', errors.length === 0, errors.join(' / '));
+    await ctx.close();
+  }
+
+  for (const [label, viewport] of [
+    ['パソコン（狭い）', { width: 1280, height: 900 }],
+    ['スマートフォン', { width: 390, height: 844 }],
+  ]) {
+    /* 案内役の写真と同じく、余白が無い幅では出さない。three.js も読まない */
+    const { ctx, page } = await fresh({ viewport });
+    const three = [];
+    page.on('request', (r) => {
+      if (r.url().includes('three.module')) three.push(r.url());
+    });
+    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1500);
+    const shown = await page.evaluate(() => getComputedStyle(document.querySelector('.cube')).display);
+    check(`${label}：余白が無いので、キューブは出さず、three.js も読まない`, shown === 'none' && three.length === 0, JSON.stringify({ shown, three }));
+    await ctx.close();
+  }
+
+  {
+    /* 動きを減らす設定に従う場合（?calm）。自分では回らないが、ドラッグでは回せる */
+    const { ctx, page, errors } = await fresh({ reducedMotion: 'reduce' });
+    await page.goto(`${BASE}?calm`, { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1500);
+    const a = await cubeView(page);
+    await page.waitForTimeout(1000);
+    const b = await cubeView(page);
+    check('設定に従う場合：キューブは出るが、自分では回らない', Boolean(a && b && a.frames >= 1 && b.frames === a.frames), JSON.stringify({ a, b }));
+    const box = await page.locator('.cube__canvas').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.up();
+    const c = await cubeView(page);
+    check('設定に従う場合：ドラッグでは回せる', c && c.theta < b.theta && c.frames > b.frames, JSON.stringify({ b, c }));
+    check('設定に従う場合：キューブを出しても、画面に誤りが出ない', errors.length === 0, errors.join(' / '));
     await ctx.close();
   }
 
