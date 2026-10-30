@@ -1590,7 +1590,12 @@ kara さんが Vercel の Domains で kurumayose-navi-site.vercel.app を kuruma
 ログインの画面（?next= 付き）も保ったまま移ることを確かめた。これで3つとも独自ドメインだけになった。
 手順書（`docs/07-deploy.md`・`docs/15-handover.md`）と、検査の道具 45 本の既定の住所を新しい住所に直した。
 `docs/14-admin-manual.pdf` には古い住所が残っている（開けば転送される。作り直すときに直る）。
-**残り:** Supabase のログイン設定（Site URL・Redirect URLs）から vercel.app を外すこと、会員へのお知らせ。
+
+続けて、**Supabase のログイン設定から vercel.app を外した**（kara さん）。Site URL は
+https://app.kurumayosenavi.com、Redirect URLs は app・admin の独自ドメインと手元の2つだけ。
+本番で `test-password-reset` **30 / 0**（送った後の案内・届いたリンクから新しいパスワードを決める・
+決める前に中へ通さない。リンクは戻り先を指定せずに発行するので、Site URL の新しい住所へ着く）。
+**残り:** 会員へのお知らせ（古い住所でホーム画面に追加している方は、追加し直し・ログインし直し）。
 
 関連: `site/index.html`, `site/main.js`, `app/src/app/facility/[id].tsx`,
 `docs/14-admin-manual.md`, `docs/15-handover.md`
