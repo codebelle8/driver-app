@@ -27,7 +27,7 @@ Supabase 標準の送信は開発用で、プロジェクトのメンバー以�
 | ① | 開発 | Resend に登録し、鍵を2本作る（作業用・送信用） |
 | ② | 開発 | Resend にドメイン `kurumayosenavi.com` を足し（地域 Tokyo）、DNS の値を取り出す |
 | ③ | 開発 → 発注元 | DNS の値をお送りする |
-| ④ | 発注元 | ConoHa の DNS に下の4行を入れる |
+| ④ | 発注元 | ConoHa の DNS に下の5行を入れる |
 | ⑤ | 開発 | Resend で認証を通す（多くは15分ほど、最大72時間） |
 | ⑥ | 開発 | Supabase の管理画面に、下の値と文面を入れる |
 | ⑦ | 開発 | 試しのアドレスへ送り、受信箱に入るかを見る |
@@ -38,16 +38,25 @@ Supabase 標準の送信は開発用で、プロジェクトのメンバー以�
 既存の行（サイト・アプリ・管理画面の A・CNAME）には触れない。
 2026-10-29 時点で、このドメインにメールの行（MX・TXT）は1つも無い。
 
+2026-10-30 に Resend へドメインを足した（地域 `ap-northeast-1`）。Resend が返した4行と、
+勧める DMARC の1行。値の控えは `docs/out/resend-domain.json`。
+
 | 種類 | 名前 | 値 |
 |---|---|---|
-| TXT | `resend._domainkey` | Resend の画面に出る `p=…`（アカウントごとに違う） |
-| TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+| TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCgnmao/zGIg3Bo3dHtI80tzuQQdQ6iOVw6BXJ8qglM7qUPzxzM3pzFybYsOeg83jtLH5tQF5YtSPh4igHOVh+We4ZaonqAr/BoIPoBFZ7s21LuIPWmirIfuaHilLnhLd0n0+9DH3QK3F1Ikyl9ryr9KPgNaDWbib7ad7V8jRLx7QIDAQAB` |
 | MX | `send` | `feedback-smtp.ap-northeast-1.amazonses.com`（優先度 10） |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+| CNAME | `rsend` | `send.forge.rmta.net` |
 | TXT | `_dmarc` | `v=DMARC1; p=none;` |
+
+  * DKIM の値は公開鍵（DNS で誰でも引ける）なので、ここに書いてよい
+  * `rsend` の行は、Resend が自分の送信サーバーから送るときの送り手の印。行き先
+    `send.forge.rmta.net` には Resend の送信サーバーの SPF が入っている（2026-10-30 に引いて確認）
 
   * 名前の欄は `send` だけ。`.kurumayosenavi.com` を付けない
   * 値は貼り付けて、一字も変えない（末尾の「.」も消さない）
   * 入ったかは `Resolve-DnsName send.kurumayosenavi.com -Type TXT -Server 8.8.8.8` で引ける
+  * 発注元への依頼文は `docs/out/ご連絡_パスワード再設定メールのためのDNS設定のお願い.txt`
 
 ## 4. Supabase に入れるもの
 

@@ -1051,6 +1051,13 @@ Supabase に入れる値（SMTP・件名・文面・有効期限・通数の上�
 検査: `test-password-reset` **30 / 0**（文面のボタンの名前と案内が揃っているかを足した）、
 `test-login` 24 / 0（手元の書き出しで）。
 
+**追記（2026-10-30）— Resend にドメインを足した。** 名義は Vercel と同じ（aprofessional0575）。
+登録のときに自動で作られる鍵は「送信だけ」でドメインを足せないうえ、画面の写しに写ったため、
+消していただき、作業用の鍵（Full access）を作り直していただいた。地域は東京
+（`ap-northeast-1`）。Resend が返した DNS の行は、見込んでいた3行に加えて CNAME `rsend` →
+`send.forge.rmta.net`（Resend の送信サーバーの SPF）の4行。DMARC を足した5行を、発注元への
+依頼文（`docs/out/ご連絡_パスワード再設定メールのためのDNS設定のお願い.txt`）と手順書に書いた。
+
 関連: `supabase/templates/reset-password.html`, `docs/18-mail-sending.md`,
 `app/src/lib/i18n/dictionaries.ts`, `app/src/components/auth-form.tsx`, `tools/test-password-reset.mjs`
 
