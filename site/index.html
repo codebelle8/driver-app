@@ -386,9 +386,11 @@
   <div class="wrap wrap--narrow area__body">
     <p class="eyebrow" data-reveal>AREA</p>
     <h2 class="section-title section-title--center split" id="area-title">
-      東京都内外の<br><span class="count">224</span>施設から。
+      東京都内外の<br><span class="count" data-facility-count>224</span>施設から。
     </h2>
-    <p class="area__note">2026年10月時点。対応する施設は、順に増やしています。</p>
+    <!-- 施設数（data-facility-count）は、開いたときにアプリと同じデータベースから読む（main.js）。
+         ここに書いた数は、読めなかったときに出る -->
+    <p class="area__note">対応する施設は、順に増やしています。</p>
 
     <!--
       提供を始めている種類と、まだの種類を色分けする（発注元のご回答 2026-10-13）。
@@ -476,7 +478,7 @@
       </details>
       <details class="qa">
         <summary>どの地域に対応していますか？</summary>
-        <p>2026年10月時点で、東京都内外の224施設に対応しています。対応する施設は順に増やしています。</p>
+        <p>現在、東京都内外の<span data-facility-count>224</span>施設に対応しています。対応する施設は順に増やしています。</p>
       </details>
       <details class="qa">
         <summary>電波が届かない場所でも使えますか？</summary>

@@ -43,6 +43,14 @@
 const APP_URL = 'https://app.kurumayosenavi.com/';
 
 /**
+ * 施設数を読む先（ご指示 2026-10-30「自動で読み込む形に」）。アプリと同じデータベース。
+ * 鍵はログイン前の鍵（アプリの中にも入っている公開の鍵）で、読めるのは公開中の
+ * 施設だけ。アプリの「案内できる範囲」と同じ数になる（下書きは数えない）。
+ */
+const FACILITY_API = 'https://uiesfsdzpwzfbtknpckj.supabase.co/rest/v1/facilities?select=id&status=eq.published';
+const PUBLIC_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpZXNmc2R6cHd6ZmJ0a25wY2tqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMDQyNjQsImV4cCI6MjEwMTY4MDI2NH0.wKDLi43-Oa-WPQVx2P_FXyPtfXP_HcWR7sTFT6m8PI8';
+
+/**
  * 立ち上がりの動画。**アプリと同じ3本を、同じ順に流す。**
  * 「車寄せナビとは」の実例の端末の中で流す（ご指示 2026-09-20）。
  * 以前は開いたときに全画面で流していた（2026-09-19〜20）。
@@ -119,6 +127,51 @@ let scrollDir = 1;
 for (const a of $$('a[data-app]')) {
   a.href = APP_URL;
 }
+
+/* --- 施設数 ---------------------------------------------------------------- */
+
+/**
+ * HTML には書いた時点の数を入れておき、読めたら差し替える。読めないとき
+ * （通信が無い・止まっている）は、書いた数のまま。
+ *
+ * 見出しの数字は1文字ずつに分けない（splitChars）。分けると、差し替えたときに
+ * 文字の動きから外れる。1行ずつ出す文（よくあるご質問）は、組み直しの元
+ * （lineSource）も差し替える。幅が変わって組み直したときに、元の数へ戻らないように。
+ */
+function showFacilityCount(n) {
+  const text = String(n);
+  for (const el of $$('[data-facility-count]')) {
+    const old = el.textContent;
+    if (old === text) continue;
+    el.textContent = text;
+    /* 1文字ずつに分けた見出しには、読み上げ用の文が別にある */
+    const read = el.closest('.split')?.querySelector(':scope > .visually-hidden');
+    if (read) read.textContent = read.textContent.replace(old, text);
+  }
+  for (const [el, html] of lineSource) {
+    lineSource.set(el, html.replace(/(<span[^>]*data-facility-count[^>]*>)[^<]*/g, `$1${text}`));
+  }
+}
+
+async function loadFacilityCount() {
+  const stop = new AbortController();
+  const timer = window.setTimeout(() => stop.abort(), 8000);
+  try {
+    const res = await fetch(FACILITY_API, {
+      method: 'HEAD',
+      headers: { apikey: PUBLIC_KEY, Authorization: `Bearer ${PUBLIC_KEY}`, Prefer: 'count=exact' },
+      signal: stop.signal,
+    });
+    const n = Number(res.headers.get('content-range')?.split('/')[1]);
+    if (res.ok && Number.isInteger(n) && n > 0) showFacilityCount(n);
+  } catch (e) {
+    /* 読めなければ、書いた数のまま */
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+loadFacilityCount();
 
 /* --- なめらかな送り（参考サイトと同じ Lenis） -------------------------------- */
 
@@ -422,7 +475,7 @@ paintUp();
 /* --- 送りに合わせて、ふわっと出す ------------------------------------------- */
 
 /**
- * 文字をひとつずつ包む。**改行（br）と、中の飾り（span）は残す。**
+ * 文字をひとつずつ包む。**改行（br）と、中の飾り（span）は残す。** 施設数は包まない。
  * 読み上げでは1文字ずつ区切られないよう、元の文を別に持たせる。
  * @param {string} cls 包んだ文字に付ける名前（見出し・標語は ch、打ち込みは tw）
  */
@@ -441,6 +494,11 @@ function splitChars(root, cls = 'ch') {
           frag.append(span);
         }
         child.replaceWith(frag);
+      } else if (child.nodeType === Node.ELEMENT_NODE && child.hasAttribute('data-facility-count')) {
+        /* 施設数は読み込んで差し替えるため、ひとかたまりで動かす */
+        child.classList.add(cls);
+        child.setAttribute('aria-hidden', 'true');
+        child.style.setProperty('--i', String(i++));
       } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'BR') {
         walk(child);
       }

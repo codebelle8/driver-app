@@ -37,6 +37,8 @@
  */
 import { chromium } from 'playwright';
 
+import { connect } from './lib/member.mjs';
+
 const BASE = (process.argv[2] ?? 'http://localhost:4300/').replace(/\/?$/, '/');
 const APP_URL = 'https://app.kurumayosenavi.com/';
 
@@ -1001,6 +1003,24 @@ try {
         .filter((h) => h.length > 1 && !document.getElementById(h.slice(1))),
     );
     check('ページ内の飛び先が、すべてある', broken.length === 0, broken.join(' '));
+
+    /* 施設数は、開いたときにデータベースから読む（公開中の施設だけ。アプリと同じ数） */
+    const conn = connect();
+    const res = await fetch(`${conn.url}/rest/v1/facilities?select=id&status=eq.published`, {
+      method: 'HEAD',
+      headers: { ...conn.svc, Prefer: 'count=exact' },
+    });
+    const total = res.headers.get('content-range')?.split('/')[1];
+    const shown = await page.evaluate(() => ({
+      counts: [...document.querySelectorAll('[data-facility-count]')].map((el) => el.textContent),
+      read: (document.querySelector('#area-title > .visually-hidden') ?? document.querySelector('#area-title')).textContent.replace(/\s+/g, ''),
+    }));
+    check(
+      `施設数が、公開中の施設の数（${total}）と同じ（${shown.counts.length} か所）`,
+      shown.counts.length === 2 && shown.counts.every((n) => n === total),
+      shown.counts.join(' / '),
+    );
+    check('対応エリアの見出しの読み上げも、同じ数', shown.read.includes(`東京都内外の${total}施設から。`), shown.read);
 
     /* 遅れて読む画像も含めて、全部を画面に入れてから確かめる */
     const h = await page.evaluate(() => document.body.scrollHeight);
