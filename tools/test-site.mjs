@@ -1028,9 +1028,16 @@ try {
       await page.evaluate((yy) => window.scrollTo(0, yy), y);
       await page.waitForTimeout(120);
     }
-    await page.evaluate(() => {
-      document.getElementById('cards').scrollLeft = 99999;
-    });
+    /* カードの写真（遅れて読む）は、横に送って1枚ずつ画面に入れる。列が画面の外にある
+       ときに端まで飛ばしても、途中のカードは画面に近づかず読まれない */
+    await page.locator('#cards').scrollIntoViewIfNeeded();
+    const span = await page.evaluate(() => document.getElementById('cards').scrollWidth);
+    for (let x = 0; x <= span; x += 300) {
+      await page.evaluate((xx) => {
+        document.getElementById('cards').scrollLeft = xx;
+      }, x);
+      await page.waitForTimeout(150);
+    }
     await page.waitForTimeout(1500);
     const imgs = await page.evaluate(() =>
       [...document.images].map((i) => ({ src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0 })),
