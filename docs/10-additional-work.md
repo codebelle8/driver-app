@@ -1078,7 +1078,7 @@ kara さんの Gmail でも受け取りを確かめていただいた（Resend �
 **追記（2026-10-30）— 本番に出した。** アプリの案内（件名・差出人・ボタンの名前）を P-100 と
 一緒に出した（kurumayose-navi-khln8uk20）。本番で `test-password-reset` **30 / 0**
 （メールは実際には送らない形）、`test-login` **24 / 0**。作業用の鍵は手元の
-`admin/.env.local` から消した。Resend 側の作業用の鍵（kurumayose-setup）は kara さんに消していただく。
+`admin/.env.local` から消し、Resend 側の作業用の鍵（kurumayose-setup）も kara さんに消していただいた。残る鍵は送信用の kurumayose（Supabase が使う）だけ。
 
 関連: `supabase/templates/reset-password.html`, `docs/18-mail-sending.md`,
 `app/src/lib/i18n/dictionaries.ts`, `app/src/components/auth-form.tsx`, `tools/test-password-reset.mjs`
