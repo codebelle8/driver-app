@@ -1595,7 +1595,7 @@ kara さんが Vercel の Domains で kurumayose-navi-site.vercel.app を kuruma
 https://app.kurumayosenavi.com、Redirect URLs は app・admin の独自ドメインと手元の2つだけ。
 本番で `test-password-reset` **30 / 0**（送った後の案内・届いたリンクから新しいパスワードを決める・
 決める前に中へ通さない。リンクは戻り先を指定せずに発行するので、Site URL の新しい住所へ着く）。
-**残り:** 会員へのお知らせ（古い住所でホーム画面に追加している方は、追加し直し・ログインし直し）。
+会員へのお知らせは要らない（2026-10-31 時点で登録している会員がいない。ご確認済み）。これで移行は終わり。
 
 関連: `site/index.html`, `site/main.js`, `app/src/app/facility/[id].tsx`,
 `docs/14-admin-manual.md`, `docs/15-handover.md`
