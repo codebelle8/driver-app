@@ -1062,6 +1062,17 @@ ConoHa の作業は発注元ではなく kara さんの担当と分かり、依�
 Resend の値と一字違わず一致することを確かめ（3台目は数分遅れて揃った）、Resend の認証を
 始めて、**同日に全部通った（verified）**。送信用の鍵（Sending access）も作っていただいた。
 
+**追記（2026-10-30）— Supabase を切り替えた。** SMTP の値と、件名・文面を kara さんに入れて
+いただいた。最初の試しはアプリに「うまくいきませんでした」と出た。Resend の試験用の宛先
+（`delivered@resend.dev`）で再現すると、Supabase の答えは 500「Error sending recovery email」で、
+Resend の送信の記録は0件。こちらから同じ入り口（`smtp.resend.com`・465・`resend`）で直接つなぐと
+ログインも送信も通るため、Supabase に入れた値の側と絞った。Supabase の Logs（Auth）に
+`535 "Authentication credentials invalid"` が出ていて、**Password の鍵が正しく入っていなかった**
+（鍵は Resend に残っていて、一度も使われていなかった）。鍵を作り直し、欄を全部選んでから
+貼り直していただいて直った。同じ宛先で送り直すと Supabase は 200、Resend に
+「【車寄せナビ】パスワードの再設定」・差出人「車寄せナビ <no-reply@kurumayosenavi.com>」で
+届いた（delivered）。ロゴ・ボタン・確認の URL（戻り先 `app.kurumayosenavi.com`）も入っていた。
+
 関連: `supabase/templates/reset-password.html`, `docs/18-mail-sending.md`,
 `app/src/lib/i18n/dictionaries.ts`, `app/src/components/auth-form.tsx`, `tools/test-password-reset.mjs`
 

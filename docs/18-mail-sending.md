@@ -100,6 +100,18 @@ Supabase 標準の送信は開発用で、プロジェクトのメンバー以�
   * ボタンから新しいパスワードを決め、そのパスワードでログインできるか
   * Gmail の「メッセージのソースを表示」で SPF・DKIM・DMARC が `PASS`
 
+### 送れないとき
+
+アプリに「うまくいきませんでした」と出るときは、Supabase の **Logs → Auth**（Level を error）で
+`/recover` の行を開く。
+
+| 出ている英文 | 原因 |
+|---|---|
+| `535 "Authentication credentials invalid"` | Username（`resend`）か Password（鍵）が違う。鍵を作り直し、欄を Ctrl+A で全部選んでから貼る（2026-10-30 に一度これで止まった） |
+| `dial` ・ `timeout` を含む | Host かポートが違う（前後の空白も見る） |
+
+Resend の「Emails」に1通も出ていなければ、Supabase から Resend へ渡っていない。
+
 ## 6. 終わったら
 
   * Resend の**作業用**の鍵を消す（`admin/.env.local` の `RESEND_API_KEY` も消す）
