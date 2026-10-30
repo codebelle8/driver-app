@@ -146,14 +146,19 @@
   </div>
 
   <!--
-    回るキューブ（ご指示 2026-10-30「resend.com のキューブと同じ動きで、面にアプリのロゴを」）。
-    案内役と左右で向き合う、右の余白に置く。作りと動きは cube.js。
-    幅 1320px 以下では出さない（案内役の写真と同じ）。
+    回るキューブ（ご指示 2026-10-30「resend.com のキューブと同じ動きで、面にアプリのロゴを」
+    「GPU が要る動きは使わない。どのパソコンでもスマートフォンでも動くように」）。
+    CSS の立体（transform）だけで描き、回すのも CSS。面の板は cube.js が組み立てる。
+    広い画面では案内役と左右で向き合う右の余白に、狭い画面では文面の下に置く。
   -->
-  <figure class="cube reveal">
+  <figure class="cube reveal" role="img"
+          aria-label="車寄せナビのロゴを各面に貼った、回るキューブ。ドラッグすると向きを変えられます">
     <div class="cube__stage">
-      <canvas class="cube__canvas" role="img"
-              aria-label="車寄せナビのロゴを各面に貼った、回るキューブ。ドラッグすると向きを変えられます"></canvas>
+      <div class="cube__view">
+        <div class="cube__spin-x">
+          <div class="cube__spin-y"></div>
+        </div>
+      </div>
     </div>
   </figure>
 

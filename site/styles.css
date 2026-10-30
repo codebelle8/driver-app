@@ -1067,30 +1067,53 @@ a {
 }
 
 /* ---------------------------------------------------------------------------
-   最初の画面の右の、回るキューブ（cube.js）
+   最初の画面の、回るキューブ（cube.js）
 
-   案内役（左）と向き合うよう、右の余白に置く。本文の右端と、右側の縦の一文の
-   あいだのまん中。三層に分け、それぞれ別の動きを受け持つ:
-     .cube          出方（main.js の最初の画面。案内役と同じころに出る）
-     .cube__stage   送ったときに薄れる（案内役の写真と同じ）
-     .cube__canvas  描けるようになったら、ふわっと大きくなりながら濃くなる
-                    （resend と同じ 1.5秒）。three.js が遅れて届いても、ここで出る
+   **GPU を使う描き方は使わない。** CSS の立体（transform）だけで描き、回すのも
+   CSS のアニメーション（ご指示 2026-10-30「どのパソコンでもスマートフォンでも
+   動くように」）。動きの値は resend.com のキューブと同じ（cube.js の先頭）。
+
+     .cube           置き場所と大きさ。出方（main.js の最初の画面）
+     .cube__stage    遠近（画角 45° と同じ見え方）。送ったときに薄れる。ドラッグを受ける
+     .cube__view     ドラッグで変えた向き（cube.js）
+     .cube__spin-x   X 軸まわりに 10秒で1回転
+     .cube__spin-y   Y 軸まわりに 10秒で1回転
+     .cube__slice    3つの段。左と右の段が、待っては半回転して戻る
+     .cube__panel    段の箱の板（18 枚）。外を向いた板にはロゴの札
+
+   広い画面（1321px〜）では、案内役（左）と向き合うよう右の余白に置く（本文の
+   右端と、右側の縦の一文のまん中）。それより狭い画面では、文面の下に置く。
+   キューブの一辺は枠の半分（--t は札1つ分）。回っても角が枠からはみ出さない。
    --------------------------------------------------------------------------- */
 
 .cube {
-  --cube: min(460px, 25vw);
-  position: absolute;
+  --cube: min(300px, 76vw);
+  --t: calc(var(--cube) / 6);
+  position: relative;
   z-index: 1;
-  left: calc(75% + 72px - var(--cube) / 2);
-  top: calc(46% - var(--cube) / 2);
   width: var(--cube);
   aspect-ratio: 1;
-  margin: 0;
+  margin: clamp(4px, 2vw, 16px) auto 0;
+}
+@media (min-width: 1321px) {
+  .cube {
+    --cube: min(460px, 25vw);
+    position: absolute;
+    left: calc(75% + 72px - var(--cube) / 2);
+    top: calc(46% - var(--cube) / 2);
+    margin: 0;
+  }
 }
 .cube__stage {
   position: relative;
   width: 100%;
   height: 100%;
+  perspective: calc(var(--cube) * 1.2);
+  /* 指では、横に動かすと回る。縦はページの送りのまま */
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 /* 床に落ちる影 */
 .cube__stage::after {
@@ -1102,40 +1125,114 @@ a {
   height: 8%;
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(11, 25, 47, 0.3), rgba(11, 25, 47, 0));
-  opacity: 0;
-  transition: opacity 1.5s ease-in-out;
   pointer-events: none;
 }
-.cube__canvas {
+.cube__view,
+.cube__spin-x,
+.cube__spin-y,
+.cube__slice {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+/*
+  resend の値。全体は等速で止まらない。段は「待つ → 半回転 → 待つ → 戻る」
+  （左は 3秒・2秒、右は 5秒・3秒）。段の動きは始めと終わりがゆっくり
+*/
+.cube__spin-x {
+  animation: cube-x 10s linear infinite;
+}
+.cube__spin-y {
+  animation: cube-y 10s linear infinite;
+}
+.cube__slice--left {
+  animation: cube-left 10s infinite;
+}
+.cube__slice--right {
+  animation: cube-right 16s infinite;
+}
+@keyframes cube-x {
+  to { transform: rotateX(360deg); }
+}
+@keyframes cube-y {
+  to { transform: rotateY(-360deg); }
+}
+@keyframes cube-left {
+  0%, 30% { transform: rotateX(0deg); animation-timing-function: ease-in-out; }
+  50%, 80% { transform: rotateX(180deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotateX(0deg); }
+}
+@keyframes cube-right {
+  0%, 31.25% { transform: rotateX(0deg); animation-timing-function: ease-in-out; }
+  50%, 81.25% { transform: rotateX(180deg); animation-timing-function: ease-in-out; }
+  100% { transform: rotateX(0deg); }
+}
+/* 画面の外にあるあいだは止める（cube.js） */
+.cube.is-away :is(.cube__spin-x, .cube__spin-y, .cube__slice) {
+  animation-play-state: paused;
+}
+/* 動きを減らす設定に従う場合は、3つの面が見える向きで止めておく（ドラッグでは回せる） */
+.calm .cube__spin-x {
+  animation: none;
+  transform: rotateX(-24deg);
+}
+.calm .cube__spin-y {
+  animation: none;
+  transform: rotateY(-36deg);
+}
+.calm .cube__slice {
+  animation: none;
+}
+
+/* 段の箱の板。--w は横の札の数（帯は 1、左右の面は 3）、--d は中心からの距離 */
+.cube__panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  grid-template-columns: repeat(var(--w), 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: calc(var(--t) * var(--w) - 2px);
+  height: calc(var(--t) * 3 - 2px);
+  margin: calc(var(--t) * -1.5 + 1px) 0 0 calc(var(--t) * var(--w) * -0.5 + 1px);
+  border-radius: calc(var(--t) * 0.1);
+  background: linear-gradient(145deg, #1c273a, #070c15 70%);
+  transform: translateX(calc(var(--t) * var(--i))) var(--turn) translateZ(calc(var(--t) * var(--d)));
+  backface-visibility: hidden;
+}
+/* 面ごとの明るさ（上がいちばん明るく、下がいちばん暗い） */
+.cube__panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(3, 6, 12, var(--shade));
+  pointer-events: none;
+}
+/* 段と段の間の板。段が回ったときに見える内側 */
+.cube__panel--inner {
+  background: #05080e;
+}
+/*
+  ロゴの札。面の絵（1面に1つのロゴ）を 3 × 3 に分けた1枚。札の間のすき間に
+  当たる絵は見えない（格子越しに1枚の絵を見ているように、札をまたいで絵がつながる）
+*/
+.cube__tile {
   position: relative;
-  z-index: 1;
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  scale: 0.9;
-  transition: opacity 1.5s ease-in-out, scale 1.5s ease-in-out;
-  /* 指では、横に動かすと回る。縦はページの送りのまま */
-  touch-action: pan-y;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+  margin: calc(var(--t) * 0.07);
+  border-radius: 16%;
+  background: url('assets/brand/cube-face.webp') no-repeat;
+  background-size: calc(var(--t) * 3) calc(var(--t) * 3);
+  background-position: calc(var(--t) * (var(--c) + 0.07) * -1) calc(var(--t) * (var(--r) + 0.07) * -1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
-.cube.is-live .cube__canvas {
-  opacity: 1;
-  scale: 1;
-}
-.cube.is-live .cube__stage::after {
-  opacity: 1;
-}
-/* 描けない環境（WebGL が使えない など）では出さない */
-.cube.is-off {
-  display: none;
-}
-@media (max-width: 1320px) {
-  .cube {
-    display: none;
-  }
+/* 札のつや */
+.cube__tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0) 42%);
 }
 
 /* よくあるご質問：見出しの下に置き、吹き出しを添える */

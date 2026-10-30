@@ -759,8 +759,22 @@ async function checkGuide(page, label, wide) {
   check(`${label}：写真を入れても、横にはみ出さない`, over <= 0, `${over}px`);
 }
 
-/** 回るキューブのいまの向き・描いた回数（site/cube.js の検査用の口） */
+/** 回るキューブの、ドラッグで変えた向き（site/cube.js の検査用の口） */
 const cubeView = (page) => page.evaluate(() => document.querySelector('.cube').cubeView?.() ?? null);
+
+/** 回るキューブのいまの回り具合（CSS のアニメーションの途中の値）と、作り */
+const cubeSpin = (page) =>
+  page.evaluate(() => {
+    const cube = document.querySelector('.cube');
+    return {
+      shown: getComputedStyle(cube).display !== 'none' && cube.getBoundingClientRect().width > 0,
+      x: getComputedStyle(cube.querySelector('.cube__spin-x')).transform,
+      y: getComputedStyle(cube.querySelector('.cube__spin-y')).transform,
+      canvas: cube.querySelectorAll('canvas').length,
+      panels: cube.querySelectorAll('.cube__panel').length,
+      tiles: cube.querySelectorAll('.cube__tile').length,
+    };
+  });
 
 const phoneState = (page) =>
   page.evaluate(() => {
@@ -1074,13 +1088,6 @@ try {
   {
     const { ctx, page } = await fresh();
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    /*
-      回るキューブの立ち上げが済んでから測る（2026-10-30）。GPU の無いパソコンでは、
-      開いた直後の立ち上げ（three.js を読む・最初の1コマの準備）が重なると、横送りが
-      2秒ほど遅れることがあった（キューブを外すと毎回 84〜92px、重なると 11〜93px）
-    */
-    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1500);
     await page.locator('#features').scrollIntoViewIfNeeded();
     await page.waitForTimeout(500);
     /*
@@ -1428,23 +1435,28 @@ try {
   /* =================================================================== */
   {
     /*
-      ご指示（2026-10-30）「resend.com のキューブを、同じ動きで。面にはアプリのロゴを」。
-      右の余白に出て、回り続ける。ドラッグでカメラがまわりを回り、手を離すとその場で
+      ご指示（2026-10-30）「resend.com のキューブを、同じ動きで。面にはアプリのロゴを」
+      「GPU が要る動きは使わない。どのパソコンでもスマートフォンでも動くように」。
+      CSS の立体だけで描き、回り続ける。ドラッグで見る向きが変わり、手を離すとその場で
       止まる（惰性なし）。ホイールはページの送りのまま。本文と右側の縦の一文に掛からない。
     */
     const { ctx, page, errors } = await fresh();
-    const three = [];
+    const webgl = [];
     page.on('request', (r) => {
-      if (r.url().includes('three.module')) three.push(r.url());
+      if (/three|webgl/i.test(r.url())) webgl.push(r.url());
     });
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
     /* 最初の画面の出方（キューブが濃くなる）が終わるまで */
     await page.waitForTimeout(3500);
-    const a = await cubeView(page);
+    const a = await cubeSpin(page);
     await page.waitForTimeout(1000);
-    const b = await cubeView(page);
-    check('キューブが出て、回り続ける', Boolean(a && b && b.frames > a.frames), JSON.stringify({ a, b }));
+    const b = await cubeSpin(page);
+    check('キューブが出て、回り続ける', a.shown && a.x !== b.x && a.y !== b.y, JSON.stringify({ a, b }));
+    check(
+      'GPU を使う描き方（WebGL）は使わない（CSS の板 18 枚・ロゴの札 54 枚）',
+      a.canvas === 0 && webgl.length === 0 && a.panels === 18 && a.tiles === 54,
+      JSON.stringify({ ...a, webgl }),
+    );
 
     const gaps = await page.evaluate(() => {
       const c = document.querySelector('.cube').getBoundingClientRect();
@@ -1459,7 +1471,7 @@ try {
     check('キューブは、本文にも右側の縦の一文にも掛からない', gaps.text >= 8 && gaps.rail >= 8, JSON.stringify(gaps));
 
     /* 右へ 90px・上へ 45px。枠の高さぶん動かすと1周（resend と同じ） */
-    const box = await page.locator('.cube__canvas').boundingBox();
+    const box = await page.locator('.cube__stage').boundingBox();
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
     const before = await cubeView(page);
@@ -1470,15 +1482,15 @@ try {
     const after = await cubeView(page);
     await page.waitForTimeout(600);
     const later = await cubeView(page);
-    const want = { theta: (-2 * Math.PI * 90) / box.height, phi: (2 * Math.PI * 45) / box.height };
+    const want = { turnY: (2 * Math.PI * 90) / box.height, turnX: (2 * Math.PI * 45) / box.height };
     check(
-      'ドラッグすると、カメラがキューブのまわりを回る（横にも縦にも）',
-      Math.abs(after.theta - before.theta - want.theta) < 0.05 && Math.abs(after.phi - before.phi - want.phi) < 0.05,
+      'ドラッグすると、見る向きが変わる（横にも縦にも）',
+      Math.abs(after.turnY - before.turnY - want.turnY) < 0.05 && Math.abs(after.turnX - before.turnX - want.turnX) < 0.05,
       JSON.stringify({ before, after, want }),
     );
     check(
       '手を離すと、その場で止まる（惰性で回らない）',
-      later.theta === after.theta && later.phi === after.phi,
+      later.turnX === after.turnX && later.turnY === after.turnY,
       JSON.stringify({ after, later }),
     );
 
@@ -1488,25 +1500,35 @@ try {
     await page.waitForTimeout(1200);
     const y1 = await page.evaluate(() => window.scrollY);
     check('キューブの上でも、ホイールでページが送れる', y1 - y0 > 100, `${y0} → ${y1}`);
-    check('three.js は1回だけ読む', three.length === 1, three.join(' / '));
     check('キューブを出しても、画面に誤りが出ない', errors.length === 0, errors.join(' / '));
     await ctx.close();
   }
 
   for (const [label, viewport] of [
     ['パソコン（狭い）', { width: 1280, height: 900 }],
+    ['タブレット', { width: 1024, height: 768 }],
     ['スマートフォン', { width: 390, height: 844 }],
   ]) {
-    /* 案内役の写真と同じく、余白が無い幅では出さない。three.js も読まない */
-    const { ctx, page } = await fresh({ viewport });
-    const three = [];
-    page.on('request', (r) => {
-      if (r.url().includes('three.module')) three.push(r.url());
-    });
+    /* 右の余白が無い幅では、文面の下に出す。どの幅でも回る */
+    const { ctx, page, errors } = await fresh({ viewport });
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1500);
-    const shown = await page.evaluate(() => getComputedStyle(document.querySelector('.cube')).display);
-    check(`${label}：余白が無いので、キューブは出さず、three.js も読まない`, shown === 'none' && three.length === 0, JSON.stringify({ shown, three }));
+    await page.waitForTimeout(3500);
+    const a = await cubeSpin(page);
+    await page.waitForTimeout(1000);
+    const b = await cubeSpin(page);
+    const place = await page.evaluate(() => {
+      const c = document.querySelector('.cube').getBoundingClientRect();
+      const copy = document.querySelector('.hero__answer').getBoundingClientRect();
+      return {
+        below: Math.round(c.top - copy.bottom),
+        left: Math.round(c.left),
+        right: Math.round(window.innerWidth - c.right),
+        over: document.documentElement.scrollWidth - window.innerWidth,
+      };
+    });
+    check(`${label}：キューブが文面の下に出て、回り続ける`, a.shown && a.x !== b.x && place.below >= 0, JSON.stringify({ a, b, place }));
+    check(`${label}：キューブを出しても、横にはみ出さない`, place.left >= 0 && place.right >= 0 && place.over <= 0, JSON.stringify(place));
+    check(`${label}：キューブを出しても、画面に誤りが出ない`, errors.length === 0, errors.join(' / '));
     await ctx.close();
   }
 
@@ -1514,19 +1536,19 @@ try {
     /* 動きを減らす設定に従う場合（?calm）。自分では回らないが、ドラッグでは回せる */
     const { ctx, page, errors } = await fresh({ reducedMotion: 'reduce' });
     await page.goto(`${BASE}?calm`, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => document.querySelector('.cube').classList.contains('is-live'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1500);
-    const a = await cubeView(page);
+    const a = await cubeSpin(page);
     await page.waitForTimeout(1000);
-    const b = await cubeView(page);
-    check('設定に従う場合：キューブは出るが、自分では回らない', Boolean(a && b && a.frames >= 1 && b.frames === a.frames), JSON.stringify({ a, b }));
-    const box = await page.locator('.cube__canvas').boundingBox();
+    const b = await cubeSpin(page);
+    check('設定に従う場合：キューブは出るが、自分では回らない', a.shown && a.x === b.x && a.y === b.y, JSON.stringify({ a, b }));
+    const before = await cubeView(page);
+    const box = await page.locator('.cube__stage').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2 + 60, box.y + box.height / 2, { steps: 4 });
     await page.mouse.up();
-    const c = await cubeView(page);
-    check('設定に従う場合：ドラッグでは回せる', c && c.theta < b.theta && c.frames > b.frames, JSON.stringify({ b, c }));
+    const after = await cubeView(page);
+    check('設定に従う場合：ドラッグでは回せる', after.turnY > before.turnY, JSON.stringify({ before, after }));
     check('設定に従う場合：キューブを出しても、画面に誤りが出ない', errors.length === 0, errors.join(' / '));
     await ctx.close();
   }

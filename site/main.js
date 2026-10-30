@@ -278,7 +278,7 @@ function showHero() {
     )
     /* 案内役は、文面と同じころに左から */
     .fromTo('.guide--hero', { autoAlpha: 0, x: -24 }, { autoAlpha: 1, x: 0, duration: 1 }, '-=1.4')
-    /* 右のキューブも同じころに。resend と同じく、ふわっと大きくなりながら（cube.js） */
+    /* キューブも同じころに。resend と同じく、ふわっと大きくなりながら（cube.js） */
     .fromTo('.cube', { autoAlpha: 0, scale: 0.9 }, { autoAlpha: 1, scale: 1, duration: 1.5, ease: 'power1.inOut' }, '<')
     .addLabel('copy', '-=1.2')
     /* 問いかけは、囲みを見せてから1文字ずつ打つ。打ち終えたら答え */
