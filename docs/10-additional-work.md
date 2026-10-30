@@ -1072,6 +1072,13 @@ Resend の送信の記録は0件。こちらから同じ入り口（`smtp.resend
 貼り直していただいて直った。同じ宛先で送り直すと Supabase は 200、Resend に
 「【車寄せナビ】パスワードの再設定」・差出人「車寄せナビ <no-reply@kurumayosenavi.com>」で
 届いた（delivered）。ロゴ・ボタン・確認の URL（戻り先 `app.kurumayosenavi.com`）も入っていた。
+kara さんの Gmail でも受け取りを確かめていただいた（Resend の記録も delivered）。
+携帯会社のアドレスでは、まだ試していない。
+
+**追記（2026-10-30）— 本番に出した。** アプリの案内（件名・差出人・ボタンの名前）を P-100 と
+一緒に出した（kurumayose-navi-khln8uk20）。本番で `test-password-reset` **30 / 0**
+（メールは実際には送らない形）、`test-login` **24 / 0**。作業用の鍵は手元の
+`admin/.env.local` から消した。Resend 側の作業用の鍵（kurumayose-setup）は kara さんに消していただく。
 
 関連: `supabase/templates/reset-password.html`, `docs/18-mail-sending.md`,
 `app/src/lib/i18n/dictionaries.ts`, `app/src/components/auth-form.tsx`, `tools/test-password-reset.mjs`
@@ -1164,6 +1171,10 @@ P-101 だけを足して出した。本番でも 1905px で送って行が動か
 
 検査: `test-password-reset` **29 / 0**（再設定の画面を見る項目を1つから12に増やした）、
 `test-login` 24 / 0（手元の書き出しで）。本番へはまだ出していない。
+
+**追記（2026-10-30）— 本番に出した。** Supabase の送信を Resend に切り替え、届くメールが
+新しい件名・差出人になったのを確かめてから、P-103 と一緒に出した（kurumayose-navi-khln8uk20）。
+本番で `test-password-reset` **30 / 0**、`test-login` **24 / 0**。
 
 関連: `app/src/components/auth-form.tsx`, `app/src/components/auth-gate.tsx`,
 `app/src/lib/i18n/dictionaries.ts`, `app/assets/brand/mark-192.png`,

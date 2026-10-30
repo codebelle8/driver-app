@@ -116,3 +116,5 @@ Resend の「Emails」に1通も出ていなければ、Supabase から Resend �
 
   * Resend の**作業用**の鍵を消す（`admin/.env.local` の `RESEND_API_KEY` も消す）
   * 送信用の鍵は Supabase に入っているものだけにする
+
+2026-10-30 に ⑦ まで済み、⑧ でアプリを本番に出した。`admin/.env.local` の作業用の鍵は消した。
