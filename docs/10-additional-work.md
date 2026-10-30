@@ -1574,6 +1574,11 @@ License（`assets/fonts/KleeOne-OFL.txt`）。読み込めないときは、い�
   * 古い vercel.app から新しいドメインへ移す設定と、会員へのお知らせ（ログインの
     し直し・ホーム画面の追加し直し・通知の受け取り直し）。ご相談のうえで行う
 
+**追記（2026-10-31）— 紹介サイトの vercel.app を転送した。** ご指示「独自ドメインだけを使う」。
+kara さんが Vercel の Domains で kurumayose-navi-site.vercel.app を kurumayosenavi.com へ
+308 で転送する設定にした（www と同じ形）。トップ・画像とも転送され、kurumayosenavi.com は
+200 で開くことを確かめた。管理画面は続けて行う。アプリは会員へのお知らせのあとに行う。
+
 関連: `site/index.html`, `site/main.js`, `app/src/app/facility/[id].tsx`,
 `docs/14-admin-manual.md`, `docs/15-handover.md`
 
