@@ -1060,6 +1060,10 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 250 になり、質問を開いて幅を変えても 250 のままなこと、通信を止めると 224 のままで
 誤りが出ないこと。`test-site` に「出ている数がデータベースの公開中の数と同じ」を足した。
 
+**追記（2026-10-30）— 公開した**（kurumayose-navi-site-i1c22ukzp）。kurumayosenavi.com を
+開いて、データベースから 224 が読めて2か所に出ること、レジデンスの札が「提供中」、
+チャットのカード、撮り直した画面写真が出ていること、画面に誤りが出ないことを確かめた。
+
 関連: `site/index.html`, `site/main.js`, `site/styles.css`, `site/assets/screens/`, `site/README.md`,
 `tools/test-site.mjs`
 
