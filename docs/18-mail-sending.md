@@ -26,8 +26,8 @@ Supabase 標準の送信は開発用で、プロジェクトのメンバー以�
 |---|---|---|
 | ① | 開発 | Resend に登録し、鍵を2本作る（作業用・送信用） |
 | ② | 開発 | Resend にドメイン `kurumayosenavi.com` を足し（地域 Tokyo）、DNS の値を取り出す |
-| ③ | 開発 → 発注元 | DNS の値をお送りする |
-| ④ | 発注元 | ConoHa の DNS に下の5行を入れる |
+| ③ | — | （ConoHa の作業は開発が預かっているため、発注元へのお願いは無い） |
+| ④ | 開発 | ConoHa WING の DNS に下の5行を入れる |
 | ⑤ | 開発 | Resend で認証を通す（多くは15分ほど、最大72時間） |
 | ⑥ | 開発 | Supabase の管理画面に、下の値と文面を入れる |
 | ⑦ | 開発 | 試しのアドレスへ送り、受信箱に入るかを見る |
@@ -56,7 +56,9 @@ Supabase 標準の送信は開発用で、プロジェクトのメンバー以�
   * 名前の欄は `send` だけ。`.kurumayosenavi.com` を付けない
   * 値は貼り付けて、一字も変えない（末尾の「.」も消さない）
   * 入ったかは `Resolve-DnsName send.kurumayosenavi.com -Type TXT -Server 8.8.8.8` で引ける
-  * 発注元への依頼文は `docs/out/ご連絡_パスワード再設定メールのためのDNS設定のお願い.txt`
+  * ConoHa WING の画面では「DNS → kurumayosenavi.com → 編集（鉛筆の印）→ 行を足す → 保存」。
+    同じアカウントにある別のドメインには触れない
+  * MX で「優先度」の欄が出ないときは、値を `10 feedback-smtp.ap-northeast-1.amazonses.com` とする
 
 ## 4. Supabase に入れるもの
 

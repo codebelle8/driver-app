@@ -1057,6 +1057,10 @@ Supabase に入れる値（SMTP・件名・文面・有効期限・通数の上�
 （`ap-northeast-1`）。Resend が返した DNS の行は、見込んでいた3行に加えて CNAME `rsend` →
 `send.forge.rmta.net`（Resend の送信サーバーの SPF）の4行。DMARC を足した5行を、発注元への
 依頼文（`docs/out/ご連絡_パスワード再設定メールのためのDNS設定のお願い.txt`）と手順書に書いた。
+ConoHa の作業は発注元ではなく kara さんの担当と分かり、依頼文は使わず、ConoHa WING での
+入れ方（MX は優先度の欄に 10）をお伝えして入れていただいた。ConoHa の3台の DNS で5行とも
+Resend の値と一字違わず一致することを確かめ（3台目は数分遅れて揃った）、Resend の認証を
+始めて、**同日に全部通った（verified）**。送信用の鍵（Sending access）も作っていただいた。
 
 関連: `supabase/templates/reset-password.html`, `docs/18-mail-sending.md`,
 `app/src/lib/i18n/dictionaries.ts`, `app/src/components/auth-form.tsx`, `tools/test-password-reset.mjs`
