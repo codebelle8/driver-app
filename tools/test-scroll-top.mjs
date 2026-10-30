@@ -2,7 +2,7 @@
  * 「上へ」の釦が、探す・お気に入り・履歴の3画面で同じように働くかを見る。
  *
  *   node tools/test-scroll-top.mjs                        手元の書き出し
- *   node tools/test-scroll-top.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-scroll-top.mjs https://app.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   探す画面にはあったが、**お気に入りと履歴には無かった**

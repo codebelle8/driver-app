@@ -2,7 +2,7 @@
  * 料金の刻みが、画面と控えの両方で正しいかを確かめる。
  *
  *   node tools/test-plans.mjs                          手元の書き出し
- *   node tools/test-plans.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-plans.mjs https://app.kurumayosenavi.com
  *
  * **何を見るか**
  *   1. 2つの刻み（1か月・12か月）が、短い順に並んでいる

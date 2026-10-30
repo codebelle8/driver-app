@@ -2,7 +2,7 @@
  * チャットのオンライン状態を確かめる（2026-10-06）。
  *
  *   node tools/test-chat-presence.mjs                                 手元（4291）
- *   node tools/test-chat-presence.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-chat-presence.mjs https://app.kurumayosenavi.com
  *
  * ご指示「チャットで、アイコンの横にオンライン状態を出す」。
  *

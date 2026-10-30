@@ -2,7 +2,7 @@
  * 立ち上がりの導入（映像と音）を見る。
  *
  *   node tools/test-intro.mjs                          手元の書き出し (4173)
- *   node tools/test-intro.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-intro.mjs https://app.kurumayosenavi.com
  *
  * 見るのは6点。
  *   1. 導入の映像が流れる（止まらない）

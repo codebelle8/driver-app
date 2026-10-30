@@ -2,7 +2,7 @@
  * 画面の下端が切れて、届かなくなっていないかを測る。
  *
  *   node tools/test-scroll.mjs                        手元の書き出し
- *   node tools/test-scroll.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-scroll.mjs https://app.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   マイページに**スクロールする箱が無かった。** 中身が画面より高く

@@ -2,7 +2,7 @@
  * 情報提供（会員が施設の情報を送り、管理画面で審査する）を通しで確かめる。
  *
  *   node tools/test-submissions.mjs                                     手元（アプリ 4291・管理画面 3100）
- *   node tools/test-submissions.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-submissions.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * ご依頼（2026-10-05）。毎月の上位の方を翌月無料にする、その件数の元になる。
  * 件数に数えるのは「採用」だけなので、会員が自分で採用にできないこと、

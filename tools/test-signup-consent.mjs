@@ -2,7 +2,7 @@
  * 登録の画面の「利用規約とプライバシーポリシーに同意する」を確かめる（2026-10-12）。
  *
  *   node tools/test-signup-consent.mjs                                 手元（4291）
- *   node tools/test-signup-consent.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-signup-consent.mjs https://app.kurumayosenavi.com
  *
  * ご回答（2026-10-08）「登録の画面に『利用規約とプライバシーポリシーに同意して
  * 登録』を置く」。

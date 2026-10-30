@@ -2,7 +2,7 @@
  * アプリの言語切り替えを見る。
  *
  *   node tools/test-app-locale.mjs                        手元の書き出し (4173)
- *   node tools/test-app-locale.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-app-locale.mjs https://app.kurumayosenavi.com
  *
  * 見るのは5点。
  *   1. マイページに言語の欄があり、国旗が2つ出ていること

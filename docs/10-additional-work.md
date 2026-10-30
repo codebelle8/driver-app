@@ -1584,7 +1584,13 @@ kara さんが Vercel の Domains で kurumayose-navi-site.vercel.app を kuruma
 メールのリンクの戻り先は、ブラウザでは開いている場所（app.kurumayosenavi.com）を渡しているので変わらない。
 古い場所へ戻るリンクでも、転送で新しい場所に着く（# の後ろはブラウザが引き継ぐ）。
 **古い住所で使っていた会員は、ログインのし直し・ホーム画面への追加し直しが要る**（ブラウザが
-住所ごとに覚えているため）。お知らせはまだ。管理画面の転送はまだ。
+住所ごとに覚えているため）。お知らせはまだ。
+
+続けて、**管理画面の kurumayose-navi-admin.vercel.app も admin.kurumayosenavi.com へ 308 で転送した**（kara さん）。
+ログインの画面（?next= 付き）も保ったまま移ることを確かめた。これで3つとも独自ドメインだけになった。
+手順書（`docs/07-deploy.md`・`docs/15-handover.md`）と、検査の道具 45 本の既定の住所を新しい住所に直した。
+`docs/14-admin-manual.pdf` には古い住所が残っている（開けば転送される。作り直すときに直る）。
+**残り:** Supabase のログイン設定（Site URL・Redirect URLs）から vercel.app を外すこと、会員へのお知らせ。
 
 関連: `site/index.html`, `site/main.js`, `app/src/app/facility/[id].tsx`,
 `docs/14-admin-manual.md`, `docs/15-handover.md`

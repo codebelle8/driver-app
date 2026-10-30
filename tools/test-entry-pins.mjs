@@ -2,7 +2,7 @@
  * 施設の地図に、入口ごとのピンが立つかを見る。
  *
  *   node tools/test-entry-pins.mjs                          手元の書き出し (4173)
- *   node tools/test-entry-pins.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-entry-pins.mjs https://app.kurumayosenavi.com
  *
  * ご指摘（2026-09-29）「進入路が2つある施設で、地図には1つしか無いように見える」。
  * 以前は先頭の入口（A）だけを地図に渡しており、「経路」も常に A へ向かっていた。

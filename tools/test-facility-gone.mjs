@@ -2,7 +2,7 @@
  * 管理者に消された施設の扱いを見る。
  *
  *   node tools/test-facility-gone.mjs                        手元の書き出し (4173)
- *   node tools/test-facility-gone.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-facility-gone.mjs https://app.kurumayosenavi.com
  *
  * 見るのは5点。
  *   1. 消えた施設が、履歴とお気に入りから黙って消えないこと

@@ -21,7 +21,7 @@ import { chromium } from 'playwright';
 
 import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
 
-const BASE = (process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app').replace(/\/$/, '');
+const BASE = (process.argv[2] ?? 'https://admin.kurumayosenavi.com').replace(/\/$/, '');
 
 function loadEnv(path) {
   const env = {};

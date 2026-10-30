@@ -3,7 +3,7 @@
  *
  *   node tools/test-notices.mjs                          手元（既定 3000）
  *   node tools/test-notices.mjs http://localhost:3010
- *   node tools/test-notices.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-notices.mjs https://admin.kurumayosenavi.com
  *
  * **何を見るか**
  *   1. 会員がお振込みを報告すると、ヘッダーに知らせが出る

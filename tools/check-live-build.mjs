@@ -2,7 +2,7 @@
  * 配った内容が本番に届いているかを、束の中身から見る。
  *
  *   node tools/check-live-build.mjs
- *   node tools/check-live-build.mjs https://kurumayose-navi.vercel.app
+ *   node tools/check-live-build.mjs https://app.kurumayosenavi.com
  *
  * なぜ要るか:
  *   Vercel が「READY」と言っても、利用者が受け取る束が新しいとは限らない。
@@ -15,7 +15,7 @@
  * 目印は minify されても消えない文字列を選ぶ。関数名や変数名は
  * 潰されるが、画面に出る文言と testID は残る。
  */
-const BASE = (process.argv[2] ?? 'https://kurumayose-navi.vercel.app').replace(/\/$/, '');
+const BASE = (process.argv[2] ?? 'https://app.kurumayosenavi.com').replace(/\/$/, '');
 
 /** [表示名, 入っているべきか, 目印] */
 const MARKS = [

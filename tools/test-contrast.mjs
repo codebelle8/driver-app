@@ -2,7 +2,7 @@
  * 文字が地に埋もれていないかを、全画面・両方の配色で測る。
  *
  *   node tools/test-contrast.mjs                        手元の書き出し
- *   node tools/test-contrast.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-contrast.mjs https://app.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   配色を替えるたびに、どこかで文字が見えなくなる。実際、暗い表示で

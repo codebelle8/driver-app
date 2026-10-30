@@ -2,7 +2,7 @@
  * チャットの「情報提供ランキング」と「送った情報」を確かめる（2026-10-05）。
  *
  *   node tools/test-ranking.mjs                                 手元（4291）
- *   node tools/test-ranking.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-ranking.mjs https://app.kurumayosenavi.com
  *
  * 決まったこと（2026-10-05）
  *   * 順位は採用件数。送った件数は本人にだけ見せる

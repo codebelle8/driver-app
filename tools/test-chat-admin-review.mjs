@@ -2,7 +2,7 @@
  * 管理画面のチャットの「要確認（自動の旗）」と「未確認」を確かめる（2026-10-08）。
  *
  *   node tools/test-chat-admin-review.mjs                                       手元（3100）
- *   node tools/test-chat-admin-review.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-chat-admin-review.mjs https://admin.kurumayosenavi.com
  *
  * ご指示（2026-10-08）「① 未確認だけを出す ② 怪しい書き込みに自動で旗を立てる」。
  *

@@ -2,7 +2,7 @@
  * 管理画面の日時が日本時間で出ているかを確かめる（2026-10-07）。
  *
  *   node tools/test-history-time.mjs                                       手元（3100）
- *   node tools/test-history-time.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-history-time.mjs https://admin.kurumayosenavi.com
  *
  * ご指摘「操作履歴の日時は、どこの時刻か。操作した時点の日本時間にしたい」。
  * 表示を組み立てるサーバー（Vercel）の時刻は協定世界時のため、時刻帯を

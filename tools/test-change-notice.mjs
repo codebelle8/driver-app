@@ -2,7 +2,7 @@
  * 管理画面で直した内容が、アプリのお知らせに出るかを確かめる。
  *
  *   node tools/test-change-notice.mjs                        手元の書き出し
- *   node tools/test-change-notice.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-change-notice.mjs https://app.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   ご指示（2026-09-14）「新しく追加したときだけでなく、既存の内容を

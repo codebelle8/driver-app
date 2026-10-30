@@ -2,7 +2,7 @@
  * チャット「情報交換」の未読の知らせを確かめる（2026-10-05）。
  *
  *   node tools/test-chat-unread.mjs                                 手元（4291）
- *   node tools/test-chat-unread.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-chat-unread.mjs https://app.kurumayosenavi.com
  *
  * ご指示「チャットに新しい書き込みが届いたら知らせ、未読があることを示す」。
  *

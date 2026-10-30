@@ -1,7 +1,7 @@
 /**
  * 管理画面の「上書き」が本当に効くかを確かめる。
  *
- *   node tools/test-settings-save.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-settings-save.mjs https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   「管理画面の各所の更新を試したが、上書きができないようだった」と

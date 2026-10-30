@@ -2,7 +2,7 @@
  * 運営者のアカウント（osa603mu@yahoo.co.jp・上野修さん）が無料かを確かめる（2026-10-07）。
  *
  *   node tools/test-operator-free.mjs                                       手元（3100）
- *   node tools/test-operator-free.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-operator-free.mjs https://admin.kurumayosenavi.com
  *
  * ご指示「osa603mu@yahoo.co.jp のアカウントは、有料版でも無料のままにする」。
  *

@@ -2,7 +2,7 @@
  * チャットを10日ずつ読み、90日で会員の画面から外れることを確かめる（2026-10-08）。
  *
  *   node tools/test-chat-paging.mjs                                 手元（4291）
- *   node tools/test-chat-paging.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-chat-paging.mjs https://app.kurumayosenavi.com
  *
  * ご指示「90日を過ぎたら会員の画面から外す。最初は10日ぶん、上へスクロールしたら
  * 前を取りに行く」。

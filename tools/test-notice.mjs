@@ -2,7 +2,7 @@
  * 「複製しました」などの短い知らせが、画面の中の帯で出るかを見る。
  *
  *   node tools/test-notice.mjs                        手元の書き出し (4173)
- *   node tools/test-notice.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-notice.mjs https://app.kurumayosenavi.com
  *
  * 見るのは4点。
  *   1. ブラウザの alert を使っていないこと

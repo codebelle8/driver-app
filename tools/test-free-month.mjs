@@ -2,7 +2,7 @@
  * 毎月の上位の翌月無料を確かめる（2026-10-06）。
  *
  *   node tools/test-free-month.mjs                                     手元（アプリ 4291・管理画面 3100）
- *   node tools/test-free-month.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-free-month.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * **数え方と締めそのもの**（上位・最低件数・月の区切り・二重に締めない・お支払いの
  * 延長）は、手元の検証用データベースで確かめている（db/tests/0008_free_month_tests.sql）。

@@ -18,7 +18,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-const DEFAULT_URL = 'https://kurumayose-navi-admin.vercel.app';
+const DEFAULT_URL = 'https://admin.kurumayosenavi.com';
 const BASE = (process.argv[2] ?? DEFAULT_URL).replace(/\/$/, '');
 
 function loadEnv(path) {

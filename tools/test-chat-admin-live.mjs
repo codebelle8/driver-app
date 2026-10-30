@@ -2,7 +2,7 @@
  * 管理画面のチャットに、新しい書き込み・通報が読み直さずに出るかを確かめる（2026-10-08）。
  *
  *   node tools/test-chat-admin-live.mjs                                       手元（3100）
- *   node tools/test-chat-admin-live.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-chat-admin-live.mjs https://admin.kurumayosenavi.com
  *
  * ご指摘「管理画面のチャットに、会員の書き込みがすぐ出ない」。
  *

@@ -2,7 +2,7 @@
  * 書き込んだ日から1年を過ぎたチャットの書き込みが、データベースから消えるかを確かめる（2026-10-12）。
  *
  *   node tools/test-chat-retention.mjs                                       手元（アプリ 4291・管理画面 3100）
- *   node tools/test-chat-retention.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-chat-retention.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * ご回答（2026-10-08）「運営側でも期限を決めて消す（1年）」。プライバシーポリシー・
  * 利用規約 第15条第9項。仕掛け（cron）を置かず、アプリか管理画面が開かれたときに消す。

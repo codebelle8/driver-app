@@ -2,7 +2,7 @@
  * 試験提供の期間は、無料期間が過ぎても使えることを確かめる（2026-10-07）。
  *
  *   node tools/test-trial-open.mjs                                     手元（アプリ 4291・管理画面 3100）
- *   node tools/test-trial-open.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-trial-open.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * ご指示「試験提供の期間なので、無料期間が終わっても使えるように」。
  * 利用規約 第4条第6項に合わせる。

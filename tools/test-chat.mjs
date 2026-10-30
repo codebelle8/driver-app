@@ -2,7 +2,7 @@
  * チャット「情報交換」（会員どうしの書き込み）と、管理画面の見張りを確かめる（2026-10-05）。
  *
  *   node tools/test-chat.mjs                                     手元（アプリ 4291・管理画面 3100）
- *   node tools/test-chat.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-chat.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * 見るもの
  *   アプリ

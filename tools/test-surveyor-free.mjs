@@ -2,7 +2,7 @@
  * 調査員はアプリを無料で使えるか（2026-10-05）。
  *
  *   node tools/test-surveyor-free.mjs                                     手元（アプリ 4291・管理画面 3100）
- *   node tools/test-surveyor-free.mjs https://kurumayose-navi.vercel.app https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-surveyor-free.mjs https://app.kurumayosenavi.com https://admin.kurumayosenavi.com
  *
  * 有料化のあとも、管理画面で「調査員」として登録されている方は無料で使える
  * （発注元のご回答 2026-10-04）。調査員を止めれば、無料も外れる。

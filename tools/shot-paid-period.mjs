@@ -2,8 +2,8 @@
  * 直したところを、そのまま見られるようにする。
  *
  *   node tools/shot-paid-period.mjs
- *   node tools/shot-paid-period.mjs --app https://kurumayose-navi.vercel.app \
- *                                   --admin https://kurumayose-navi-admin.vercel.app
+ *   node tools/shot-paid-period.mjs --app https://app.kurumayosenavi.com \
+ *                                   --admin https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   「ご利用期間 残り ◯か月 ◯日」は、期限を持っている方にしか出ない。

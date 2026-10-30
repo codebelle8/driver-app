@@ -1,7 +1,7 @@
 /**
  * 写真の貼り付けが、実機なみの大きさでも通るかを確かめる。
  *
- *   node tools/test-photo-upload.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-photo-upload.mjs https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   「写真の貼り付けが上手く行きませんでした」とご報告をいただいた

@@ -2,7 +2,7 @@
  * 管理画面の文字が、地に埋もれていないかを測る。
  *
  *   node tools/test-admin-contrast.mjs                          手元
- *   node tools/test-admin-contrast.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-admin-contrast.mjs https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   アプリ側には同じ検査（tools/test-contrast.mjs）があったのに、

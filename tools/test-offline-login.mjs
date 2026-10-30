@@ -2,7 +2,7 @@
  * 圏外で開いたときのログインを見る。
  *
  *   node tools/test-offline-login.mjs                          手元の書き出し (4173)
- *   node tools/test-offline-login.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-offline-login.mjs https://app.kurumayosenavi.com
  *
  * ご指摘（2026-09-23）「圏外で使えると言っていたのに、圏外ではログインできない」。
  * ログインの鍵は1時間で切れ、開くたびにサーバーで取り替える。圏外ではこれが

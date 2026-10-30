@@ -45,7 +45,10 @@ npm run deploy:admin
 
 ### 公開先
 
-**https://kurumayose-navi-admin.vercel.app**
+**https://admin.kurumayosenavi.com**
+
+それまでの https://kurumayose-navi-admin.vercel.app は、2026-10-31 から上の住所へ転送している
+（Vercel の Domains で 308）。
 
 Vercel プロジェクト名は `kurumayose-navi-admin`、
 所有アカウントは `aprofessional0575-4639`（Supabase の管理者と同じ）。
@@ -80,7 +83,7 @@ npm run deploy:admin:preview  # 検証用URLへ公開（本番は変わらない
 適用されているかは応答ヘッダで確認できる。
 
 ```powershell
-curl -s -D - -o /dev/null https://kurumayose-navi-admin.vercel.app/login
+curl -s -D - -o /dev/null https://admin.kurumayosenavi.com/login
 # X-Vercel-Id: hnd1::hnd1::...  ← hnd1 なら東京で動いている
 ```
 

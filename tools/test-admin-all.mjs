@@ -2,7 +2,7 @@
  * 管理画面の、まだ検査の無かったところを一通り見る。
  *
  *   node tools/test-admin-all.mjs
- *   node tools/test-admin-all.mjs https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-admin-all.mjs https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   画面ごとの検査は積み上げてきたが、**入口（ログイン）・ダッシュボード・
@@ -35,7 +35,7 @@ import { chromium } from 'playwright';
 import { purgeAuditLogs } from './lib/audit-cleanup.mjs';
 
 const NL = String.fromCharCode(10);
-const raw = process.argv[2] ?? 'https://kurumayose-navi-admin.vercel.app';
+const raw = process.argv[2] ?? 'https://admin.kurumayosenavi.com';
 const BASE = raw.endsWith('/') ? raw.slice(0, -1) : raw;
 const HOST = new URL(BASE).hostname;
 

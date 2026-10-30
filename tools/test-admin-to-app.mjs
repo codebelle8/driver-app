@@ -2,8 +2,8 @@
  * 管理画面での操作が、アプリに正しく現れるかを通しで見る。
  *
  *   node tools/test-admin-to-app.mjs
- *   node tools/test-admin-to-app.mjs --app https://kurumayose-navi.vercel.app \
- *                                    --admin https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-admin-to-app.mjs --app https://app.kurumayosenavi.com \
+ *                                    --admin https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**
  *   管理画面の検査は「管理画面の中で保存できたか」までしか見ていない。
@@ -46,8 +46,8 @@ const argOf = (name, fallback) => {
   const raw = (argv.indexOf(name) >= 0 ? argv[argv.indexOf(name) + 1] : undefined) ?? fallback;
   return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 };
-const APP = argOf('--app', 'https://kurumayose-navi.vercel.app');
-const ADMIN = argOf('--admin', 'https://kurumayose-navi-admin.vercel.app');
+const APP = argOf('--app', 'https://app.kurumayosenavi.com');
+const ADMIN = argOf('--admin', 'https://admin.kurumayosenavi.com');
 const ADMIN_HOST = new URL(ADMIN).hostname;
 
 const conn = connect();

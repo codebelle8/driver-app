@@ -2,8 +2,8 @@
  * お支払いいただいた期間の終わりを確かめる。
  *
  *   node tools/test-paid-expiry.mjs
- *   node tools/test-paid-expiry.mjs --app https://kurumayose-navi.vercel.app \
- *                                   --admin https://kurumayose-navi-admin.vercel.app
+ *   node tools/test-paid-expiry.mjs --app https://app.kurumayosenavi.com \
+ *                                   --admin https://admin.kurumayosenavi.com
  *
  * **なぜ要るか**（ご指示 2026-09-15）
  *   これまで「ご利用中」にすると、そのまま無期限に使えた。1か月ぶん

@@ -127,8 +127,8 @@ Supabase の JWT の秘密を回すと、**anon と service_role の両方が同
    * アプリケーションの制限 … HTTP リファラー
      `https://app.kurumayosenavi.com/*`
      `https://admin.kurumayosenavi.com/*`
-     （独自ドメインへ移す前の `https://kurumayose-navi.vercel.app/*` と
-     `https://kurumayose-navi-admin.vercel.app/*` は、移し終えたら外す）
+     （独自ドメインへは 2026-10-31 に移し終えた。古い `https://kurumayose-navi.vercel.app` と
+     `https://kurumayose-navi-admin.vercel.app` は新しい住所へ転送するだけなので、制限に入れなくてよい）
    * API の制限 … Maps JavaScript API のみ
 3. Vercel の環境変数を差し替え、配備し直す
 

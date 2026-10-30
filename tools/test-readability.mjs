@@ -2,7 +2,7 @@
  * 文字の大きさと、大きくしたことで崩れていないかを見る。
  *
  *   node tools/test-readability.mjs                        手元の書き出し (4173)
- *   node tools/test-readability.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-readability.mjs https://app.kurumayosenavi.com
  *
  * 見るのは3点。
  *   1. 画面に出ている文字が、決めた下限を下回っていないこと

@@ -2,7 +2,7 @@
  * 画面幅ごとの作り分けを見る。
  *
  *   node tools/test-breakpoints.mjs                        手元の書き出し (4173)
- *   node tools/test-breakpoints.mjs https://kurumayose-navi.vercel.app
+ *   node tools/test-breakpoints.mjs https://app.kurumayosenavi.com
  *
  * 見るのは5点。
  *   1. 768px から左メニューが出て、下タブが消えること
