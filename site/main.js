@@ -757,7 +757,7 @@ if (canAnimate) {
  * ぼこりのように目印の形が現れ、ゆっくり消える」。
  *
  * 持ち上がって（1.16倍）、踏みしめて（0.97倍）、元に戻る。踏みしめた瞬間に、
- * 文字の足もとから目印が舞い上がる。数字（193）は、見出しが着地したあとに
+ * 文字の足もとから目印が舞い上がる。数字（施設数）は、見出しが着地したあとに
  * もう一度弾む。締めの一文は、判を押す動き（GSAP）が着地したときに舞わせる。
  */
 const POP_TARGETS = '.section-title, h3, .step__no, .count';
@@ -841,7 +841,7 @@ function kickDust(el) {
 /** 弾ませ、踏みしめた瞬間に砂ぼこりを舞わせる */
 function pop(el) {
   const number = el.matches('.count, .step__no');
-  /* 見出しの1文字ずつの出方が落ち着くころに。数字（193）は見出しのあとに */
+  /* 見出しの1文字ずつの出方が落ち着くころに。数字（施設数）は見出しのあとに */
   const delay = el.matches('.count') ? 700 : el.matches('.section-title') ? 280 : 160;
   const align = getComputedStyle(el).textAlign;
   el.style.transformOrigin =

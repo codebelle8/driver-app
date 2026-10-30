@@ -629,7 +629,7 @@ async function checkPop(page, label) {
   const nMax = Math.max(...down.map((f) => f.n));
   const dustMax = Math.max(...down.map((f) => f.dust));
   check(`${label}：下へ送ると、見出しが一瞬大きくなる`, kMax >= 1.1, `max=${kMax.toFixed(3)}`);
-  check(`${label}：数字（193）も弾む`, nMax >= 1.2, `max=${nMax.toFixed(3)}`);
+  check(`${label}：数字（施設数）も弾む`, nMax >= 1.2, `max=${nMax.toFixed(3)}`);
   check(`${label}：弾んだあと、元の大きさに戻る`, down[down.length - 1].k === 1, `last=${down[down.length - 1].k}`);
   check(`${label}：弾んだとき、目印の砂ぼこりが舞う`, dustMax >= 8, `max=${dustMax}`);
   check(`${label}：弾んでも、画面は横に揺れない`, down.every((f) => f.over <= 0), `max=${Math.max(...down.map((f) => f.over))}px`);

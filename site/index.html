@@ -261,12 +261,12 @@
         </div>
         <p class="card__kicker">探す</p>
         <h3>施設名・よみがな・住所で、すぐ見つかる</h3>
-        <p>漢字を思い出せなくても、よみがなで引けます。ホテル、病院、駅・空港など、行き先の種類からも探せます。</p>
+        <p>漢字を思い出せなくても、よみがなで引けます。ホテル、レジデンスなど、行き先の種類からも探せます。</p>
       </li>
       <li class="card">
         <div class="card__media card__media--screen card__media--top">
           <img src="assets/screens/detail.png" width="780" height="1688" loading="lazy"
-               alt="施設の画面。地図の上に、車寄せの位置を示す赤い目印が立っている">
+               alt="施設の画面。地図の上に、車寄せの位置を示す緑の目印（A）が立っている">
         </div>
         <p class="card__kicker">確かめる</p>
         <h3>車寄せの位置を、地図で</h3>
@@ -303,6 +303,14 @@
         <p class="card__kicker">いつもの場所</p>
         <h3>お気に入り・履歴・お知らせ</h3>
         <p>よく行く施設はお気に入りに。入り方が変わったときは、お知らせでお伝えします。</p>
+      </li>
+      <li class="card">
+        <div class="card__media card__media--icon">
+          <span class="big-icon big-icon--chat" aria-hidden="true"></span>
+        </div>
+        <p class="card__kicker">チャット</p>
+        <h3>ドライバーどうしで、情報交換</h3>
+        <p>会員どうしで書き込める「情報交換」で、現地の様子を伝え合えます。情報提供の採用件数のランキングも見られます。</p>
       </li>
     </ul>
 
@@ -378,13 +386,13 @@
   <div class="wrap wrap--narrow area__body">
     <p class="eyebrow" data-reveal>AREA</p>
     <h2 class="section-title section-title--center split" id="area-title">
-      東京都内外の<br><span class="count">193</span>施設から。
+      東京都内外の<br><span class="count">224</span>施設から。
     </h2>
-    <p class="area__note">2026年9月時点。対応する施設は、順に増やしています。</p>
+    <p class="area__note">2026年10月時点。対応する施設は、順に増やしています。</p>
 
     <!--
       提供を始めている種類と、まだの種類を色分けする（発注元のご回答 2026-10-13）。
-        青（chip--live）… ホテル（提供中）・レジデンス（追加中。資料をいただいて追加する）
+        青（chip--live）… ホテル・レジデンス（提供中。レジデンスは 2026-10-29 にアプリへ載った）
         黄（chip--soon）… 商業施設・オフィスビル・病院・クリニック・駅・空港（準備中）
       色だけに頼らず、札の中にも状態を書く。
       **その種類に施設が1件でも載ったら**、chip--soon を chip--live に替え、
@@ -392,13 +400,13 @@
     -->
     <ul class="chips" aria-label="対応している施設の種類" data-anime="fade-right">
       <li class="chip--live">ホテル<span class="chip__state">提供中</span></li>
-      <li class="chip--live">レジデンス<span class="chip__state">追加中</span></li>
+      <li class="chip--live">レジデンス<span class="chip__state">提供中</span></li>
       <li class="chip--soon">商業施設<span class="chip__state">準備中</span></li>
       <li class="chip--soon">オフィスビル<span class="chip__state">準備中</span></li>
       <li class="chip--soon">病院・クリニック<span class="chip__state">準備中</span></li>
       <li class="chip--soon">駅・空港<span class="chip__state">準備中</span></li>
     </ul>
-    <p class="chips-legend">青の札は提供中・追加中、黄色の札は準備中です。準備中の種類も、順に対応していきます。</p>
+    <p class="chips-legend">青の札は提供中、黄色の札は準備中です。準備中の種類も、順に対応していきます。</p>
 
     <div class="notice-box" data-reveal>
       <p class="notice-box__title">ただいま試験提供中です</p>
@@ -468,7 +476,7 @@
       </details>
       <details class="qa">
         <summary>どの地域に対応していますか？</summary>
-        <p>2026年9月時点で、東京都内外の193施設に対応しています。対応する施設は順に増やしています。</p>
+        <p>2026年10月時点で、東京都内外の224施設に対応しています。対応する施設は順に増やしています。</p>
       </details>
       <details class="qa">
         <summary>電波が届かない場所でも使えますか？</summary>

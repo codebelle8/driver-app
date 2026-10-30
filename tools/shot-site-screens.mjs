@@ -2,7 +2,7 @@
  * 紹介サイトに載せる、アプリの実画面を撮る。
  *
  *   node tools/shot-site-screens.mjs
- *   node tools/shot-site-screens.mjs https://kurumayose-navi.vercel.app
+ *   node tools/shot-site-screens.mjs http://localhost:4190
  *
  * **なぜ撮り直せるようにしておくか**
  *   アプリの見た目が変われば、紹介サイトの画面も古くなる。手で撮ると、
@@ -30,7 +30,7 @@ import { chromium } from 'playwright';
 
 import { connect, createMember, removeMember, signInOn, skipIntro } from './lib/member.mjs';
 
-const APP = (process.argv[2] ?? 'https://kurumayose-navi.vercel.app').replace(/\/$/, '');
+const APP = (process.argv[2] ?? 'https://app.kurumayosenavi.com').replace(/\/$/, '');
 const OUT = 'site/assets/screens';
 const FACILITY = '浦安ブライトンホテル';
 
