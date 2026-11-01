@@ -325,6 +325,16 @@ const ja = {
     mailTo: 'メールを送る',
     block: '利用を停止',
     unblock: '停止を解く',
+    makeSurveyor: '調査員にする',
+    makeSurveyorHeading: '調査員にしますか？',
+    makeSurveyorBody:
+      '{name} さんを調査員にします。いまのメールアドレスとパスワードのまま管理画面に入れるようになり、施設の下書きを登録・編集できます。アプリは無料でお使いいただけます。',
+    makeSurveyorNote: '調査員をやめるときは、同じ行の「調査員をやめる」を押してください。',
+    dropSurveyor: '調査員をやめる',
+    dropSurveyorHeading: '調査員をやめますか？',
+    dropSurveyorBody:
+      '{name} さんを通常の会員に戻します。管理画面には入れなくなります。アプリは通常の会員と同じ扱い（無料期間・お支払い）に戻ります。',
+    dropSurveyorNote: '会員のアカウントとデータはそのまま残ります。',
   },
 
   accounts: {
@@ -1040,6 +1050,16 @@ const en: Dictionary = {
     mailTo: 'Send an email',
     block: 'Suspend',
     unblock: 'Unsuspend',
+    makeSurveyor: 'Make surveyor',
+    makeSurveyorHeading: 'Make this member a surveyor?',
+    makeSurveyorBody:
+      '{name} will become a surveyor. They can sign in to this admin site with their current email and password, and add or edit facility drafts. The app becomes free for them.',
+    makeSurveyorNote: 'To undo, press "End surveyor" on the same row.',
+    dropSurveyor: 'End surveyor',
+    dropSurveyorHeading: 'End surveyor role?',
+    dropSurveyorBody:
+      '{name} goes back to being a regular member. They can no longer sign in to this admin site, and the app returns to the usual free month and payment rules.',
+    dropSurveyorNote: 'Their member account and data are kept.',
   },
 
   accounts: {

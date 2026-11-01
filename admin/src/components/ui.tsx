@@ -78,6 +78,10 @@ const buttonVariants = {
 
 export type ButtonVariant = keyof typeof buttonVariants;
 
+/** Button と同じ見た目の class。Button を使えない箇所（確認の札付きのボタンなど）で使う。 */
+export const buttonClass = (variant: ButtonVariant = 'primary') =>
+  `${buttonBase} ${buttonVariants[variant]}`;
+
 export function Button({
   variant = 'primary',
   className = '',

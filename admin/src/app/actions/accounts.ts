@@ -92,7 +92,16 @@ export async function createAccount(
   if (createError || !created.user) {
     const duplicate = /already|exists|registered/i.test(createError?.message ?? '');
     return {
-      errors: duplicate ? { email: 'このメールアドレスは既に登録されています' } : {},
+      /*
+        アプリの会員のアドレスで発行しようとした場合も、ここで止まる。
+        会員を調査員にする入口（会員・お支払い）へ案内する（2026-11-01）。
+      */
+      errors: duplicate
+        ? {
+            email:
+              'このメールアドレスは既に登録されています。アプリの会員を調査員にするときは、「会員・お支払い」の画面で「調査員にする」を押してください',
+          }
+        : {},
       message: duplicate
         ? '入力内容をご確認ください。'
         : `アカウントを作成できませんでした（${createError?.message ?? '原因不明'}）`,

@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireAdmin } from '@/lib/auth';
+import { isFreeOperatorEmail } from '@/lib/owner';
 import { nextPaidUntil } from '@/lib/plans';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 import type { ActionState } from './facilities';
 
 /**
@@ -125,6 +126,85 @@ export async function setMemberActive(formData: FormData): Promise<void> {
  */
 export async function setMemberBlocked(formData: FormData): Promise<void> {
   await setStatus(formData, (blocked) => (blocked ? 'blocked' : 'trial'));
+}
+
+/**
+ * アプリの会員を、調査員にする（または戻す）。ご指示 2026-11-01。
+ *
+ * **以前はできなかった。** 調査員は「アカウント」の画面で新しく発行するしかなく、
+ * アプリに登録済みのアドレスで発行すると「既に登録されています」で止まった。
+ * ここでは、その方の会員のアカウントに調査員の権限を足すだけにする。
+ * パスワードもデータもそのままで、同じアドレスで管理画面にも入れるようになる。
+ *
+ * **戻すときは権限の行だけを消す。** 「アカウント」の画面の「削除」は認証ごと
+ * 消すため、会員だった方に使うと会員のアカウントまで消える。こちらは
+ * 通常の会員に戻すだけで、アカウントもデータも残る。
+ *
+ * **書き込みはログイン中の管理者の鍵で行う。** 権限の表の変更は操作履歴に
+ * 自動で残る（データベースのトリガー）。サーバーの鍵で書くと、誰が
+ * 押したのかが空欄になる。
+ *
+ * 触らないもの:
+ *   * 運営者（所有者・上野修さん）… もとから無料。所有者は管理者でもある
+ *   * 編集者・管理者 … 役割は「アカウント」の画面で変える
+ *   * 停止中の会員 … 先に停止を解いていただく
+ */
+export async function setMemberSurveyor(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+
+  const userId = String(formData.get('user_id') ?? '');
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return { message: '会員が特定できませんでした' };
+  const on = formData.get('surveyor') === 'true';
+
+  const admin = createAdminClient();
+  const { data: member } = await admin
+    .from('driver_profiles')
+    .select('display_name, status')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!member) return { message: '会員が見つかりませんでした' };
+
+  const { data: user } = await admin.auth.admin.getUserById(userId);
+  const email = user?.user?.email ?? null;
+  if (isFreeOperatorEmail(email)) return { message: '運営者のアカウントは変更できません' };
+
+  const supabase = await createClient();
+  const { data: staff } = await admin
+    .from('admin_profiles')
+    .select('role, is_active')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (staff && staff.role !== 'surveyor') {
+    return { message: '管理画面の担当者です。役割は「アカウント」の画面で変えてください' };
+  }
+
+  if (on) {
+    if (member.status === 'blocked') {
+      return { message: '利用を停止している方です。先に「停止を解く」を押してください' };
+    }
+    if (staff?.is_active) return { ok: true };
+    const { error } = staff
+      ? await supabase.from('admin_profiles').update({ is_active: true }).eq('user_id', userId)
+      : await supabase.from('admin_profiles').insert({
+          user_id: userId,
+          /* 管理画面の一覧と操作履歴に出る名前。表示名が無ければアドレス */
+          display_name: member.display_name?.trim() || email || '調査員',
+          role: 'surveyor',
+        });
+    if (error) return { message: `調査員にできませんでした（${error.message}）` };
+  } else {
+    if (!staff) return { ok: true };
+    const { error } = await supabase.from('admin_profiles').delete().eq('user_id', userId);
+    if (error) return { message: `調査員をやめられませんでした（${error.message}）` };
+  }
+
+  revalidatePath('/members');
+  revalidatePath('/accounts');
+  return { ok: true };
 }
 
 async function setStatus(

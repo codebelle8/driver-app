@@ -33,6 +33,7 @@ export function ConfirmDialog({
   cancelLabel,
   onCancel,
   onConfirm,
+  tone = 'danger',
 }: {
   open: boolean;
   /** 見出し。「削除しますか？」 */
@@ -45,6 +46,11 @@ export function ConfirmDialog({
   cancelLabel: string;
   onCancel: () => void;
   onConfirm: () => void;
+  /**
+   * 進む側の色。消すものは赤（既定）。権限を足すなど、消さない操作は
+   * 赤にしない（赤は「取り返しがつかない」の印として取っておく）。
+   */
+  tone?: 'danger' | 'primary';
 }) {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -90,7 +96,9 @@ export function ConfirmDialog({
       >
         <h2 className="text-base font-bold text-text">{heading}</h2>
         <div className="mt-3 text-sm leading-relaxed text-text">{message}</div>
-        {note && <p className="mt-2 text-xs text-danger">{note}</p>}
+        {note && (
+          <p className={`mt-2 text-xs ${tone === 'danger' ? 'text-danger' : 'text-text-muted'}`}>{note}</p>
+        )}
 
         <div className="mt-6 flex justify-end gap-3">
           <Button
@@ -104,10 +112,10 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
-            variant="danger"
+            variant={tone}
             onClick={onConfirm}
             data-testid="confirm-accept"
-            className="border-danger bg-danger/10"
+            className={tone === 'danger' ? 'border-danger bg-danger/10' : ''}
           >
             {confirmLabel}
           </Button>
@@ -129,6 +137,7 @@ export function ConfirmSubmit({
   note,
   confirmLabel,
   cancelLabel,
+  tone,
   children,
   ...button
 }: ComponentProps<'button'> & {
@@ -137,6 +146,7 @@ export function ConfirmSubmit({
   note?: string;
   confirmLabel: string;
   cancelLabel: string;
+  tone?: 'danger' | 'primary';
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLButtonElement>(null);
@@ -172,6 +182,7 @@ export function ConfirmSubmit({
         note={note}
         confirmLabel={confirmLabel}
         cancelLabel={cancelLabel}
+        tone={tone}
         onCancel={() => setOpen(false)}
         onConfirm={() => {
           setOpen(false);

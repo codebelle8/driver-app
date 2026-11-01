@@ -1,4 +1,5 @@
 import { savePaymentSettings, setMemberActive, setMemberBlocked } from '@/app/actions/members';
+import { MemberSurveyorButton } from '@/components/member-surveyor';
 import { PaymentSettingsForm } from '@/components/payment-settings-form';
 import { Alert, Badge, Button, Card, EmptyState, PageHeader } from '@/components/ui';
 import { PageLink } from '@/components/page-link';
@@ -62,12 +63,16 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
     有効な方は、アプリを無料で使える（データベースの my_free_access と同じ
     基準）。期限も入金の確認も要らないので、催促の対象から外す。
   */
-  const { data: surveyorRows } = await admin
-    .from('admin_profiles')
-    .select('user_id')
-    .eq('role', 'surveyor')
-    .eq('is_active', true);
-  const free = new Set((surveyorRows ?? []).map((r) => r.user_id));
+  const { data: staffRows } = await admin.from('admin_profiles').select('user_id, role, is_active');
+  const free = new Set(
+    (staffRows ?? []).filter((r) => r.role === 'surveyor' && r.is_active).map((r) => r.user_id),
+  );
+  /*
+    管理画面の権限を持っている方（停止中も含む）。会員を調査員にする・やめる
+    ボタン（2026-11-01）は、権限の無い方と調査員にだけ出す。編集者・管理者の
+    役割は「アカウント」の画面で変える。
+  */
+  const staffRole = new Map((staffRows ?? []).map((r) => [r.user_id, r.role]));
 
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 200 });
   const emailById = new Map((authUsers?.users ?? []).map((u) => [u.id, u.email ?? null]));
@@ -317,7 +322,11 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <div className="flex justify-end gap-2">
+                        {/*
+                          ボタンの文字は折り返さない。「調査員にする」を足して（2026-11-01）
+                          3つ並ぶと、1文字ずつ縦に折れて読めなかった。表は横に送れる
+                        */}
+                        <div className="flex justify-end gap-2 whitespace-nowrap">
                           {/*
                             停止中の方に入金の操作は出さない。
                             先に停止を解いてから、あらためて判断していただく。
@@ -331,6 +340,36 @@ export default async function MembersPage({ searchParams }: PageProps<'/members'
                               </Button>
                             </form>
                           )}
+                          {/*
+                            調査員にする・やめる（2026-11-01）。運営者と、編集者・管理者には出さない。
+                            停止中の方を調査員にはしない（やめるほうは出す）。
+                          */}
+                          {!ownerIds.has(p.user_id) &&
+                            (staffRole.get(p.user_id) ?? 'surveyor') === 'surveyor' &&
+                            (staffRole.has(p.user_id) || !blocked) && (
+                              <MemberSurveyorButton
+                                userId={p.user_id}
+                                name={p.display_name?.trim() || emailById.get(p.user_id) || code(p.member_no)}
+                                surveyor={staffRole.has(p.user_id)}
+                                labels={
+                                  staffRole.has(p.user_id)
+                                    ? {
+                                        button: m.dropSurveyor,
+                                        heading: m.dropSurveyorHeading,
+                                        body: m.dropSurveyorBody,
+                                        note: m.dropSurveyorNote,
+                                        cancel: t.common.cancel,
+                                      }
+                                    : {
+                                        button: m.makeSurveyor,
+                                        heading: m.makeSurveyorHeading,
+                                        body: m.makeSurveyorBody,
+                                        note: m.makeSurveyorNote,
+                                        cancel: t.common.cancel,
+                                      }
+                                }
+                              />
+                            )}
                           <form action={setMemberBlocked}>
                             <input type="hidden" name="user_id" value={p.user_id} />
                             <input type="hidden" name="active" value={blocked ? 'false' : 'true'} />
