@@ -1058,6 +1058,9 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 作った検査用アカウントの記録（8行）が、片付けられずに残っていたもの。検査は片付けで消すように直した。
 残っている8行を消す操作は自動の判定で止められたため、そのままにしてある（ご判断待ち）。
 
+**公開（2026-11-02）。** アプリ（kurumayose-navi-ntlkbn0mi）と管理画面（kurumayose-navi-admin-n2okvfysu）を本番へ配った。
+本番で `test-feedback` **21 / 0**、`test-admin-all` 54 / 0。
+
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
 `supabase/migrations/20261102000001_feedback.sql`, `tools/test-feedback.mjs`
@@ -1108,6 +1111,8 @@ kara さんのご指示「管理者が、通常の会員を調査員にできる
 会員・お支払いは開けない・アプリで無料・アカウント画面の案内・やめると戻り会員は残る・
 入れなくなる・停止中には出さない）。既存の `test-admin-all` 16 / 0、`test-operator-free` 3 / 0、
 `test-admin-sp` 29 / 0。検査で作った管理者・会員と操作履歴は消した。
+
+**公開（2026-11-02）。** 管理画面の配り直し（P-109 と同時）で本番へ出た。本番で `test-admin-surveyor` **19 / 0**。
 
 関連: `admin/src/app/actions/members.ts`, `admin/src/app/(admin)/members/page.tsx`,
 `admin/src/components/member-surveyor.tsx`, `admin/src/components/confirm-dialog.tsx`,
