@@ -270,6 +270,12 @@ try {
   if (staff) {
     const gone = await removeMember(connect(), staff);
     console.log(`  ${gone ? '削除' : '削除失敗'}  権限を付けた検査用の会員`);
+    /*
+      権限の行を足した・消した記録も消す（2026-11-02）。消していなかったため、
+      発注元の操作履歴に「検査用（消す）」のアカウントの記録が8行残っていた。
+    */
+    const r = await sb(`/rest/v1/audit_logs?record_id=eq.${staff.userId}`, { method: 'DELETE' });
+    console.log(`  ${r.ok ? '削除' : '削除失敗'}  権限の記録（操作履歴）`);
   }
   for (const [label, id] of [['公開済み', facilityId], ['下書き', draftId]]) {
     if (!id) continue;

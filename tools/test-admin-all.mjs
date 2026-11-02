@@ -538,11 +538,16 @@ try {
   check('操作履歴に行が出ている', /\d{2}\/\d{2}/.test(history), history.slice(0, 200));
   const next = page.getByRole('link', { name: /^次へ$|^次$|Next/ });
   if (await next.count()) {
-    const first = history.slice(0, 120);
+    /*
+      本文の表で比べる（2026-11-02）。ページ全体の先頭で比べていたため、左の柱に
+      「ご意見」が増えると先頭が柱の文字だけになり、送っても同じに見えていた。
+    */
+    const rowsText = async () => (await page.locator('main tbody').first().innerText()).replace(/\s+/g, ' ');
+    const first = await rowsText();
     await next.first().click();
     await page.waitForTimeout(2500);
-    const page2 = await text(page);
-    check('操作履歴のページを送れる', page2.slice(0, 120) !== first, page2.slice(0, 120));
+    const page2 = await rowsText();
+    check('操作履歴のページを送れる', page2 !== first, page2.slice(0, 120));
   } else {
     check('操作履歴のページ送りがある（1ページのみなら省略）', true);
   }
