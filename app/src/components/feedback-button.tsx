@@ -52,14 +52,15 @@ export function useFeedbackButtonSize() {
 }
 
 /*
-  吹き出し「みんなでアプリを開発する」（ご提供の画像。2026-11-02）。
-  透けた余白と外側の薄いにじみを落として 640 × 290 にした（原本は feedback-bubble-original.png）。
-  しっぽは右下で、先は幅の 91.7%・高さの 98.8% の位置にある。
+  吹き出し「あなたの声が アプリを進化させる。」（ご提供の画像。2026-11-02 に
+  「みんなでアプリを開発する」から差し替え）。原本は背景が黒く塗られていたため、
+  外側から黒い背景をたどって透かし（中の濃い緑の文字は残る）、640 × 290 にした
+  （原本は feedback-bubble-original.png）。しっぽは右下で、先は幅の 91.4%・高さの 99.2%。
 */
 const BUBBLE = require('@/assets/art/feedback-bubble.webp');
 const BUBBLE_ASPECT = 290 / 640;
-const TAIL_X = 0.917;
-const TAIL_Y = 0.988;
+const TAIL_X = 0.914;
+const TAIL_Y = 0.992;
 
 /**
  * しっぽの先を当てる場所（絵の中の位置。幅・高さに対する割合）。

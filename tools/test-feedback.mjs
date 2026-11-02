@@ -130,7 +130,7 @@ try {
     JSON.stringify({ box, tabBar }),
   );
 
-  /* 吹き出し「みんなでアプリを開発する」（2026-11-02）。マウスを重ねたときだけ */
+  /* 吹き出し「あなたの声が アプリを進化させる。」（2026-11-02）。マウスを重ねたときだけ */
   const bubbleOpacity = () =>
     page.getByTestId('feedback-bubble').evaluate((el) => Number(getComputedStyle(el).opacity)).catch(() => -1);
   await page.mouse.move(5, 5);

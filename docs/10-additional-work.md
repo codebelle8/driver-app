@@ -1080,6 +1080,11 @@ PC でもスマホでも見た目よく」）。吹き出し「みんなでア�
 確かめたこと: PC 4つの大きさ（768〜1920）で重ねると出て離すと消え、画面に収まる。スマホ3つの大きさで、映像のあいだは
 出さず、終わると出て約4秒で消え、「探す」へ戻っても二度は出ない。`test-feedback` に吹き出しの2項目を足して **23 / 0**（手元のアプリ）。
 
+**追記（2026-11-02）— 吹き出しの画像を差し替えた**（ご指示、画像をご提供）。「あなたの声が アプリを進化させる。」に。
+原本は背景が黒く塗られていた（透けていない）。中の文字も黒に近い濃い緑のため、黒を一律に消すと文字まで消える。
+外側から黒い背景をたどって透かし（文字は吹き出しに囲まれているので残る）、640×290 の webp にした（27KB）。
+しっぽの先の位置（幅の91.4%・高さの99.2%）も合わせた。
+
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
 `supabase/migrations/20261102000001_feedback.sql`, `tools/test-feedback.mjs`
