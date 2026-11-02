@@ -17,6 +17,7 @@ import { AccountProvider } from '@/lib/account-context';
 import { ChatUnreadProvider } from '@/lib/chat-unread';
 import { PresenceProvider } from '@/lib/presence';
 import { LocaleProvider } from '@/lib/i18n/context';
+import { markIntroDone } from '@/lib/intro-state';
 import { useLayout } from '@/lib/layout';
 import { ensureSynced, refreshIfStale } from '@/lib/sync';
 import { ThemeProvider, useTheme, useThemeControl } from '@/theme-context';
@@ -128,7 +129,8 @@ export default function RootLayout() {
         ロゴだけを出す層も作ったが、システムの起動画面と合わせて
         3枚重なることになるため、映像に一本化した。
       */}
-      <IntroVideo />
+      {/* 終わったことを知らせる（開いたときに出す吹き出しが、映像の裏で出ないように） */}
+      <IntroVideo onDone={markIntroDone} />
       {/*
         消してよいかを尋ねる札。
 

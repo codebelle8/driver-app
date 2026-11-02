@@ -130,6 +130,26 @@ try {
     JSON.stringify({ box, tabBar }),
   );
 
+  /* 吹き出し「みんなでアプリを開発する」（2026-11-02）。マウスを重ねたときだけ */
+  const bubbleOpacity = () =>
+    page.getByTestId('feedback-bubble').evaluate((el) => Number(getComputedStyle(el).opacity)).catch(() => -1);
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(500);
+  const off = await bubbleOpacity();
+  await btn.hover();
+  await page.waitForTimeout(600);
+  const on = await bubbleOpacity();
+  const bubble = await page.getByTestId('feedback-bubble').boundingBox();
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(600);
+  const offAgain = await bubbleOpacity();
+  check('絵にマウスを重ねると吹き出しが出て、離すと消える', off === 0 && on > 0.95 && offAgain === 0, JSON.stringify({ off, on, offAgain }));
+  check(
+    '吹き出しは絵の左上に出て、画面からはみ出さない',
+    !!bubble && !!box && bubble.x >= 0 && bubble.y >= 0 && bubble.x + bubble.width <= box.x + box.width && bubble.y < box.y,
+    JSON.stringify({ bubble, box }),
+  );
+
   /* 絞り込むと出さない */
   await page.getByPlaceholder(/施設名|Facility/).first().fill('ホテル');
   await page.waitForTimeout(1500);

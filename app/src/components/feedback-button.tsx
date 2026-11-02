@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useRef } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet } from 'react-native';
 
 import { RAIL_WIDTH } from '@/components/side-rail';
 import { useT } from '@/lib/i18n/context';
+import { useIntroDone } from '@/lib/intro-state';
 import { useLayout } from '@/lib/layout';
 
 /**
@@ -49,26 +51,125 @@ export function useFeedbackButtonSize() {
   return { width: w, height: h, gap, space: h + gap * 2 };
 }
 
+/*
+  吹き出し「みんなでアプリを開発する」（ご提供の画像。2026-11-02）。
+  透けた余白と外側の薄いにじみを落として 640 × 290 にした（原本は feedback-bubble-original.png）。
+  しっぽは右下で、先は幅の 91.7%・高さの 98.8% の位置にある。
+*/
+const BUBBLE = require('@/assets/art/feedback-bubble.webp');
+const BUBBLE_ASPECT = 290 / 640;
+const TAIL_X = 0.917;
+const TAIL_Y = 0.988;
+
+/**
+ * しっぽの先を当てる場所（絵の中の位置。幅・高さに対する割合）。
+ * 女性の頭の左上。ここから吹き出しが左上へ広がり、顔に向かって話している形になる。
+ */
+const SPEAKER_X = 0.3;
+const SPEAKER_Y = 0.14;
+
+/** 触れる画面（マウスを重ねられない）で、開いたときに吹き出しを見せておく長さ */
+const TOUCH_SHOW_MS = 4000;
+
+/**
+ * 触れる画面で吹き出しを見せたか（アプリを開いているあいだに1回だけ）。
+ * 「探す」画面へ戻るたびに出すと、毎回同じ言葉が目の前を横切ってうるさい。
+ */
+let shownOnTouch = false;
+
+/** マウスを重ねられる画面か（PC）。端末（APK）と、指で触る画面は false */
+function canHover(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.matchMedia) return false;
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
 export function FeedbackButton() {
   const router = useRouter();
   const t = useT();
   const { width, height, gap } = useFeedbackButtonSize();
 
+  /*
+    吹き出し（ご指示 2026-11-02「マウスを重ねたとき、絵の女性が話しているように」）。
+      PC          … 絵にマウスを重ねている（またはキーボードで選んでいる）あいだ出す
+      スマホ・端末 … 重ねるという操作が無いので、開いたときに4秒だけ出す（1回だけ）
+    大きさは絵の幅の 2.4 倍（180〜290）。小さいスマホでも文字が読める大きさを下限にした。
+  */
+  const bubbleW = Math.round(clamp(width * 2.4, 180, 290));
+  const bubbleH = Math.round(bubbleW * BUBBLE_ASPECT);
+  const show = useRef(new Animated.Value(0)).current;
+  const native = Platform.OS !== 'web';
+  const toggle = useCallback(
+    (on: boolean) =>
+      Animated.timing(show, {
+        toValue: on ? 1 : 0,
+        duration: on ? 220 : 160,
+        easing: on ? Easing.out(Easing.back(1.6)) : Easing.in(Easing.quad),
+        useNativeDriver: native,
+      }).start(),
+    [show, native],
+  );
+
+  /*
+    触れる画面では、導入映像が終わり、「探す」画面を見ているときに出す。
+    映像の裏で出すと、見えないまま消えていた（2026-11-02 に確かめた）。
+    見せている途中でほかの画面へ移ったら、そこで消す。
+  */
+  const introDone = useIntroDone();
+  useFocusEffect(
+    useCallback(() => {
+      if (!introDone || canHover() || shownOnTouch) return;
+      shownOnTouch = true;
+      const start = setTimeout(() => toggle(true), 600);
+      const end = setTimeout(() => toggle(false), 600 + TOUCH_SHOW_MS);
+      return () => {
+        clearTimeout(start);
+        clearTimeout(end);
+        toggle(false);
+      };
+    }, [introDone, toggle]),
+  );
+
   return (
     <Pressable
       onPress={() => router.push('/feedback')}
+      onHoverIn={() => toggle(true)}
+      onHoverOut={() => toggle(false)}
+      onFocus={() => toggle(true)}
+      onBlur={() => toggle(false)}
       accessibilityRole="button"
       accessibilityLabel={t.feedback.open}
       testID="feedback-button"
       hitSlop={4}
-      style={({ pressed, hovered }) => [
+      style={({ pressed }) => [
         styles.wrap,
         { width, height, right: gap, bottom: gap },
-        hovered && styles.hovered,
         pressed && styles.pressed,
       ]}
     >
       <Image source={ART} style={styles.art} contentFit="contain" />
+
+      {/* しっぽの先を、女性の頭の左上に当てる。押せない飾り（下の中身の操作を妨げない） */}
+      <Animated.View
+        pointerEvents="none"
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        testID="feedback-bubble"
+        style={[
+          styles.bubble,
+          {
+            width: bubbleW,
+            height: bubbleH,
+            left: width * SPEAKER_X - bubbleW * TAIL_X,
+            top: height * SPEAKER_Y - bubbleH * TAIL_Y,
+            transformOrigin: `${TAIL_X * 100}% ${TAIL_Y * 100}%`,
+            opacity: show,
+            transform: [{ scale: show.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) }],
+          },
+        ]}
+      >
+        <Image source={BUBBLE} style={styles.art} contentFit="contain" />
+      </Animated.View>
     </Pressable>
   );
 }
@@ -79,6 +180,6 @@ const styles = StyleSheet.create({
     zIndex: 5,
   },
   art: { width: '100%', height: '100%' },
-  hovered: { transform: [{ scale: 1.04 }] },
+  bubble: { position: 'absolute' },
   pressed: { transform: [{ scale: 0.96 }], opacity: 0.9 },
 });
