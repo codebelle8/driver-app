@@ -39,6 +39,18 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * 上限は、PC で本文の右下を覆いすぎないところ。
  *
  * space は、いちばん下の中身が絵に隠れないよう、送る領域の下に足す余白。
+ *
+ * bubble は吹き出しの幅。**絵とは別に、画面の大きさから決める**（ご指摘 2026-11-02
+ * 「スマホと PC で大きさが変わらない」）。以前は絵の幅の 2.4 倍にしていたが、PC の絵は
+ * ほとんど画面の高さで決まるため、窓の幅を変えても吹き出しは変わらず、スマホ（206）と
+ * PC（259）の差も見た目には分からなかった。
+ *
+ *   スマホ … 画面の幅の 56%（180〜250）。320 で 180、390 で 218、430 で 241
+ *   PC     … 画面の幅の 21%（230〜400）。背の低い画面では高さの 40% まで
+ *            （1024×768 で 230、1366×768 で 287、1440×900 で 302、1920×1080 で 400）
+ *
+ * 下限は 320px のスマホでも2行の文字が読める大きさ。上限は、大きい画面で吹き出しが
+ * 本文の中ほどまで張り出さないところ。どの大きさでも、吹き出しは画面の内側に収まる。
  */
 export function useFeedbackButtonSize() {
   const { width, height, isWide } = useLayout();
@@ -48,7 +60,10 @@ export function useFeedbackButtonSize() {
   const w = Math.round(art);
   const h = Math.round(art * ASPECT);
   const gap = isWide ? 20 : 12;
-  return { width: w, height: h, gap, space: h + gap * 2 };
+  const bubble = Math.round(
+    isWide ? clamp(Math.min(width * 0.21, height * 0.4), 230, 400) : clamp(width * 0.56, 180, 250),
+  );
+  return { width: w, height: h, gap, space: h + gap * 2, bubble };
 }
 
 /*
@@ -87,15 +102,14 @@ function canHover(): boolean {
 export function FeedbackButton() {
   const router = useRouter();
   const t = useT();
-  const { width, height, gap } = useFeedbackButtonSize();
+  const { width, height, gap, bubble: bubbleW } = useFeedbackButtonSize();
 
   /*
     吹き出し（ご指示 2026-11-02「マウスを重ねたとき、絵の女性が話しているように」）。
       PC          … 絵にマウスを重ねている（またはキーボードで選んでいる）あいだ出す
       スマホ・端末 … 重ねるという操作が無いので、開いたときに4秒だけ出す（1回だけ）
-    大きさは絵の幅の 2.4 倍（180〜290）。小さいスマホでも文字が読める大きさを下限にした。
+    大きさは画面の大きさから決める（上の useFeedbackButtonSize）。
   */
-  const bubbleW = Math.round(clamp(width * 2.4, 180, 290));
   const bubbleH = Math.round(bubbleW * BUBBLE_ASPECT);
   const show = useRef(new Animated.Value(0)).current;
   const native = Platform.OS !== 'web';
