@@ -1103,6 +1103,7 @@ PC では一覧の右の列を、スマホでは「最近見た施設」を大�
     1536×864 で 200、1600×900 で 208、ご提示の 1911×891 で 241（それまで 356）、1920×1080 以上で 250
   * 下限は文字が読める大きさ（1文字が吹き出しの幅の7.4%。150 で 11px）。どの大きさでも画面の内側に収まる
   * `test-feedback` 23 / 0（手元のアプリ）
+本番へ配った（kurumayose-navi-oyi85xal1）。本番でも14の大きさで同じ値になり、画面に収まった。`test-feedback` 23 / 0（本番）。
 
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
