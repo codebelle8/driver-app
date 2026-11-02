@@ -26,6 +26,7 @@ const ja = {
     categories: 'カテゴリ',
     members: '会員・お支払い',
     submissions: '情報提供',
+    feedback: 'ご意見',
     chat: 'チャット',
     push: '通知',
     accounts: 'アカウント',
@@ -65,6 +66,7 @@ const ja = {
     categories: 'カテゴリ',
     admin_profiles: 'アカウント',
     submissions: '情報提供',
+    feedback: 'ご意見',
     chat_messages: 'チャットの書き込み',
     /* 英語の名前がそのまま出ていた（ご指摘 2026-10-13） */
     driver_profiles: '会員',
@@ -168,6 +170,38 @@ const ja = {
     monthlyEmpty: 'この月は、無料になった方はいませんでした。',
     monthlyRow: '{rank}位　{name}　採用 {n}件',
     monthlyExtended: 'お支払いの期間を1か月延長',
+  },
+
+  /* ご意見箱（2026-11-02）。アプリの「探す」画面の右下から届く */
+  feedback: {
+    title: 'ご意見',
+    description:
+      '会員がアプリのご意見箱から送った、アプリへのご意見・ご要望です。読んだら状態を切り替えてください。会員のアプリの「送ったご意見」に、その状態が出ます（覚え書きは会員には見えません）。',
+    tabs: {
+      new: '未対応',
+      considering: '検討中',
+      done: '対応しました',
+      declined: '見送り',
+    },
+    kinds: {
+      feature: '新しい機能がほしい',
+      trouble: '使いにくいところ',
+      other: 'その他',
+    },
+    member: '会員 {no}',
+    memberGone: '退会した会員',
+    sentAt: '{date} に受付',
+    handledAt: '{date} に更新',
+    note: '覚え書き（会員には見えません）',
+    notePlaceholder: '例：次の改修で検討する',
+    toConsidering: '検討中にする',
+    toDone: '対応しました',
+    toDeclined: '見送る',
+    reopen: '未対応に戻す',
+    saveNote: '覚え書きだけ保存',
+    empty: 'この区分のご意見はありません。',
+    emptyNew: '未対応のご意見はありません。',
+    missing: 'ご意見の表がまだありません。データベースの更新（20261102000001_feedback.sql）をお願いします。',
   },
 
   /*
@@ -782,6 +816,7 @@ const en: Dictionary = {
     categories: 'Categories',
     members: 'Members',
     submissions: 'Submissions',
+    feedback: 'Suggestions',
     chat: 'Chat',
     push: 'Notifications',
     accounts: 'Accounts',
@@ -822,6 +857,7 @@ const en: Dictionary = {
     categories: 'Category',
     admin_profiles: 'Account',
     submissions: 'Submission',
+    feedback: 'Suggestion',
     chat_messages: 'Chat post',
     driver_profiles: 'Member',
     site_settings: 'Site settings',
@@ -910,6 +946,37 @@ const en: Dictionary = {
     monthlyEmpty: 'Nobody qualified this month.',
     monthlyRow: '#{rank}  {name}  {n} accepted',
     monthlyExtended: 'Paid period extended by a month',
+  },
+
+  feedback: {
+    title: 'Suggestions',
+    description:
+      'Suggestions sent by members from the suggestion box in the app. Change the status once you have read them. Members see the status under "Your suggestions" in the app (notes are not shown to them).',
+    tabs: {
+      new: 'Open',
+      considering: 'Considering',
+      done: 'Done',
+      declined: 'Not planned',
+    },
+    kinds: {
+      feature: 'New feature',
+      trouble: 'Hard to use',
+      other: 'Other',
+    },
+    member: 'Member {no}',
+    memberGone: 'Member who left',
+    sentAt: 'Received {date}',
+    handledAt: 'Updated {date}',
+    note: 'Note (not shown to the member)',
+    notePlaceholder: 'e.g. Consider in the next update',
+    toConsidering: 'Mark as considering',
+    toDone: 'Mark as done',
+    toDeclined: 'Not planned',
+    reopen: 'Back to open',
+    saveNote: 'Save note only',
+    empty: 'No suggestions in this group.',
+    emptyNew: 'No open suggestions.',
+    missing: 'The suggestions table does not exist yet. Please apply 20261102000001_feedback.sql to the database.',
   },
 
   push: {

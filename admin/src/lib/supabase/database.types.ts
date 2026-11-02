@@ -278,6 +278,30 @@ export type Submission = {
   updated_at: string;
 }
 
+/** ご意見の種類（20261102000001_feedback.sql と同じ） */
+export type FeedbackKind = 'feature' | 'trouble' | 'other';
+
+/** ご意見の状態。送られた直後は new */
+export type FeedbackStatus = 'new' | 'considering' | 'done' | 'declined';
+
+/**
+ * 会員からアプリへのご意見（ご意見箱。2026-11-02）。
+ *
+ * handled_at / handled_by は、状態を変えたときにデータベースが入れる。
+ */
+export type Feedback = {
+  id: string;
+  user_id: string;
+  kind: FeedbackKind;
+  body: string;
+  status: FeedbackStatus;
+  handled_at: string | null;
+  handled_by: string | null;
+  staff_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * チャットの書き込み（2026-10-05）。全員に見える掲示板の形。
  * hidden_at があるものは会員に見せない。hidden_by はデータベースが入れる。
@@ -465,6 +489,13 @@ export interface Database {
           Submission,
           | 'id' | 'user_id' | 'facility_id' | 'entry_point_id' | 'photo_paths' | 'lat' | 'lng'
           | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note' | 'created_at' | 'updated_at'
+        >
+      >;
+      feedback: Table<
+        Feedback,
+        Insert<
+          Feedback,
+          'id' | 'user_id' | 'status' | 'handled_at' | 'handled_by' | 'staff_note' | 'created_at' | 'updated_at'
         >
       >;
       free_months: Table<FreeMonth, Insert<FreeMonth, keyof FreeMonth>>;

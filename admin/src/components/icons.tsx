@@ -218,3 +218,13 @@ export function DocumentIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+/** 電球 — ご意見（会員からの、アプリへの声） */
+export function BulbIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V16h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" />
+    </svg>
+  );
+}

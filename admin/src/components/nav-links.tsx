@@ -14,6 +14,7 @@ import {
   DocumentIcon,
   InboxIcon,
   ChatIcon,
+  BulbIcon,
 } from '@/components/icons';
 import { useCloseSideNav } from '@/components/side-nav';
 
@@ -38,12 +39,14 @@ export function NavLinks({
   isManager = false,
   pendingSubmissions = 0,
   openChatReports = 0,
+  newFeedback = 0,
 }: {
   labels: {
     dashboard: string;
     facilities: string;
     categories: string;
     submissions: string;
+    feedback: string;
     chat: string;
     members: string;
     push: string;
@@ -59,6 +62,8 @@ export function NavLinks({
   pendingSubmissions?: number;
   /** 未対応のチャットの通報の数。行の右に出す */
   openChatReports?: number;
+  /** 未対応のご意見の数（ご意見箱。2026-11-02）。行の右に出す */
+  newFeedback?: number;
 }) {
   const pathname = usePathname();
   const close = useCloseSideNav();
@@ -81,6 +86,8 @@ export function NavLinks({
     ...(isAdmin
       ? [
           { href: '/members', label: labels.members, Icon: CardIcon },
+          /* ご意見箱（2026-11-02）。会員からアプリへの声。未対応の数を添える */
+          { href: '/feedback', label: labels.feedback, Icon: BulbIcon, count: newFeedback },
           { href: '/accounts', label: labels.accounts, Icon: UsersIcon },
           { href: '/history', label: labels.history, Icon: HistoryIcon },
           /* 規約類の掲載先。開くのは決めるときだけなので、下のほうへ。 */

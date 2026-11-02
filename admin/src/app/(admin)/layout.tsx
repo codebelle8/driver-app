@@ -98,6 +98,19 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
     if (!flagged.error) openChatReports += flagged.count ?? 0;
   }
 
+  /*
+    未対応のご意見の数（ご意見箱。2026-11-02）。読むのは管理者だけ。
+    表が無い（データベースを更新する前）ときは 0。
+  */
+  let newFeedback = 0;
+  if (isAdmin) {
+    const { count, error } = await createAdminClient()
+      .from('feedback')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'new');
+    if (!error) newFeedback = count ?? 0;
+  }
+
   const roleLabel = {
     admin: t.nav.roleAdmin,
     editor: t.nav.roleEditor,
@@ -227,6 +240,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
                 facilities: t.nav.facilities,
                 categories: t.nav.categories,
                 submissions: t.nav.submissions,
+                feedback: t.nav.feedback,
                 chat: t.nav.chat,
                 members: t.nav.members,
                 push: t.nav.push,
@@ -238,6 +252,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
               isManager={isManager}
               pendingSubmissions={pendingSubmissions}
               openChatReports={openChatReports}
+              newFeedback={newFeedback}
             />
           </SideNavPanel>
 

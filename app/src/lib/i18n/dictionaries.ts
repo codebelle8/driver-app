@@ -202,6 +202,46 @@ const ja = {
   },
 
   /*
+    ご意見箱（2026-11-02）。「探す」画面の右下の絵から開く。
+    アプリへのご意見・ご要望を、文字だけで送る。
+  */
+  feedback: {
+    open: 'ご意見箱を開く',
+    title: 'ご意見箱',
+    lead: 'アプリに足してほしい機能や、使いにくいところをお聞かせください。いただいたご意見は運営が読み、これからの改良に生かします。',
+    replyNote: 'ひとつひとつへのお返事はしていません。対応の状況は、下の「送ったご意見」でご覧いただけます。',
+    kindTitle: 'どんなご意見ですか',
+    kinds: {
+      feature: '新しい機能がほしい',
+      trouble: '使いにくいところがある',
+      other: 'その他',
+    },
+    bodyTitle: '内容',
+    bodyPlaceholder: '例：よく行く施設を、地図の上でまとめて見られるようにしてほしい。',
+    bodyCount: '{n} / {max}',
+    send: '送る',
+    sending: '送っています…',
+    sent: 'ご意見を受け付けました',
+    sentBody: 'ありがとうございます。運営が読み、これからの改良に生かします。',
+    needLogin: 'ログインすると送れます。',
+    error: {
+      offline: '通信できないため送れませんでした。電波の届く場所でもう一度お試しください。',
+      tooMany: '1日に送れる数（10件）を超えました。明日あらためてお送りください。',
+      blocked: 'ご利用が停止されているため、送れません。',
+      unknown: '送れませんでした。もう一度お試しください。',
+    },
+    mineTitle: '送ったご意見',
+    mineEmpty: 'まだ送ったご意見はありません。',
+    sentAt: '{date} に送信',
+    status: {
+      new: '受け付けました',
+      considering: '検討中',
+      done: '対応しました',
+      declined: '見送り',
+    },
+  },
+
+  /*
     チャット（2026-10-05）。いまは「情報提供ランキング」のチャンネルだけ。
     会員どうしの書き込みは次の段で足す。
   */
@@ -1011,6 +1051,42 @@ const en: Dictionary = {
       blocked: 'Your account has been suspended, so you cannot send information.',
       photo: 'Could not send the photos. Remove them or try again.',
       unknown: 'Could not send. Please try again.',
+    },
+  },
+
+  feedback: {
+    open: 'Open the suggestion box',
+    title: 'Suggestion box',
+    lead: 'Tell us what features you would like, or anything that is hard to use. We read every suggestion and use it to improve the app.',
+    replyNote: 'We do not reply to each one. You can see how each suggestion is being handled under "Your suggestions" below.',
+    kindTitle: 'What is it about?',
+    kinds: {
+      feature: 'I would like a new feature',
+      trouble: 'Something is hard to use',
+      other: 'Other',
+    },
+    bodyTitle: 'Details',
+    bodyPlaceholder: 'e.g. I would like to see the places I visit often together on the map.',
+    bodyCount: '{n} / {max}',
+    send: 'Send',
+    sending: 'Sending…',
+    sent: 'Thank you for your suggestion',
+    sentBody: 'We will read it and use it to improve the app.',
+    needLogin: 'Sign in to send a suggestion.',
+    error: {
+      offline: 'Could not send because you are offline. Please try again where you have a signal.',
+      tooMany: 'You have reached the daily limit (10). Please send it again tomorrow.',
+      blocked: 'Your account is suspended, so you cannot send suggestions.',
+      unknown: 'Could not send. Please try again.',
+    },
+    mineTitle: 'Your suggestions',
+    mineEmpty: 'You have not sent any suggestions yet.',
+    sentAt: 'Sent {date}',
+    status: {
+      new: 'Received',
+      considering: 'Under consideration',
+      done: 'Done',
+      declined: 'Not planned',
     },
   },
 

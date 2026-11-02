@@ -21,6 +21,7 @@ import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
 import { IconButton } from '@/components/icon-button';
 import { RAIL_WIDTH } from '@/components/side-rail';
+import { FEEDBACK_BUTTON_SPACE, FeedbackButton } from '@/components/feedback-button';
 import { ScrollTopButton, SCROLL_TOP_CLEARANCE } from '@/components/scroll-top-button';
 import {
   fetchCategories,
@@ -465,7 +466,11 @@ export default function SearchScreen() {
         見たいのは「何を探せるか」であって、193件の散らばりではない。
       */}
       {isWide && !isFiltered && (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          /* 右下のご意見箱に、いちばん下の行が隠れないように */
+          contentContainerStyle={{ paddingBottom: FEEDBACK_BUTTON_SPACE }}
+        >
           {/*
             上部の帯。絵を横一杯に敷き、検索欄をその上へ重ねる。
 
@@ -686,6 +691,12 @@ export default function SearchScreen() {
           <SyncState syncing={syncing} sync={sync} onRetry={retry} styles={styles} c={c} />
         </ScrollView>
       )}
+
+      {/*
+        ご意見箱（2026-11-02）。ご提示の場所（右下・下のタブのすぐ上）に浮かべる。
+        絞り込んでいるあいだは出さない（同じ右下に「上へ戻る」が出るため）。
+      */}
+      {!isFiltered && <FeedbackButton wide={isWide} />}
 
       <ScrollTopButton
         visible={isFiltered && !atTop}
@@ -1325,7 +1336,8 @@ function makeStyles(c: Palette) {
     },
 
     // --- 下見の画面 ---
-    browse: { paddingHorizontal: SPACE.lg, paddingBottom: SPACE.xl },
+    /* 下の余白は、右下のご意見箱にいちばん下の行が隠れないだけ取る */
+    browse: { paddingHorizontal: SPACE.lg, paddingBottom: FEEDBACK_BUTTON_SPACE },
     browseWide: { paddingTop: SPACE.xs },
     sectionHead: {
       flexDirection: 'row',
