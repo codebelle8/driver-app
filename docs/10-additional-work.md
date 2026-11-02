@@ -1066,6 +1066,7 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 PC の骨格は画面の高さの12%（88〜120。本文の幅の16%まで）。右下からの間もスマホ12・PC 20 に。いちばん下の
 中身が隠れないよう、下の余白も同じ計算で取る。ご意見箱の画面の冒頭の絵も、スマホは幅の21%（72〜92）・PC は104。
 9つの大きさ（320×568〜1920×1080）で、大きさ・位置・いちばん下の行が隠れないことを見た。`test-feedback` 21 / 0（手元のアプリ）。
+本番へ配った（kurumayose-navi-i3fr2i1uo）。本番でも9つの大きさで同じ値になり、`test-feedback` 21 / 0。
 
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
