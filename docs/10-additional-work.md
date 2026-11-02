@@ -1094,6 +1094,7 @@ PC（259）の差も見た目には分からなかった。絵とは別に、画
   * PC … 画面の幅の21%（230〜400）。背の低い画面では高さの40%まで。1024×768 で 230、1280×800 で 269、1366×768 で 287、
     1440×900 で 302、1600×900 で 336、1920×1080 以上で 400（測った値。同じ窓を広げ・縮めて見た）
   * どの大きさでも画面の内側に収まる。`test-feedback` 23 / 0（手元のアプリ）
+本番へ配った（kurumayose-navi-jiajd93g5）。本番でも11の大きさで同じ値になり、画面に収まった。`test-feedback` 23 / 0（本番）。
 
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
