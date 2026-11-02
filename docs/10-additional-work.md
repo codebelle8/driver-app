@@ -1084,6 +1084,8 @@ PC でもスマホでも見た目よく」）。吹き出し「みんなでア�
 原本は背景が黒く塗られていた（透けていない）。中の文字も黒に近い濃い緑のため、黒を一律に消すと文字まで消える。
 外側から黒い背景をたどって透かし（文字は吹き出しに囲まれているので残る）、640×290 の webp にした（27KB）。
 しっぽの先の位置（幅の91.4%・高さの99.2%）も合わせた。
+本番へ配った（kurumayose-navi-jqoq8bd91。吹き出し・女性が話す形・画像の差し替えをまとめて）。本番で、PC は重ねると出て、
+スマホ（暗い表示）は導入映像のあとに出ることを見た。ふちに黒い縁は残っていない。`test-feedback` **23 / 0**（本番）。
 
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
