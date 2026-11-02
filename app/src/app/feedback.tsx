@@ -18,6 +18,7 @@ import {
 } from '@/lib/feedback';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatDate } from '@/lib/i18n/dictionaries';
+import { useLayout } from '@/lib/layout';
 import { notify } from '@/lib/notice';
 import { HIT, RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -41,6 +42,9 @@ export default function FeedbackScreen() {
   const f = t.feedback;
   const styles = makeStyles(c);
   const { account } = useAccount();
+  /* 冒頭の絵。スマホは幅の 21%（72〜92）、PC は 104 */
+  const { width: winWidth, isWide } = useLayout();
+  const artWidth = isWide ? 104 : Math.round(Math.min(92, Math.max(72, winWidth * 0.21)));
 
   const [kind, setKind] = useState<FeedbackKind | null>(null);
   const [body, setBody] = useState('');
@@ -86,7 +90,7 @@ export default function FeedbackScreen() {
           <View style={styles.intro}>
             <Image
               source={require('@/assets/art/feedback-box.webp')}
-              style={styles.introArt}
+              style={{ width: artWidth, height: Math.round((artWidth * 440) / 330) }}
               contentFit="contain"
               accessibilityIgnoresInvertColors
             />
@@ -222,7 +226,6 @@ function makeStyles(c: Palette) {
       gap: SPACE.lg,
     },
     intro: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-    introArt: { width: 84, height: 112 },
     introText: { flex: 1, gap: SPACE.xs },
     lead: { fontSize: TEXT.body, color: c.text, lineHeight: 21 },
     section: { gap: SPACE.sm },

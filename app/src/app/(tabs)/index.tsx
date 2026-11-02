@@ -21,7 +21,7 @@ import { FacilitiesMap } from '@/components/facilities-map';
 import { HeroArt } from '@/components/hero-art';
 import { IconButton } from '@/components/icon-button';
 import { RAIL_WIDTH } from '@/components/side-rail';
-import { FEEDBACK_BUTTON_SPACE, FeedbackButton } from '@/components/feedback-button';
+import { FeedbackButton, useFeedbackButtonSize } from '@/components/feedback-button';
 import { ScrollTopButton, SCROLL_TOP_CLEARANCE } from '@/components/scroll-top-button';
 import {
   fetchCategories,
@@ -192,6 +192,8 @@ export default function SearchScreen() {
   const { locale } = useLocale();
   const styles = makeStyles(c);
   const { width: winWidth, height: winHeight, isWide, isSplit, isThreeUp } = useLayout();
+  /* 右下のご意見箱の大きさ。いちばん下の行が隠れないよう、下の余白に使う */
+  const fab = useFeedbackButtonSize();
 
   /*
     上部の帯の高さ。幅に対する比で決める（HERO_BAND_ASPECT の説明を参照）。
@@ -469,7 +471,7 @@ export default function SearchScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           /* 右下のご意見箱に、いちばん下の行が隠れないように */
-          contentContainerStyle={{ paddingBottom: FEEDBACK_BUTTON_SPACE }}
+          contentContainerStyle={{ paddingBottom: fab.space }}
         >
           {/*
             上部の帯。絵を横一杯に敷き、検索欄をその上へ重ねる。
@@ -648,7 +650,7 @@ export default function SearchScreen() {
       {/* スマホの入口。カテゴリの札と、最近見たスポット。 */}
       {!isWide && !isFiltered && (
         <ScrollView
-          contentContainerStyle={styles.browse}
+          contentContainerStyle={[styles.browse, { paddingBottom: fab.space }]}
           showsVerticalScrollIndicator={false}
         >
             <SectionHead
@@ -696,7 +698,7 @@ export default function SearchScreen() {
         ご意見箱（2026-11-02）。ご提示の場所（右下・下のタブのすぐ上）に浮かべる。
         絞り込んでいるあいだは出さない（同じ右下に「上へ戻る」が出るため）。
       */}
-      {!isFiltered && <FeedbackButton wide={isWide} />}
+      {!isFiltered && <FeedbackButton />}
 
       <ScrollTopButton
         visible={isFiltered && !atTop}
@@ -1336,8 +1338,7 @@ function makeStyles(c: Palette) {
     },
 
     // --- 下見の画面 ---
-    /* 下の余白は、右下のご意見箱にいちばん下の行が隠れないだけ取る */
-    browse: { paddingHorizontal: SPACE.lg, paddingBottom: FEEDBACK_BUTTON_SPACE },
+    browse: { paddingHorizontal: SPACE.lg },
     browseWide: { paddingTop: SPACE.xs },
     sectionHead: {
       flexDirection: 'row',

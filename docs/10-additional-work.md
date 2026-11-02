@@ -1061,6 +1061,12 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 **公開（2026-11-02）。** アプリ（kurumayose-navi-ntlkbn0mi）と管理画面（kurumayose-navi-admin-n2okvfysu）を本番へ配った。
 本番で `test-feedback` **21 / 0**、`test-admin-all` 54 / 0。
 
+**追記（2026-11-02）— 絵の大きさを画面に合わせて変える形にした**（ご指示「PC でもスマホでも、どの幅でも見た目よく」）。
+決まった2つの大きさ（84・110）をやめ、スマホは画面の幅の22%（70〜96。背の低い画面は高さの13%まで）、
+PC の骨格は画面の高さの12%（88〜120。本文の幅の16%まで）。右下からの間もスマホ12・PC 20 に。いちばん下の
+中身が隠れないよう、下の余白も同じ計算で取る。ご意見箱の画面の冒頭の絵も、スマホは幅の21%（72〜92）・PC は104。
+9つの大きさ（320×568〜1920×1080）で、大きさ・位置・いちばん下の行が隠れないことを見た。`test-feedback` 21 / 0（手元のアプリ）。
+
 関連: `app/src/app/feedback.tsx`, `app/src/components/feedback-button.tsx`, `app/src/lib/feedback.ts`,
 `app/src/app/(tabs)/index.tsx`, `admin/src/app/(admin)/feedback/page.tsx`, `admin/src/app/actions/feedback.ts`,
 `supabase/migrations/20261102000001_feedback.sql`, `tools/test-feedback.mjs`
