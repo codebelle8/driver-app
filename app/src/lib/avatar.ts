@@ -123,6 +123,45 @@ export function chooseFile(): Promise<File | null> {
   });
 }
 
+/** 縮めた画像と、その縦横（px） */
+export interface Shrunk {
+  blob: Blob;
+  width: number;
+  height: number;
+}
+
+/**
+ * 長いほうの辺を longEdge へ縮め、jpeg に描き直す（小さければ大きさはそのまま）。
+ *
+ * 情報提供の写真（lib/submissions.ts）とチャットの画像（lib/chat.ts）で使う。
+ * 描き直すのは、jpeg にそろえるためと、写真に埋め込まれた撮影位置などの
+ * 付帯情報を落とすため。
+ */
+export function shrinkImage(file: File, longEdge: number, quality: number): Promise<Shrunk | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, longEdge / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(null);
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob ? { blob, width, height } : null), 'image/jpeg', quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
+
 /** 中央を正方形に切って、SIDE px へ縮める */
 function squareResize(file: File): Promise<Blob | null> {
   return new Promise((resolve) => {

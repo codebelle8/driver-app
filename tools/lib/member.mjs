@@ -63,10 +63,12 @@ export async function createMember({ url, svc }, tag = 'test') {
  * **写真の置き場所も片付ける**（2026-10-06）。アカウントを消すと行は
  * データベースが一緒に消すが、置き場所（avatars・submissions）のファイルは
  * 残る。以前はここで消しておらず、持ち主のいない顔写真が54件たまっていた。
+ * チャットの画像（chat-images。2026-11-08）も同じ。書き込みが消えるときに
+ * データベースが残す「消す画像の控え」（chat_image_trash）も、ここで消す。
  */
 export async function removeMember({ url, svc }, member) {
   if (!member?.userId) return true;
-  for (const bucket of ['avatars', 'submissions']) {
+  for (const bucket of ['avatars', 'submissions', 'chat-images']) {
     try {
       const r = await fetch(`${url}/storage/v1/object/list/${bucket}`, {
         method: 'POST',
@@ -87,6 +89,9 @@ export async function removeMember({ url, svc }, member) {
     }
   }
   await fetch(`${url}/auth/v1/admin/users/${member.userId}`, { method: 'DELETE', headers: svc });
+  await fetch(`${url}/rest/v1/chat_image_trash?path=like.${member.userId}/*`, { method: 'DELETE', headers: svc }).catch(
+    () => undefined,
+  );
   const r = await fetch(`${url}/auth/v1/admin/users?per_page=200`, { headers: svc });
   const j = await r.json();
   return !(j.users ?? []).some((u) => u.email === member.email);

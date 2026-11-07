@@ -20,7 +20,7 @@
  *   管理者・編集者だけ。道筋は `<自分のid>/<この情報のid>_<番号>.jpg`。
  *   退会のときに `<自分のid>/` の一覧からまとめて消せるよう、平らに置く。
  */
-import { chooseFile } from './avatar';
+import { chooseFile, shrinkImage } from './avatar';
 import { supabase } from './supabase';
 
 /** 写真の置き場所 */
@@ -80,44 +80,20 @@ export async function pickPhoto(): Promise<PickedPhoto> {
   if (!canAttachPhotos()) return { ok: false, reason: 'cancelled' };
   const file = await chooseFile();
   if (!file) return { ok: false, reason: 'cancelled' };
-  const blob = await shrink(file);
-  if (!blob) return { ok: false, reason: 'unreadable' };
-  return { ok: true, blob };
+  /*
+    長いほうの辺を LONG_EDGE へ縮め、jpeg に描き直す。描き直すときに、写真に
+    埋め込まれた撮影位置なども落ちる。位置は本人が「添える」を選んだときだけ受け取る。
+  */
+  const shrunk = await shrinkImage(file, LONG_EDGE, QUALITY);
+  if (!shrunk) return { ok: false, reason: 'unreadable' };
+  return { ok: true, blob: shrunk.blob };
 }
 
 /**
- * 長いほうの辺を LONG_EDGE へ縮める（小さければそのまま描き直す）。
- *
- * 描き直すのは、jpeg にそろえるためと、写真に埋め込まれた撮影位置などの
- * 付帯情報を落とすため。位置は本人が「添える」を選んだときだけ受け取る。
+ * 端末で決める id。写真の道筋と行の id を同じにするため。
+ * チャットの画像（lib/chat.ts）でも使う。
  */
-function shrink(file: File): Promise<Blob | null> {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const scale = Math.min(1, LONG_EDGE / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(null);
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', QUALITY);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
-    };
-    img.src = url;
-  });
-}
-
-/** 端末で決める id。写真の道筋と行の id を同じにするため */
-function newId(): string {
+export function newId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }

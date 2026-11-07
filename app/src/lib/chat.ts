@@ -16,7 +16,18 @@
  *   Supabase Realtime の合図（行が増えた・変わった）で読み直す。届かない
  *   環境（会社の網・電波の弱い場所）もあるので、開いているあいだは
  *   一定の間隔でも読み直す。
+ *
+ * **画像を1枚添えられる**（ご指示 2026-11-08。supabase/migrations/20261108000001_chat_images.sql）
+ *   * 文だけ・画像だけ・文と画像のどれでも書ける。画像は1日に20枚まで
+ *   * 置き場所は非公開（chat-images）。隠された書き込みや90日を過ぎた書き込みの
+ *     画像は、データベースが会員に渡さない。読めるときだけ期限つきの URL をもらう
+ *   * 送る前に長いほうの辺を IMAGE_EDGE へ縮め、jpeg に描き直す（撮影位置も落ちる）
+ *   * 写真を選べるのはブラウザだけ（顔写真・情報提供の写真と同じ事情。lib/avatar.ts）
  */
+import { Platform } from 'react-native';
+
+import { chooseFile, shrinkImage } from './avatar';
+import { newId } from './submissions';
 import { supabase } from './supabase';
 
 /** チャンネル。いまは「情報交換」だけ */
@@ -42,6 +53,31 @@ export const WINDOW_DAYS = 10;
 export const MIN_MESSAGES = 20;
 export const WINDOW_LIMIT = 300;
 
+/** 画像の置き場所（非公開） */
+const IMAGE_BUCKET = 'chat-images';
+
+/**
+ * 画像の長いほうの辺（px）。書き込みの中では 240px ほどで出し、押すと
+ * 画面いっぱいに広げる。看板の文字が読める大きさで、1枚 100〜300KB に収まる。
+ */
+const IMAGE_EDGE = 1280;
+const IMAGE_QUALITY = 0.8;
+
+/**
+ * 期限つき URL の長さ（秒）。チャットを開いているあいだに切れないよう1時間。
+ * 切れる5分前を過ぎたら、もらい直す。
+ */
+const SIGN_SECONDS = 60 * 60;
+const RESIGN_BEFORE_MS = 5 * 60_000;
+
+/** 添えた画像 */
+export interface ChatImage {
+  /** 置き場所の中の道筋（<書いた人のid>/<書き込みのid>.jpg） */
+  path: string;
+  width: number;
+  height: number;
+}
+
 export interface ChatMessage {
   id: string;
   body: string;
@@ -56,6 +92,8 @@ export interface ChatMessage {
    * 会員の id ではなく、id から作った別の文字列。データベースの更新前は ''。
    */
   author: string;
+  /** 添えた画像。無ければ null（文だけの書き込み） */
+  image: ChatImage | null;
 }
 
 export interface ChatFeed {
@@ -81,7 +119,16 @@ export interface ChatFeed {
   };
 }
 
-export type ChatProblem = 'offline' | 'tooMany' | 'notAllowed' | 'already' | 'unknown';
+export type ChatProblem =
+  | 'offline'
+  | 'tooMany'
+  /** 画像は1日に20枚まで */
+  | 'tooManyImages'
+  /** 画像を上げられなかった */
+  | 'image'
+  | 'notAllowed'
+  | 'already'
+  | 'unknown';
 
 interface RawError {
   code?: string;
@@ -92,6 +139,7 @@ interface RawError {
 function toProblem(error: RawError | null | undefined): ChatProblem {
   const text = `${error?.message ?? ''} ${error?.hint ?? ''}`;
   if (text.includes('too_many_messages')) return 'tooMany';
+  if (text.includes('too_many_images')) return 'tooManyImages';
   /* 同じ書き込みを2回通報した */
   if (error?.code === '23505') return 'already';
   /* 止められている（書く権限の条件で弾かれる） */
@@ -127,6 +175,9 @@ export async function loadFeed(
         name: string | null;
         avatar_path: string | null;
         author?: string;
+        image_path?: string | null;
+        image_width?: number | null;
+        image_height?: number | null;
       }[];
       me?: { can_post?: boolean; muted?: boolean; blocked?: boolean; has_name?: boolean; key?: string };
       more?: boolean;
@@ -141,6 +192,10 @@ export async function loadFeed(
         name: m.name ?? null,
         avatarPath: m.avatar_path ?? null,
         author: m.author ?? '',
+        image:
+          m.image_path && m.image_width && m.image_height
+            ? { path: m.image_path, width: m.image_width, height: m.image_height }
+            : null,
       })),
       more: typeof j.more === 'boolean' ? j.more : null,
       retentionDays: typeof j.retention_days === 'number' ? j.retention_days : null,
@@ -159,28 +214,133 @@ export async function loadFeed(
 
 export type ChatResult = { ok: true } | { ok: false; problem: ChatProblem };
 
-/** 書く */
-export async function postMessage(userId: string, body: string, channel: ChatChannel = 'general'): Promise<ChatResult> {
+/** 送る前の画像（縮めたもの） */
+export interface ChatImageDraft {
+  blob: Blob;
+  width: number;
+  height: number;
+}
+
+export type PickedChatImage =
+  | { ok: true; image: ChatImageDraft }
+  /** 閉じただけ。何も言わない */
+  | { ok: false; reason: 'cancelled' }
+  /** 選ばれたが、画像として読めなかった */
+  | { ok: false; reason: 'unreadable' };
+
+/** この端末で画像を添えられるか（いまはブラウザだけ） */
+export function canAttachChatImage(): boolean {
+  return Platform.OS === 'web' && typeof document !== 'undefined';
+}
+
+/** 画像を選んでもらい、送れる大きさへ縮めて返す */
+export async function pickChatImage(): Promise<PickedChatImage> {
+  if (!canAttachChatImage()) return { ok: false, reason: 'cancelled' };
+  const file = await chooseFile();
+  if (!file) return { ok: false, reason: 'cancelled' };
+  const shrunk = await shrinkImage(file, IMAGE_EDGE, IMAGE_QUALITY);
+  if (!shrunk) return { ok: false, reason: 'unreadable' };
+  return { ok: true, image: shrunk };
+}
+
+/**
+ * 書く。画像があれば先に上げ、そのあと行を作る。行を作れなかったら、
+ * 上げた画像を片付ける（どの書き込みにも付かない画像を残さない）。
+ *
+ * 書き込みの id は、ここで決める。画像の道筋（<自分のid>/<書き込みのid>.jpg）と
+ * 合っているかを、データベースが確かめる。
+ */
+export async function postMessage(
+  userId: string,
+  body: string,
+  image: ChatImageDraft | null = null,
+  channel: ChatChannel = 'general',
+): Promise<ChatResult> {
   const text = body.trim().slice(0, MAX_MESSAGE);
-  if (!text) return { ok: false, problem: 'unknown' };
+  if (!text && !image) return { ok: false, problem: 'unknown' };
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return { ok: false, problem: 'offline' };
+
+  const id = newId();
+  const path = image ? `${userId}/${id}.jpg` : null;
   try {
-    const { error } = await supabase.from('chat_messages').insert({ user_id: userId, channel, body: text });
-    return error ? { ok: false, problem: toProblem(error) } : { ok: true };
+    if (image && path) {
+      const { error } = await supabase.storage
+        .from(IMAGE_BUCKET)
+        .upload(path, image.blob, { contentType: 'image/jpeg', upsert: false });
+      if (error) {
+        const p = toProblem(error);
+        return { ok: false, problem: p === 'unknown' ? 'image' : p };
+      }
+    }
+    /* 画像の列は、画像があるときだけ送る（データベースの更新前でも、文は書けるように） */
+    const { error } = await supabase.from('chat_messages').insert({
+      id,
+      user_id: userId,
+      channel,
+      body: text,
+      ...(image && path ? { image_path: path, image_width: image.width, image_height: image.height } : {}),
+    });
+    if (error) {
+      if (path) await removeImage(path);
+      return { ok: false, problem: toProblem(error) };
+    }
+    return { ok: true };
   } catch (e) {
+    if (path) await removeImage(path);
     const p = toProblem(e as RawError);
     return { ok: false, problem: p === 'unknown' ? 'offline' : p };
   }
 }
 
-/** 自分の書き込みを消す */
-export async function deleteMessage(id: string): Promise<ChatResult> {
+async function removeImage(path: string): Promise<void> {
+  await supabase.storage.from(IMAGE_BUCKET).remove([path]).catch(() => undefined);
+}
+
+/**
+ * 自分の書き込みを消す。画像も置き場所から消す。
+ * 消せなくても構わない（書き込みが消えた時点で、ほかの会員には読めない。
+ * 残ったものは、管理画面を開いたときにデータベースの控えから消す）。
+ */
+export async function deleteMessage(id: string, image: ChatImage | null = null): Promise<ChatResult> {
   try {
     const { error } = await supabase.from('chat_messages').delete().eq('id', id);
-    return error ? { ok: false, problem: toProblem(error) } : { ok: true };
+    if (error) return { ok: false, problem: toProblem(error) };
+    if (image) await removeImage(image.path);
+    return { ok: true };
   } catch (e) {
     return { ok: false, problem: toProblem(e as RawError) };
   }
+}
+
+/** もらった期限つき URL（道筋ごと）。開き直しても同じ URL を使い、画像を読み直させない */
+const signed = new Map<string, { url: string; until: number }>();
+
+/**
+ * 画像の期限つき URL をまとめてもらう。読めない画像（隠された・消された）は入らない。
+ * 戻り値は 道筋 → URL。
+ */
+export async function chatImageUrls(paths: string[]): Promise<Map<string, string>> {
+  const now = Date.now();
+  const need = [...new Set(paths)].filter((p) => {
+    const s = signed.get(p);
+    return !s || s.until - now < RESIGN_BEFORE_MS;
+  });
+  if (need.length > 0) {
+    try {
+      const { data } = await supabase.storage.from(IMAGE_BUCKET).createSignedUrls(need, SIGN_SECONDS);
+      for (const d of data ?? []) {
+        if (d.path && d.signedUrl && !d.error) signed.set(d.path, { url: d.signedUrl, until: now + SIGN_SECONDS * 1000 });
+      }
+    } catch {
+      // 読めなかった画像は出さない（次に読み直したときに、もう一度もらう）
+    }
+  }
+  const out = new Map<string, string>();
+  for (const p of paths) {
+    const s = signed.get(p);
+    if (s) out.set(p, s.url);
+  }
+  return out;
 }
 
 /** 他人の書き込みを通報する（1人1回） */

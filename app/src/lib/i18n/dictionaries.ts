@@ -264,8 +264,17 @@ const ja = {
 
   chatRoom: {
     rules:
-      'みんなが読める場所です。個人が特定できる情報や、人を傷つける書き込みはしないでください。ルールに反する書き込みは運営が非表示にします。',
+      'みんなが読める場所です。個人が特定できる情報（顔や車のナンバーが写った画像を含む）や、人を傷つける書き込みはしないでください。ルールに反する書き込みは運営が非表示にします。',
     placeholder: '書き込む（500字まで）',
+    /* 画像を添える（2026-11-08） */
+    attachImage: '画像を添える',
+    removeImage: '添えた画像を外す',
+    imageLabel: '書き込みに添えられた画像',
+    openImage: '画像を大きく見る',
+    imageOnly: '（画像）',
+    imageGone: '画像を表示できません',
+    imageUnreadable: '画像を読み込めませんでした。JPEG・PNG・WebP の画像を選んでください。',
+    sending: '送っています',
     /* オンライン状態（2026-10-06） */
     online: 'オンライン',
     offline: 'オフライン',
@@ -292,6 +301,8 @@ const ja = {
     error: {
       offline: '通信できないため送れませんでした。電波の届く場所でもう一度お試しください。',
       tooMany: '書き込みが多すぎます。少し時間をおいてから書き込んでください。',
+      tooManyImages: '画像は1日に20枚までです。文だけなら書き込めます。',
+      image: '画像を送れませんでした。もう一度お試しください。',
       notAllowed: 'いまは書き込めません。',
       already: 'すでに知らせています。',
       unknown: 'うまくいきませんでした。もう一度お試しください。',
@@ -1107,8 +1118,16 @@ const en: Dictionary = {
 
   chatRoom: {
     rules:
-      'Everyone can read this. Do not post anything that identifies a person or hurts others. Posts that break the rules are hidden by the operator.',
+      'Everyone can read this. Do not post anything that identifies a person (including images showing faces or number plates) or hurts others. Posts that break the rules are hidden by the operator.',
     placeholder: 'Write a post (up to 500 characters)',
+    attachImage: 'Add an image',
+    removeImage: 'Remove the image',
+    imageLabel: 'Image in the post',
+    openImage: 'View the image larger',
+    imageOnly: '(Image)',
+    imageGone: 'The image cannot be shown',
+    imageUnreadable: 'Could not read the image. Please choose a JPEG, PNG or WebP image.',
+    sending: 'Sending',
     online: 'Online',
     offline: 'Offline',
     onlineCount: '{n} online now',
@@ -1133,6 +1152,8 @@ const en: Dictionary = {
     error: {
       offline: 'Could not send without a connection. Please try again where there is a signal.',
       tooMany: 'Too many posts. Please wait a little before posting again.',
+      tooManyImages: 'You can post up to 20 images a day. You can still post text.',
+      image: 'Could not send the image. Please try again.',
       notAllowed: 'You cannot post right now.',
       already: 'You have already reported this.',
       unknown: 'Something went wrong. Please try again.',

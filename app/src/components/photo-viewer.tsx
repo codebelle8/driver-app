@@ -49,6 +49,45 @@ export function PhotoViewer({
   onClose: () => void;
 }) {
   const t = useT();
+  if (index === null || !photos[index]) return null;
+  const photo = photos[index];
+  return (
+    <ImageViewer
+      uri={photoUrl(photo.storage_path)}
+      label={photo.caption ?? t.photoKind[photo.kind]}
+      tag={t.photoKind[photo.kind]}
+      caption={photo.caption}
+      cachePolicy="disk"
+      onClose={onClose}
+    />
+  );
+}
+
+/**
+ * 1枚の画像を画面いっぱいに開いて拡大する。施設の写真（上の PhotoViewer）と、
+ * チャットの画像（2026-11-08）で使う。
+ *
+ * 出しているあいだだけ置く（閉じたら外す）。拡大・移動の具合は、開くたびに初めから。
+ */
+export function ImageViewer({
+  uri,
+  label,
+  tag,
+  caption,
+  cachePolicy,
+  onClose,
+}: {
+  uri: string;
+  /** 読み上げに伝える名前 */
+  label: string;
+  /** 左上の札（施設の写真では種類）。無ければ出さない */
+  tag?: string;
+  /** 下の説明。無ければ出さない */
+  caption?: string | null;
+  cachePolicy?: 'disk' | 'memory-disk';
+  onClose: () => void;
+}) {
+  const t = useT();
   const c = useTheme();
   const styles = makeStyles(c);
   const { width, height } = useWindowDimensions();
@@ -121,9 +160,6 @@ export function PhotoViewer({
     transform: [{ translateX: x.value }, { translateY: y.value }, { scale: scale.value }],
   }));
 
-  if (index === null || !photos[index]) return null;
-  const photo = photos[index];
-
   function close() {
     reset();
     onClose();
@@ -137,20 +173,24 @@ export function PhotoViewer({
           <GestureDetector gesture={gesture}>
             <Animated.View style={[styles.stage, { width, height }, imageStyle]}>
               <Image
-                source={{ uri: photoUrl(photo.storage_path) }}
+                source={{ uri }}
                 style={{ width, height }}
                 contentFit="contain"
-                cachePolicy="disk"
+                cachePolicy={cachePolicy}
                 transition={0}
-                accessibilityLabel={photo.caption ?? t.photoKind[photo.kind]}
+                accessibilityLabel={label}
               />
             </Animated.View>
           </GestureDetector>
 
           <View style={styles.topBar} pointerEvents="box-none">
-            <View style={styles.kindTag}>
-              <Text style={styles.kindTagText}>{t.photoKind[photo.kind]}</Text>
-            </View>
+            {tag ? (
+              <View style={styles.kindTag}>
+                <Text style={styles.kindTagText}>{tag}</Text>
+              </View>
+            ) : (
+              <View />
+            )}
             {/*
               閉じる。写真の上に置くため、白い地に濃い記号にしてある。
               色だけを変える作りにすると、明るい写真では消える。
@@ -159,7 +199,7 @@ export function PhotoViewer({
           </View>
 
           <View style={styles.bottomBar} pointerEvents="none">
-            {photo.caption && <Text style={styles.caption}>{photo.caption}</Text>}
+            {caption && <Text style={styles.caption}>{caption}</Text>}
             <Text style={styles.hint}>{t.photo.zoomHint}</Text>
           </View>
         </View>

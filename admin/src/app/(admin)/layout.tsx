@@ -21,6 +21,32 @@ async function signOut() {
   redirect('/login');
 }
 
+/** 一度に置き場所から消す画像の数。開くたびに呼ぶので、少しずつ片付ける */
+const TRASH_BATCH = 100;
+
+/**
+ * 消えたチャットの書き込みの画像を、置き場所（chat-images）から消す（2026-11-08）。
+ *
+ * データベースの関数からは置き場所のファイルを消せない。書き込みが消えると
+ * （本人が消した・1年を過ぎた・退会した）データベースが道筋を chat_image_trash に
+ * 控えるので、開いたときにここで消し、控えも消す。
+ * 置き場所に無いもの（本人がもう消した）は、消せたものとして扱われる。
+ * データベースの更新前（表が無い）でも、うまくいかなくても画面は止めない。
+ */
+async function removeTrashedChatImages(): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.from('chat_image_trash').select('path').limit(TRASH_BATCH);
+    if (error || !data || data.length === 0) return;
+    const paths = data.map((r) => r.path);
+    const removed = await admin.storage.from('chat-images').remove(paths);
+    if (removed.error) return;
+    await admin.from('chat_image_trash').delete().in('path', paths);
+  } catch {
+    // 次に開いたときに、もう一度消す
+  }
+}
+
 export default async function AdminLayout({ children }: LayoutProps<'/'>) {
   const [staff, t, locale, theme] = await Promise.all([
     requireStaff(),
@@ -59,6 +85,7 @@ export default async function AdminLayout({ children }: LayoutProps<'/'>) {
       () => undefined,
       () => undefined,
     );
+    await removeTrashedChatImages();
   }
 
   let notices: Awaited<ReturnType<typeof fetchOpenNotices>> = null;

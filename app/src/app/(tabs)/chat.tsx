@@ -105,7 +105,7 @@ export default function ChatScreen() {
                   ? t.chat.generalDesc
                   : last === null
                     ? t.chat.noMessages
-                    : `${last.mine ? t.ranking.you : (last.name ?? t.chatRoom.noName)}：${last.body}`}
+                    : `${last.mine ? t.ranking.you : (last.name ?? t.chatRoom.noName)}：${last.body || t.chatRoom.imageOnly}`}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.textFaint} />

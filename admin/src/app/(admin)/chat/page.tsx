@@ -22,6 +22,9 @@ const RECENT = 50;
 /** 要確認・未確認で一度に出す件数（古い順）。残りは、片付けると次が出る */
 const BATCH = 100;
 
+/** 添えられた画像の期限つき URL の長さ（秒）。画像は非公開の置き場所にある */
+const SIGNED_SECONDS = 3600;
+
 type Tab = 'reports' | 'flags' | 'new' | 'all';
 
 /**
@@ -118,6 +121,15 @@ export default async function ChatAdminPage({ searchParams }: PageProps<'/chat'>
     : { data: [] as { user_id: string; member_no: number; display_name: string | null; chat_muted?: boolean }[] };
   const who = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
+  /* 添えられた画像（2026-11-08）。隠した書き込みの画像も、職員には出す */
+  const imagePaths = messages.flatMap((m) => (m.image_path ? [m.image_path] : []));
+  const signed = imagePaths.length
+    ? await admin.storage.from('chat-images').createSignedUrls(imagePaths, SIGNED_SECONDS)
+    : { data: [] as { path: string | null; signedUrl: string | null }[] };
+  const imageUrl = new Map(
+    (signed.data ?? []).filter((x) => x.path && x.signedUrl).map((x) => [x.path as string, x.signedUrl as string]),
+  );
+
   const when = (iso: string) =>
     new Date(iso).toLocaleString('ja-JP', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tokyo' });
   const code = (n: number) => (n < 10000 ? String(n).padStart(4, '0') : String(n));
@@ -199,9 +211,33 @@ export default async function ChatAdminPage({ searchParams }: PageProps<'/chat'>
                     </Badge>
                   ))}
                 </div>
-                <p className={`whitespace-pre-wrap text-sm leading-relaxed ${m.hidden_at ? 'text-text-faint line-through' : ''}`}>
-                  {m.body}
-                </p>
+                {m.image_path &&
+                  (imageUrl.get(m.image_path) ? (
+                    <a
+                      href={imageUrl.get(m.image_path)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block w-fit"
+                      data-testid="admin-chat-image"
+                    >
+                      {/* 期限付きの鍵の URL。next/image の最適化を通すと鍵が切れる */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageUrl.get(m.image_path)}
+                        alt={s.imageAlt}
+                        width={m.image_width ?? undefined}
+                        height={m.image_height ?? undefined}
+                        className={`h-auto max-h-60 w-auto max-w-full rounded-lg border border-border ${m.hidden_at ? 'opacity-50' : ''}`}
+                      />
+                    </a>
+                  ) : (
+                    <p className="text-xs text-text-faint">{s.imageGone}</p>
+                  ))}
+                {m.body.trim() !== '' && (
+                  <p className={`whitespace-pre-wrap text-sm leading-relaxed ${m.hidden_at ? 'text-text-faint line-through' : ''}`}>
+                    {m.body}
+                  </p>
+                )}
                 {reasons.length > 0 && (
                   <ul className="list-disc space-y-0.5 pl-5 text-xs text-text-muted">
                     {reasons.map((r, i) => (

@@ -318,10 +318,20 @@ export type ChatMessage = {
   flags?: ChatFlag[];
   flag_cleared_at?: string | null;
   flag_cleared_by?: string | null;
+  /** 添えた画像（chat-images の中の道筋）と縦横（20261108000001 で追加。更新前は無い） */
+  image_path?: string | null;
+  image_width?: number | null;
+  image_height?: number | null;
 }
 
-/** 自動の旗の種類（データベースの chat_flags_of と同じ） */
-export type ChatFlag = 'phone' | 'email' | 'url' | 'plate' | 'word';
+/** 自動の旗の種類（データベースの chat_flags_of と flag_chat_message と同じ） */
+export type ChatFlag = 'phone' | 'email' | 'url' | 'plate' | 'word' | 'image';
+
+/** 消した書き込みの画像の道筋。管理画面が置き場所から消す（2026-11-08） */
+export type ChatImageTrash = {
+  path: string;
+  created_at: string;
+};
 
 /** チャットの見張りの「ここまで確認した」の印（職員で共有。2026-10-08） */
 export type ChatReviewState = {
@@ -509,6 +519,7 @@ export interface Database {
         Insert<ChatReport, 'id' | 'reporter_id' | 'reason' | 'state' | 'created_at'>
       >;
       chat_review_state: Table<ChatReviewState, Insert<ChatReviewState, keyof ChatReviewState>>;
+      chat_image_trash: Table<ChatImageTrash, Insert<ChatImageTrash, 'created_at'>>;
       admin_notices: Table<
         AdminNotice,
         Insert<

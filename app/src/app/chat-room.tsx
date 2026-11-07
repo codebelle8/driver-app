@@ -18,20 +18,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChatBackdrop } from '@/components/chat-watermark';
 import { IconButton } from '@/components/icon-button';
 import { PageWidth } from '@/components/page-width';
+import { ImageViewer } from '@/components/photo-viewer';
 import { avatarUrlOf } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
 import {
+  canAttachChatImage,
+  chatImageUrls,
   deleteMessage,
   loadFeed,
   MAX_MESSAGE,
   MIN_MESSAGES,
   PAGE,
+  pickChatImage,
   WINDOW_DAYS,
   WINDOW_LIMIT,
   postMessage,
   reportMessage,
   watchChat,
   type ChatFeed,
+  type ChatImage,
+  type ChatImageDraft,
   type ChatMessage,
 } from '@/lib/chat';
 import { useChatUnread } from '@/lib/chat-unread';
@@ -56,9 +62,26 @@ import { useTheme } from '@/theme-context';
  *
  * **新しい書き込み**: Realtime の合図で読み直し、届かない環境のために
  * 開いているあいだは POLL_MS ごとにも読み直す。
+ *
+ * **画像を1枚添えられる**（2026-11-08。ブラウザだけ）。書く欄の左の釦で選び、
+ * 送る前に見本を出す（外せる）。書き込みの中では幅 IMAGE_MAX_W までで出し、
+ * 押すと画面いっぱいに広げる。画像の URL は期限つきなので、開いているあいだは
+ * RESIGN_MS ごとに、切れそうなものをもらい直す。
  */
 
 const POLL_MS = 20_000;
+
+/** 書き込みの中の画像の大きさの上限（px）。縦長の写真が画面を埋めないよう、高さも抑える */
+const IMAGE_MAX_W = 240;
+const IMAGE_MAX_H = 280;
+
+/** 画像の期限つき URL を見直す間隔（期限は1時間。lib/chat.ts） */
+const RESIGN_MS = 10 * 60_000;
+
+/** 書き込みの中に出す画像の幅（縦横の比は保つ。小さい画像は広げない） */
+function thumbWidth(img: ChatImage): number {
+  return Math.round(Math.min(img.width, IMAGE_MAX_W, (img.width * IMAGE_MAX_H) / img.height));
+}
 
 export default function ChatRoomScreen() {
   const c = useTheme();
@@ -92,6 +115,12 @@ export default function ChatRoomScreen() {
   */
   const settledAt = useRef(0);
   const [draft, setDraft] = useState('');
+  /* 送る前の画像と、その見本の URL（端末の中だけの blob: URL。外したら手放す） */
+  const [image, setImage] = useState<(ChatImageDraft & { preview: string }) | null>(null);
+  const previewRef = useRef<string | null>(null);
+  /* 書き込みの画像の URL（道筋 → 期限つき URL）と、広げて見ている画像 */
+  const [imageUrls, setImageUrls] = useState<Map<string, string>>(() => new Map());
+  const [viewing, setViewing] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const scroller = useRef<ScrollView>(null);
   const atBottom = useRef(true);
@@ -149,6 +178,49 @@ export default function ChatRoomScreen() {
     if (atBottom.current) scroller.current?.scrollToEnd({ animated: false });
   }, [lastId]);
 
+  /*
+    書き込みの画像の URL をもらう。並んでいる画像が変わったときと、RESIGN_MS ごと
+    （期限の切れそうなものだけ、もらい直す）。読めない画像（隠された・消された）は
+    返らず、枠だけが出る。
+  */
+  const pathsKey = messages.flatMap((m) => (m.image ? [m.image.path] : [])).join('|');
+  useEffect(() => {
+    const paths = pathsKey ? pathsKey.split('|') : [];
+    if (paths.length === 0) return;
+    let alive = true;
+    const run = () =>
+      chatImageUrls(paths).then((urls) => {
+        if (alive) setImageUrls(urls);
+      });
+    run();
+    const timer = setInterval(run, RESIGN_MS);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [pathsKey]);
+
+  /* 見本の blob: URL は、画面を閉じたら手放す */
+  useEffect(
+    () => () => {
+      if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    },
+    [],
+  );
+
+  function setDraftImage(next: ChatImageDraft | null) {
+    if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    const preview = next ? URL.createObjectURL(next.blob) : null;
+    previewRef.current = preview;
+    setImage(next && preview ? { ...next, preview } : null);
+  }
+
+  async function onPickImage() {
+    const r = await pickChatImage();
+    if (r.ok) setDraftImage(r.image);
+    else if (r.reason === 'unreadable') notify(t.chatRoom.imageUnreadable, undefined, 'error');
+  }
+
   const more = older.length > 0 && moreOlder !== null ? moreOlder : moreLatest;
 
   /** その前の10日ぶんを読み足す（上へスクロールしたとき・釦を押したとき） */
@@ -167,13 +239,20 @@ export default function ChatRoomScreen() {
     setLoadingOlder(false);
   }
 
+  const canSend = (!!draft.trim() || !!image) && !sending && !!feed;
+
   async function onSend() {
-    if (!account || sending || !draft.trim()) return;
+    if (!account || !canSend) return;
     setSending(true);
-    const r = await postMessage(account.userId, draft);
+    const r = await postMessage(
+      account.userId,
+      draft,
+      image ? { blob: image.blob, width: image.width, height: image.height } : null,
+    );
     setSending(false);
     if (r.ok) {
       setDraft('');
+      setDraftImage(null);
       atBottom.current = true;
       await reload();
     } else {
@@ -184,10 +263,10 @@ export default function ChatRoomScreen() {
   function onDelete(m: ChatMessage) {
     confirmDelete({
       title: t.chatRoom.deleteTitle,
-      message: m.body.slice(0, 80),
+      message: m.body.slice(0, 80) || t.chatRoom.imageOnly,
       yes: t.chatRoom.delete,
       onYes: async () => {
-        const r = await deleteMessage(m.id);
+        const r = await deleteMessage(m.id, m.image);
         if (r.ok) {
           setOlder((list) => list.filter((x) => x.id !== m.id));
           await reload();
@@ -355,11 +434,39 @@ export default function ChatRoomScreen() {
                       {'　'}
                       {when(m.createdAt)}
                     </Text>
-                    <View style={[styles.bubble, m.mine && styles.bubbleMine]}>
-                      <Text style={styles.text} selectable>
-                        {m.body}
-                      </Text>
-                    </View>
+                    {m.image &&
+                      (() => {
+                        const url = imageUrls.get(m.image.path);
+                        const box = [
+                          styles.image,
+                          { width: thumbWidth(m.image), aspectRatio: m.image.width / m.image.height },
+                        ];
+                        /* URL をもらう前・読めない画像は、同じ大きさの枠だけ出す（並びがずれない） */
+                        return url ? (
+                          <Pressable
+                            onPress={() => setViewing(url)}
+                            accessibilityRole="imagebutton"
+                            accessibilityLabel={t.chatRoom.openImage}
+                            testID="chat-image"
+                          >
+                            <Image
+                              source={{ uri: url }}
+                              style={box}
+                              contentFit="cover"
+                              accessibilityLabel={t.chatRoom.imageLabel}
+                            />
+                          </Pressable>
+                        ) : (
+                          <View style={[box, styles.imagePending]} accessibilityLabel={t.chatRoom.imageGone} />
+                        );
+                      })()}
+                    {!!m.body && (
+                      <View style={[styles.bubble, m.mine && styles.bubbleMine]}>
+                        <Text style={styles.text} selectable>
+                          {m.body}
+                        </Text>
+                      </View>
+                    )}
                     <Pressable
                       onPress={() => (m.mine ? onDelete(m) : onReport(m))}
                       hitSlop={8}
@@ -382,7 +489,37 @@ export default function ChatRoomScreen() {
             ) : (
               <>
                 {me && !me.hasName && <Text style={styles.nameHint}>{t.chatRoom.noNameHint}</Text>}
+                {/* 送る前の画像の見本。右上の × で外す */}
+                {image && (
+                  <View style={styles.preview} testID="chat-image-preview">
+                    <Image
+                      source={{ uri: image.preview }}
+                      style={[styles.previewImage, { aspectRatio: image.width / image.height }]}
+                      contentFit="cover"
+                      accessibilityLabel={t.chatRoom.imageLabel}
+                    />
+                    <Pressable
+                      onPress={() => setDraftImage(null)}
+                      disabled={sending}
+                      hitSlop={8}
+                      style={styles.previewRemove}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.chatRoom.removeImage}
+                    >
+                      <Ionicons name="close" size={16} color="#ffffff" />
+                    </Pressable>
+                  </View>
+                )}
                 <View style={styles.inputRow}>
+                  {canAttachChatImage() && (
+                    <IconButton
+                      icon="image-outline"
+                      size={22}
+                      label={t.chatRoom.attachImage}
+                      onPress={onPickImage}
+                      disabled={sending || !feed}
+                    />
+                  )}
                   <TextInput
                     value={draft}
                     onChangeText={(v) => setDraft(v.slice(0, MAX_MESSAGE))}
@@ -395,13 +532,18 @@ export default function ChatRoomScreen() {
                   />
                   <Pressable
                     onPress={onSend}
-                    disabled={!draft.trim() || sending || !feed}
-                    style={[styles.send, (!draft.trim() || sending || !feed) && styles.sendOff]}
+                    disabled={!canSend}
+                    style={[styles.send, !canSend && !sending && styles.sendOff]}
                     accessibilityRole="button"
-                    accessibilityLabel={t.chatRoom.send}
-                    accessibilityState={{ disabled: !draft.trim() || sending || !feed }}
+                    accessibilityLabel={sending ? t.chatRoom.sending : t.chatRoom.send}
+                    accessibilityState={{ disabled: !canSend, busy: sending }}
                   >
-                    <Ionicons name="send" size={18} color={c.accentText} />
+                    {/* 画像を上げるあいだは数秒かかるので、回る印を出す */}
+                    {sending ? (
+                      <ActivityIndicator size="small" color={c.accentText} />
+                    ) : (
+                      <Ionicons name="send" size={18} color={c.accentText} />
+                    )}
                   </Pressable>
                 </View>
                 {draft.length > MAX_MESSAGE - 100 && (
@@ -414,6 +556,7 @@ export default function ChatRoomScreen() {
           </View>
         </PageWidth>
       </KeyboardAvoidingView>
+      {viewing && <ImageViewer uri={viewing} label={t.chatRoom.imageLabel} onClose={() => setViewing(null)} />}
     </SafeAreaView>
   );
 }
@@ -515,6 +658,28 @@ function makeStyles(c: Palette) {
     },
     text: { fontSize: TEXT.body, color: c.text, lineHeight: 21 },
     action: { fontSize: TEXT.micro, color: c.textFaint, textDecorationLine: 'underline' },
+    image: { maxWidth: '100%', borderRadius: RADIUS.md, borderWidth: 1, borderColor: c.border },
+    imagePending: { backgroundColor: c.surface },
+
+    preview: { alignSelf: 'flex-start', marginBottom: 4 },
+    previewImage: {
+      height: 88,
+      maxWidth: 200,
+      borderRadius: RADIUS.sm,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    previewRemove: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
     composer: {
       paddingHorizontal: SPACE.lg,

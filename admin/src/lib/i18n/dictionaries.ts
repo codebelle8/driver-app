@@ -90,7 +90,7 @@ const ja = {
     tabNew: '未確認',
     tabAll: 'すべての書き込み',
     flagsHint:
-      '電話番号・メールアドレス・URL・車の番号らしきものや、サイト設定の「気をつける言葉」を含む書き込みです（古い順）。ルールに反していれば「非表示にする」、問題なければ「問題なし（旗を下ろす）」を押してください。',
+      '電話番号・メールアドレス・URL・車の番号らしきものや、サイト設定の「気をつける言葉」を含む書き込みと、画像を添えた書き込みです（古い順）。画像は、顔や車のナンバーが写っていないかを目で確かめてください。ルールに反していれば「非表示にする」、問題なければ「問題なし（旗を下ろす）」を押してください。',
     newHint:
       'まだだれも確認していない書き込みです（古い順）。読み終えたら、いちばん下の「ここまで確認した」を押してください。ほかの職員の画面からも消えます。',
     noFlags: '要確認の書き込みはありません。',
@@ -105,7 +105,11 @@ const ja = {
       url: 'URL',
       plate: '車の番号らしきもの',
       word: '気をつける言葉',
+      image: '画像（目で確認）',
     },
+    /* 書き込みに添えられた画像（2026-11-08） */
+    imageAlt: '書き込みに添えられた画像',
+    imageGone: '画像を読み込めませんでした',
     noReports: '未対応の通報はありません。',
     noMessages: 'まだ書き込みはありません。',
     reportCount: '通報 {n} 件',
@@ -873,7 +877,7 @@ const en: Dictionary = {
     tabNew: 'Unchecked',
     tabAll: 'All posts',
     flagsHint:
-      'Posts that contain what looks like a phone number, email address, URL or licence plate, or a word from "Words to watch" in Site settings (oldest first). Hide posts that break the rules; otherwise press "No problem (clear flag)".',
+      'Posts that contain what looks like a phone number, email address, URL or licence plate, or a word from "Words to watch" in Site settings, and posts with an image (oldest first). Check images by eye for faces and licence plates. Hide posts that break the rules; otherwise press "No problem (clear flag)".',
     newHint:
       'Posts nobody has checked yet (oldest first). When you have read them, press "Checked up to here" at the bottom. They also disappear from the other staff members’ lists.',
     noFlags: 'No posts need review.',
@@ -888,7 +892,10 @@ const en: Dictionary = {
       url: 'URL',
       plate: 'Licence plate?',
       word: 'Word to watch',
+      image: 'Image (check by eye)',
     },
+    imageAlt: 'Image in the post',
+    imageGone: 'Could not load the image',
     noReports: 'No open reports.',
     noMessages: 'No posts yet.',
     reportCount: '{n} reports',
