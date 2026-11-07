@@ -293,7 +293,10 @@ try {
     check('非表示にした書き込みは、会員の画面から消える',
       (await bPage.getByTestId('chat-message').filter({ hasText: POST_WITH }).count()) === 0);
 
-    /* 本人が画像だけの書き込みを消す → 置き場所からも消える・控えは管理画面が片付ける */
+    /* 本人が画像だけの書き込みを消す → 置き場所からも消える・控えは管理画面が片付ける。
+       管理画面のチャットは、書き込みが消えた合図で 0.4 秒後に読み直し（LiveRefresh）、
+       そのとき控えも片付ける。控えが残ることを確かめるため、消す前に管理画面を閉じておく */
+    await page.goto('about:blank');
     await openRoom(aPage);
     const own = aPage.getByTestId('chat-message').filter({ has: aPage.getByTestId('chat-image') }).last();
     await own.getByRole('button', { name: '削除' }).click();
