@@ -1055,6 +1055,9 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 はじめ「消す画像の控えが残る」が1件落ちたが、仕組みの誤りではなかった。管理画面のチャットは書き込みが消えた合図で
 すぐ読み直し、そのとき控えも片付けるため、確かめる前に消えていた。検査で、消す前に管理画面を閉じるようにした。
 
+公開（2026-11-08、ご指示「public」）: アプリ（app.kurumayosenavi.com）と管理画面（admin.kurumayosenavi.com）。
+本番で `tools/test-chat-images.mjs` **33 / 0**、`tools/test-chat.mjs` **28 / 0**。端末（APK）には入っていない（作り直しはご指示があったとき）。
+
 関連: `app/src/app/chat-room.tsx`, `app/src/lib/chat.ts`, `app/src/lib/avatar.ts`（縮める処理を情報提供と共用にした）,
 `app/src/components/photo-viewer.tsx`, `admin/src/app/(admin)/chat/page.tsx`, `admin/src/app/(admin)/layout.tsx`,
 `tools/test-chat-images.mjs`
