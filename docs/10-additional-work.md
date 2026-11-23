@@ -1035,6 +1035,10 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
 手元で `tools/test-site-legal.mjs` **63 / 0**（プライバシーポリシーの見出しの数を 10 → 8 に）。
 
+公開（2026-11-23、ご指示「public」）。本番で `tools/test-site-legal.mjs` **66 / 0**、`tools/test-legal-live.mjs` **19 / 0**。
+公開の前に、消した「業務委託先および保管場所」には、外国のサーバーで扱う場合に国の名前などを本人が知り得る状態に
+しておく、という個人情報保護法の求めにあたる中身があったことをお伝えした（上野様・弁護士のご判断を勧めた）。
+
 関連: `docs/17-legal-final.md`, `tools/build-legal-pages.mjs`, `site/privacy.html`, `tools/test-site-legal.mjs`
 
 ---
