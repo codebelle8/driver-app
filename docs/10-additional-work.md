@@ -1044,6 +1044,10 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 施設数は開いたときにデータベースから読み直し（いま 227）、html の控えの数（224）と食い違うのを、文字が
 変わったと見ている。直していない。
 
+公開（2026-11-23、ご指示「public」）: https://kurumayosenavi.com/terms ・ /privacy ・ /law 。本番で
+`tools/test-site-legal.mjs` **66 / 0**（配信側の見出しでも検索に載せないことを3件足して確かめた）。
+アプリの登録画面の「同意する」は、管理画面の「サイト設定」に3つの住所を入れたときに出る（4段目）。
+
 関連: `tools/build-legal-pages.mjs`, `tools/test-site-legal.mjs`, `site/terms.html`, `site/privacy.html`,
 `site/law.html`, `site/legal.css`, `site/legal.js`, `site/index.html`, `site/styles.css`, `site/README.md`
 
