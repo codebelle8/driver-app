@@ -52,7 +52,7 @@ const PAGES = [
     file: 'privacy.html',
     path: '/privacy',
     label: 'PRIVACY POLICY',
-    description: '車寄せナビのプライバシーポリシーです。取得する情報、利用目的、業務委託先、お問い合わせ窓口を定めています。',
+    description: '車寄せナビのプライバシーポリシーです。取得する情報、利用目的、安全管理、お問い合わせ窓口を定めています。',
     toc: true,
   },
   {
