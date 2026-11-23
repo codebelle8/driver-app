@@ -1,0 +1,522 @@
+/* =============================================================================
+   規約類の3ページ（/terms・/privacy・/law）の見た目（2026-11-23）
+
+   ページは tools/build-legal-pages.mjs が docs/17-legal-final.md から作る。
+   トップ（index.html・styles.css）と同じ色・書体・カーソルにそろえ、読むための
+   ページなので大きな動きは付けない。トップと同じく明るい表示だけ。
+
+     濃紺の帯 … トップのフッターと同じ。最初と最後を揃える
+     緑       … アプリと同じ #008000。条の番号と、いま開いているページの印
+     薄い緑地 … 表の見出し・題の帯
+   ============================================================================= */
+
+:root {
+  --navy: #0b192f;
+  --ink: #16243a;
+  --muted: #536072;
+  --green: #008000;
+  --green-deep: #006a00;
+  --mint: #e8f3e6;
+  --amber: #f2b300;
+  --paper: #f6f8f3;
+  --white: #ffffff;
+  --line: #dde3da;
+
+  --font-jp: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-body: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-sign: 'Barlow Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+
+  --gutter: clamp(16px, 5vw, 48px);
+  --header: 68px;
+  --measure: 46rem;
+
+  /* カーソル：地図の目印（トップと同じ。ご指示 2026-09-20「サイト全体で」） */
+  --cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cg transform='matrix%281 0 0 -1 0 36%29'%3E%3Cpath d='M14 2C7.4 2 2 7.2 2 13.7c0 8.3 10 18.6 11 19.6a1.4 1.4 0 0 0 2 0c1-1 11-11.3 11-19.6C26 7.2 20.6 2 14 2Z' fill='%23008000' stroke='%230b192f' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M14 2C7.4 2 2 7.2 2 13.7c0 8.3 10 18.6 11 19.6a1.4 1.4 0 0 0 2 0c1-1 11-11.3 11-19.6C26 7.2 20.6 2 14 2Z' fill='%23008000' stroke='%23ffffff' stroke-width='1.4'/%3E%3Ccircle cx='14' cy='13.6' r='4.6' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E") 14 2, auto;
+  --cursor-link: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cg transform='matrix%281 0 0 -1 0 36%29'%3E%3Cpath d='M14 2C7.4 2 2 7.2 2 13.7c0 8.3 10 18.6 11 19.6a1.4 1.4 0 0 0 2 0c1-1 11-11.3 11-19.6C26 7.2 20.6 2 14 2Z' fill='%23f2b300' stroke='%230b192f' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M14 2C7.4 2 2 7.2 2 13.7c0 8.3 10 18.6 11 19.6a1.4 1.4 0 0 0 2 0c1-1 11-11.3 11-19.6C26 7.2 20.6 2 14 2Z' fill='%23f2b300' stroke='%23ffffff' stroke-width='1.4'/%3E%3Ccircle cx='14' cy='13.6' r='4.6' fill='%23ffffff'/%3E%3C/g%3E%3C/svg%3E") 14 2, pointer;
+  --click-red: #e5241b;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  cursor: var(--cursor);
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header) + 16px);
+  -webkit-text-size-adjust: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+a,
+button,
+summary,
+label {
+  cursor: var(--cursor-link);
+}
+
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.95;
+  letter-spacing: 0.03em;
+  word-break: auto-phrase;
+  overflow-wrap: anywhere;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: var(--white);
+  font-weight: 700;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* 押した位置に、赤い輪が3つ広がる（トップと同じ。出し方は legal.js） */
+.click-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  pointer-events: none;
+}
+.click-ring {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  border: 2.5px solid var(--click-red);
+  border-radius: 50%;
+}
+
+/* ---------------------------------------------------------------------------
+   ヘッダー（白地に、ロゴと「アプリを開く」）
+   --------------------------------------------------------------------------- */
+
+.lg-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: calc(var(--header) + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) var(--gutter) 0;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 0 var(--line);
+}
+.lg-header__logo img {
+  width: clamp(120px, 30vw, 150px);
+}
+
+.lg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 18px;
+  border-radius: 999px;
+  background: var(--green);
+  color: var(--white);
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.lg-pill:hover {
+  background: var(--green-deep);
+}
+.lg-pill__arrow {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--white);
+}
+.lg-pill__arrow::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--green);
+  border-right: 2px solid var(--green);
+  transform: translate(-65%, -50%) rotate(45deg);
+}
+
+/* ---------------------------------------------------------------------------
+   題（薄い緑地の帯。下の縁は道路の破線）
+   --------------------------------------------------------------------------- */
+
+.lg-title {
+  padding: clamp(36px, 7vw, 72px) var(--gutter) clamp(28px, 5vw, 44px);
+  background: var(--paper);
+  border-bottom: 3px dashed var(--mint);
+  text-align: center;
+}
+.lg-title__label {
+  margin: 0;
+  color: var(--green);
+  font-family: var(--font-sign);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.22em;
+}
+.lg-title h1 {
+  margin: 6px 0 0;
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: clamp(26px, 5.4vw, 40px);
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  text-wrap: balance;
+}
+
+.lg-tabs ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.lg-tabs a {
+  display: block;
+  padding: 6px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.6;
+  text-decoration: none;
+}
+.lg-tabs a:hover {
+  border-color: var(--green);
+}
+.lg-tabs a[aria-current='page'] {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--white);
+}
+
+/* ---------------------------------------------------------------------------
+   本文
+   --------------------------------------------------------------------------- */
+
+.lg-main {
+  padding-bottom: clamp(56px, 9vw, 96px);
+}
+
+.lg-toc,
+.lg-body,
+.lg-date {
+  width: min(var(--measure), 100% - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.lg-toc {
+  margin-top: clamp(28px, 5vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--white);
+}
+.lg-toc summary {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 18px;
+  font-family: var(--font-jp);
+  font-weight: 700;
+}
+.lg-toc__count {
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 13px;
+}
+.lg-toc ol {
+  margin: 0;
+  padding: 4px 18px 16px;
+  list-style: none;
+  columns: 2 15rem;
+  column-gap: 28px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.lg-toc li {
+  break-inside: avoid;
+  padding: 3px 0;
+}
+.lg-toc a {
+  text-decoration: none;
+}
+.lg-toc a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/*
+  条文はふつうに詰めて折り返す。トップの「語のまとまりで折り返す」（auto-phrase）は
+  見出しの短い文には合うが、長い条文では狭い画面の右端がひどく凸凹になる
+*/
+.lg-body {
+  margin-top: clamp(20px, 4vw, 32px);
+  word-break: normal;
+  line-break: strict;
+}
+.lg-body h2 {
+  margin: 2.4em 0 0.7em;
+  padding-top: 1.1em;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+}
+.lg-body > h2:first-child {
+  margin-top: 0.6em;
+  padding-top: 0;
+  border-top: 0;
+}
+.lg-no {
+  margin-right: 0.4em;
+  color: var(--green);
+}
+.lg-no--tight {
+  margin-right: -0.2em;
+}
+.lg-body p {
+  margin: 0.8em 0;
+}
+.lg-body ol,
+.lg-body ul {
+  margin: 0.6em 0;
+  padding-left: 1.7em;
+}
+.lg-body li {
+  margin: 0.45em 0;
+  padding-left: 0.2em;
+}
+.lg-body li::marker {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.lg-body li > ul,
+.lg-body li > ol {
+  margin: 0.3em 0;
+}
+.lg-body strong {
+  font-weight: 700;
+}
+
+/* 表。狭い画面では、表の中だけ横に送れる（ページは横に揺らさない） */
+.lg-table {
+  margin: 1em 0 1.4em;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.lg-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+  line-height: 1.8;
+}
+.lg-table th,
+.lg-table td {
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.lg-table th {
+  background: var(--paper);
+  font-family: var(--font-jp);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.lg-table td {
+  font-variant-numeric: tabular-nums;
+}
+.lg-table--def th {
+  width: 30%;
+  white-space: normal;
+}
+/* 特商法の表は、狭い画面では見出しを上・中身を下に積む */
+@media (max-width: 640px) {
+  .lg-table--def tr,
+  .lg-table--def th,
+  .lg-table--def td {
+    display: block;
+    width: auto;
+  }
+  .lg-table--def th {
+    border-bottom: 0;
+  }
+  .lg-table--def tr + tr th {
+    border-top: 0;
+  }
+
+  /* ほかの表は、1行ずつ札のように積み、各欄に列の名前（data-label）を添える */
+  .lg-table:not(.lg-table--def) thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .lg-table:not(.lg-table--def) tr,
+  .lg-table:not(.lg-table--def) td {
+    display: block;
+  }
+  .lg-table:not(.lg-table--def) tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .lg-table:not(.lg-table--def) td {
+    padding: 8px 14px;
+    border: 0;
+  }
+  .lg-table:not(.lg-table--def) td + td {
+    border-top: 1px solid var(--line);
+  }
+  .lg-table:not(.lg-table--def) td:first-child {
+    background: var(--paper);
+    font-weight: 700;
+  }
+  .lg-table:not(.lg-table--def) td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--muted);
+    font-family: var(--font-jp);
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+}
+
+.lg-date {
+  margin-top: 3em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------------
+   フッター（トップと同じ濃紺）
+   --------------------------------------------------------------------------- */
+
+.lg-footer {
+  background: var(--navy);
+  color: rgba(255, 255, 255, 0.86);
+}
+.lg-footer__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 44px var(--gutter) calc(44px + env(safe-area-inset-bottom));
+}
+.lg-footer__logo {
+  width: 180px;
+}
+.lg-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lg-footer__nav a {
+  font-family: var(--font-jp);
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+}
+.lg-footer__nav a:hover {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+.lg-footer__copy {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------------------------------------------------------------------------
+   印刷（規約を紙で控える方のため。案内の部品は外す）
+   --------------------------------------------------------------------------- */
+
+@media print {
+  .lg-header,
+  .lg-tabs,
+  .lg-toc,
+  .lg-footer,
+  .skip-link {
+    display: none;
+  }
+  .lg-title {
+    padding: 0 0 12px;
+    background: none;
+    border-bottom: 1px solid #000;
+  }
+  body {
+    color: #000;
+    font-size: 11pt;
+  }
+  .lg-no {
+    color: #000;
+  }
+  .lg-body h2 {
+    break-after: avoid;
+  }
+  .lg-table {
+    overflow: visible;
+  }
+}

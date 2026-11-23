@@ -1877,6 +1877,27 @@ a {
   text-decoration: underline;
   text-underline-offset: 6px;
 }
+/* 規約類（2026-11-23）。上の並びより一段控えめに */
+.site-footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 22px;
+  margin: -12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer__legal a {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.3);
+  text-underline-offset: 5px;
+}
+.site-footer__legal a:hover {
+  color: var(--white);
+  text-decoration-color: currentColor;
+}
 .site-footer__copy {
   margin: 0;
   font-size: 12px;
