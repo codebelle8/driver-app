@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  車寄せナビ アプリの、検索に出すページの一覧（2026-11-24）。
+  ログインしていなければ、どの住所でも入口（ログイン・新規登録）が出る作りのため、
+  載せるのはトップだけ。ほかの住所は vercel.json で検索に載せない。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://app.kurumayosenavi.com/</loc>
+  </url>
+</urlset>

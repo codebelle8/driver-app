@@ -33,7 +33,69 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <title>車寄せナビ</title>
+    <!--
+      検索と共有のための頭の情報（2026-11-24、ご指示「アプリと紹介サイトの両方を検索に」）。
+
+      **紹介サイトと役目を分ける。** 紹介サイト（kurumayosenavi.com）は「サービスの説明」、
+      アプリは「使い始める入口」。同じ題・同じ説明にすると、「車寄せナビ」で探したときに
+      2つが取り合いになる。アプリの題には「アプリ」、説明には「ログイン・新規登録」を入れる。
+
+      **検索に出すのはトップ（/）だけ。** この構成は1枚の html を全部の住所で返し、ログイン
+      していなければどの住所でも入口（ログイン・新規登録）が出る。/facility/… や /mypage を
+      載せても中身は同じ入口になるため、トップ以外は vercel.json で検索に載せない
+      （X-Robots-Tag）。正規の住所もトップにそろえる。
+
+      題は、ログインしたあとのブラウザのタブにもこのまま出る。どちらの状態でもおかしくない
+      言い方にしてある（「ログイン」は題に入れず、説明にだけ入れる）。
+      ホーム画面に置いたときの名前は、下の apple-mobile-web-app-title と manifest の
+      「車寄せナビ」のまま。
+    -->
+    <title>車寄せナビ アプリ｜プロドライバーのための車寄せ・エントランス案内</title>
+    <meta
+      name="description"
+      content="プロドライバーのための車寄せ・エントランス案内アプリ「車寄せナビ」のログイン・新規登録の入口です。インストール不要で、スマートフォンのブラウザから使えます。試験提供中は無料。"
+    />
+    <link rel="canonical" href="https://app.kurumayosenavi.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="車寄せナビ" />
+    <meta property="og:title" content="車寄せナビ アプリ｜プロドライバーのための車寄せ・エントランス案内" />
+    <meta
+      property="og:description"
+      content="プロドライバーのための車寄せ・エントランス案内アプリ。インストール不要で、スマートフォンのブラウザから使えます。試験提供中は無料。"
+    />
+    <meta property="og:url" content="https://app.kurumayosenavi.com/" />
+    <!-- 共有の画像は紹介サイトと同じもの。SNS や LINE は住所から始まる形でないと読まない -->
+    <meta property="og:image" content="https://kurumayosenavi.com/assets/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!--
+      検索の仕組みに、これが何のアプリで、誰が出しているかを伝える（schema.org）。
+      料金（offers）は書かない。試験提供のあいだと有料のあとで変わり、書き換え忘れると
+      検索結果に古い値段が出るため。
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "車寄せナビ",
+        "alternateName": "Driver Entrance Navi",
+        "url": "https://app.kurumayosenavi.com/",
+        "description": "プロドライバーのための車寄せ・エントランス案内アプリ。施設の車寄せや入口の場所、入り方を案内し、Google マップなどのナビへ目的地を渡します。",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "iOS, Android（ブラウザで動作）",
+        "browserRequirements": "Safari、Google Chrome、Microsoft Edge の最新版",
+        "inLanguage": "ja",
+        "image": "https://app.kurumayosenavi.com/icons/icon-512.png",
+        "publisher": {
+          "@type": "Organization",
+          "name": "レベルサーフェス",
+          "url": "https://kurumayosenavi.com/",
+          "email": "kurumayose@levelsurface.net"
+        },
+        "sameAs": ["https://kurumayosenavi.com/"]
+      }
+    </script>
 
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#0B192F" />

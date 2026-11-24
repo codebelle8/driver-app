@@ -1,0 +1,9 @@
+# 車寄せナビ アプリ（2026-11-24）
+#
+# 読みに来ること自体は止めない。止めると、トップ以外に付けた「検索に載せない」
+# （vercel.json の X-Robots-Tag）を読めず、画面を組み立てる部品（/_expo/ など）も
+# 読めなくなる。検索に出すのはトップ（/）だけで、ほかの住所は X-Robots-Tag で外す。
+User-agent: *
+Allow: /
+
+Sitemap: https://app.kurumayosenavi.com/sitemap.xml
