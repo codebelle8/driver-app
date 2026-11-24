@@ -1037,6 +1037,9 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
 検査: `tools/test-seo.mjs` に紹介サイトの分を足し、手元で **40 / 0**（アプリ 24・紹介サイト 16）。
 
+公開（2026-11-24、ご指示「public」）。本番で `test-seo` **46 / 0**（アプリ・紹介サイトとも。配信側の見出しを含む）、
+`test-site-legal` **66 / 0**。
+
 関連: `site/index.html`, `site/sitemap.xml`, `site/robots.txt`, `site/README.md`, `tools/test-seo.mjs`,
 `docs/19-seo.md`
 
