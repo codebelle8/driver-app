@@ -1039,6 +1039,9 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
 検査: `tools/test-seo.mjs` を足し、手元で **24 / 0**（配信側の見出しは公開先でだけ確かめられる）。
 
+公開（2026-11-24、ご指示「public」）。本番で `test-seo` **29 / 0**（トップは検索に載せ、/facility/… /mypage
+/chat-room /account は載せないことも確かめた）。あわせて `test-legal-live` **19 / 0**、`test-login` **24 / 0**。
+
 関連: `app/public/index.html`, `app/public/robots.txt`, `app/public/sitemap.xml`, `app/vercel.json`,
 `tools/test-seo.mjs`, `docs/19-seo.md`
 
