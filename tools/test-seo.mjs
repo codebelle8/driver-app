@@ -24,8 +24,10 @@
  *              ご質問の4つがそろう。運営者の住所とアプリの料金は書かない
  *   ご質問   … schema.org に書いたご質問と答えが、画面に出ている文と一字一句同じ。
  *              施設数が入る「どの地域に…」は入れない
- *   一覧     … sitemap.xml の4ページがすべて開く／robots.txt が一覧を指す
- *   載せる範囲 … いまは作業中のため、まだ検索に載せない（外すのは4段目）
+ *   一覧     … sitemap.xml の3ページ（トップ・利用規約・プライバシーポリシー）がすべて開き、
+ *              特商法の表記（/law）は載せない／robots.txt が読みに来るのを止めず、一覧を指す
+ *   載せる範囲 … トップ・利用規約・プライバシーポリシーは検索に載せる。/law は、ご住所が
+ *              載っているため載せない（ページの指定と、公開先では配信側の見出し。2026-11-24〜）
  */
 import { chromium } from 'playwright';
 
@@ -187,7 +189,13 @@ try {
   const siteMap = await fetch(`${SITE}/sitemap.xml`);
   const siteMapText = await siteMap.text();
   const siteLocs = [...siteMapText.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
-  check('sitemap.xml が届き、4ページを載せる', siteMap.status === 200 && siteLocs.length === 4, siteLocs.join(' '));
+  check(
+    'sitemap.xml が届き、トップ・利用規約・プライバシーポリシーの3ページを載せる',
+    siteMap.status === 200 &&
+      JSON.stringify(siteLocs) === JSON.stringify([SITE_URL, `${SITE_URL}terms`, `${SITE_URL}privacy`]),
+    siteLocs.join(' '),
+  );
+  check('特商法の表記（/law）は一覧に載せない', !siteLocs.some((l) => l.endsWith('/law')));
   const notOpen = [];
   for (const loc of siteLocs) {
     const local = loc.replace(SITE_URL.replace(/\/$/, ''), SITE);
@@ -197,11 +205,26 @@ try {
   check('一覧に載せたページがすべて開く', notOpen.length === 0, notOpen.join(' / '));
   const siteRobots = await (await fetch(`${SITE}/robots.txt`)).text();
   check('robots.txt がページの一覧を指す', siteRobots.includes(`Sitemap: ${SITE_URL}sitemap.xml`), siteRobots);
+  check(
+    'robots.txt が読みに来るのを止めない（止めると /law の「載せない」も読めない）',
+    /User-agent:\s*\*/i.test(siteRobots) && !/^Disallow:\s*\/\S*\s*$/im.test(siteRobots),
+    siteRobots,
+  );
 
   console.log('\n--- 紹介サイト：検索に載せる範囲 ---');
-  check('いまは作業中のため、まだ検索に載せない（ページの指定）', /<meta name="robots" content="noindex/.test(siteHtml));
-  if (SITE_REMOTE) {
-    check('いまは作業中のため、まだ検索に載せない（配信側の見出し）', /noindex/.test(siteRes.headers.get('x-robots-tag') ?? ''));
+  for (const [path, index] of [
+    ['/', true],
+    ['/terms', true],
+    ['/privacy', true],
+    ['/law', false],
+  ]) {
+    const r = await fetch(`${SITE}${path}`);
+    const h = await r.text();
+    const metaNoindex = /<meta name="robots" content="[^"]*noindex/.test(h);
+    const headerNoindex = /noindex/.test(r.headers.get('x-robots-tag') ?? '');
+    const label = index ? `${path} は検索に載せる` : `${path} は検索に載せない（ご住所が載っているため）`;
+    check(`${label}（ページの指定）`, metaNoindex === !index);
+    if (SITE_REMOTE) check(`${label}（配信側の見出し）`, headerNoindex === !index, r.headers.get('x-robots-tag'));
   }
 } catch (e) {
   failures.push(`途中で止まった: ${e.message}`);

@@ -1,5 +1,9 @@
-# 作業中のあいだは検索に載せない。本公開（docs/19-seo.md の4段目）で Disallow の行を外す。
+# 検索に載せる（2026-11-24、docs/19-seo.md の4段目）。
+#
+# 特商法の表記（/law）は、ご住所が載っているため検索に載せないが、ここでは止めない。
+# 止めると、ページに付けた「載せない」の指定を検索の仕組みが読めず、住所だけが
+# 検索結果に出ることがある。載せない指定は、ページの中と vercel.json の見出しで行う。
 User-agent: *
-Disallow: /
+Allow: /
 
 Sitemap: https://kurumayosenavi.com/sitemap.xml

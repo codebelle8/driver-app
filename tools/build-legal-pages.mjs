@@ -32,11 +32,12 @@ const SITE = join(ROOT, 'site');
 const SITE_URL = 'https://kurumayosenavi.com';
 const APP_URL = 'https://app.kurumayosenavi.com/';
 
-/**
- * 作業中のあいだは検索に載せない（index.html・vercel.json・robots.txt と同じ）。
- * 本公開のときは false にして流し直す（site/README.md「本公開の前に直すもの」）。
+/*
+ * 検索に載せるかどうかは、ページごとの noindex で決める（2026-11-24、docs/19-seo.md の4段目）。
+ * 特商法の表記（/law）は、ご住所が部屋番号まで載っているため検索に載せない
+ * （kara さんのご判断「/law は外す」）。法律が求めるのは表示することで、検索に出すことでは
+ * ない。トップのフッターからは誰でも開ける。site/vercel.json の見出しでも同じ指定をしている。
  */
-const NOINDEX = true;
 
 const PAGES = [
   {
@@ -62,6 +63,7 @@ const PAGES = [
     label: 'LEGAL NOTICE',
     description: '車寄せナビの特定商取引法に基づく表記です。販売業者、所在地、販売価格、支払方法などを記載しています。',
     toc: false,
+    noindex: true,
   },
 ];
 
@@ -302,7 +304,7 @@ ${headings
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(def.description)}">
 <meta name="theme-color" content="#0B192F">
-${NOINDEX ? '<!-- 作業中のあいだは検索に載せない。本公開のときは build-legal-pages.mjs の NOINDEX を false に -->\n<meta name="robots" content="noindex, nofollow">\n' : ''}<link rel="canonical" href="${SITE_URL}${def.path}">
+${def.noindex ? '<!-- ご住所が載っているため、検索に載せない（build-legal-pages.mjs の noindex） -->\n<meta name="robots" content="noindex">\n' : ''}<link rel="canonical" href="${SITE_URL}${def.path}">
 
 <meta property="og:type" content="article">
 <meta property="og:title" content="${escapeHtml(title)}">

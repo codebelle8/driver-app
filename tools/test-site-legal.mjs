@@ -14,7 +14,8 @@
  *            3つのページの切り替え（いま開いているページに印）・メールのリンク
  *   リンク … トップの下の部分から3つのページへ行ける／ページどうしを行き来できる
  *   崩れ   … 4つの幅で横にはみ出さない／特商法の表は狭い画面で縦に積む／画像が読める
- *   検索   … 作業中のあいだは検索に載せない（ページの指定。公開先では配信側の見出しも）
+ *   検索   … 利用規約とプライバシーポリシーは検索に載せる。特商法の表記（/law）は、ご住所が
+ *            載っているため載せない（ページの指定。公開先では配信側の見出しも。2026-11-24〜）
  *   誤り   … 画面の誤り・読めないファイル（404 など）が無い
  */
 import { readFileSync } from 'node:fs';
@@ -28,9 +29,9 @@ const BASE = (process.argv[2] ?? 'http://localhost:4300').replace(/\/$/, '');
 const REMOTE = !/localhost|127\.0\.0\.1/.test(BASE);
 
 const PAGES = [
-  { path: '/terms', heading: '利用規約', h2: 21, idPrefix: 'article-', toc: true },
-  { path: '/privacy', heading: 'プライバシーポリシー', h2: 8, idPrefix: 'section-', toc: true },
-  { path: '/law', heading: '特定商取引法に基づく表記', h2: 0, idPrefix: null, toc: false },
+  { path: '/terms', heading: '利用規約', h2: 21, idPrefix: 'article-', toc: true, noindex: false },
+  { path: '/privacy', heading: 'プライバシーポリシー', h2: 8, idPrefix: 'section-', toc: true, noindex: false },
+  { path: '/law', heading: '特定商取引法に基づく表記', h2: 0, idPrefix: null, toc: false, noindex: true },
 ];
 const OWNER = '上野　修';
 const ADDRESS = '東京都江戸川区中葛西5-14-12-305';
@@ -91,7 +92,11 @@ try {
     check('開ける（200）', res.status === 200, String(res.status));
     if (REMOTE) {
       const robots = res.headers.get('x-robots-tag') ?? '';
-      check('配信側の見出しでも、検索に載せない（作業中）', /noindex/.test(robots), robots);
+      check(
+        def.noindex ? '配信側の見出しでも、検索に載せない（ご住所が載っているため）' : '配信側の見出しで止めていない（検索に載せる）',
+        /noindex/.test(robots) === def.noindex,
+        robots,
+      );
     }
 
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'ja-JP' });
@@ -107,7 +112,11 @@ try {
     check('題が出る', (await page.locator('h1').innerText()).trim() === def.heading);
     check('ページの名前', (await page.title()) === `${def.heading}｜車寄せナビ`, await page.title());
     const robotsMeta = await page.locator('meta[name="robots"]').getAttribute('content').catch(() => null);
-    check('ページの指定で、検索に載せない（作業中）', /noindex/.test(robotsMeta ?? ''), robotsMeta);
+    check(
+      def.noindex ? 'ページの指定で、検索に載せない（ご住所が載っているため）' : 'ページの指定で止めていない（検索に載せる）',
+      /noindex/.test(robotsMeta ?? '') === def.noindex,
+      robotsMeta,
+    );
 
     const bodyText = await page.locator('.lg-body').innerText();
     const dateText = (await page.locator('.lg-date').innerText().catch(() => '')).trim();

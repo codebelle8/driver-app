@@ -6,8 +6,11 @@
 <title>車寄せナビ｜プロドライバーのための車寄せ・エントランス案内</title>
 <meta name="description" content="車寄せナビはプロドライバーに寄り添った車寄せやエントランスの案内をナビの案内を正確に導くお手伝いをします。">
 <meta name="theme-color" content="#0B192F">
-<!-- 作業中のあいだは検索に載せない。公開時にこの行と vercel.json・robots.txt の指定を外す -->
-<meta name="robots" content="noindex, nofollow">
+<!--
+  検索に載せる（2026-11-24、docs/19-seo.md の4段目）。それまでは作業中として、ここと
+  vercel.json・robots.txt で載せないようにしていた。特商法の表記（/law）だけは、ご住所が
+  載っているため、いまも載せない（vercel.json と tools/build-legal-pages.mjs）
+-->
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="車寄せナビ｜プロドライバーのための車寄せ・エントランス案内">

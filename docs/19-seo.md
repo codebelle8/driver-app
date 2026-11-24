@@ -35,7 +35,7 @@
 | 1 | アプリの土台：題・説明・正規の住所・共有の情報・schema.org（WebApplication）・robots.txt・sitemap.xml。トップ以外は載せない | **済**（2026-11-24 公開。本番 `test-seo` 29 / 0） |
 | 2 | 紹介サイトの土台：正規の住所・sitemap.xml・schema.org（運営者・サイト・アプリ・よくあるご質問） | **済**（2026-11-24 公開。本番 `test-seo` 46 / 0） |
 | 3 | Google Search Console の登録。ドメインごとの登録なら、DNS に1行（TXT）でサイトもアプリも一度に。ConoHa に入れるのは kara さん | |
-| 4 | 紹介サイトの「検索に載せない」を4か所とも外す（`index.html`・`vercel.json`・`robots.txt`・`tools/build-legal-pages.mjs` の `NOINDEX`） | |
+| 4 | 紹介サイトの「検索に載せない」を外す（`index.html`・`vercel.json`・`robots.txt`・`tools/build-legal-pages.mjs`）。**特商法の表記（/law）だけは載せないまま**（ご住所が載っているため。kara さんのご判断） | 手元で済（2026-11-24）。公開待ち |
 | 5 | 最初の画面の出る速さを測って直す（紹介サイトは動画と動きが重い） | |
 | 6 | 施設ごとのページ（ホテルなど誰でも行ける施設だけ・さわりだけ）。**上野様のご判断が要る** | |
 
@@ -78,8 +78,13 @@
 | 場所 | 中身 |
 |---|---|
 | `site/index.html` | 正規の住所。schema.org を1つにまとめた（運営者レベルサーフェス・サイト「車寄せナビ」・アプリ・よくあるご質問） |
-| `site/sitemap.xml` | トップと規約類の3ページ。ページを足したらここにも足す |
-| `site/robots.txt` | sitemap を指す。作業中のあいだは `Disallow: /` を残す（4段目で外す） |
+| `site/sitemap.xml` | トップ・利用規約・プライバシーポリシー。ページを足したらここにも足す。/law は載せない |
+| `site/robots.txt` | 読みに来るのを止めず、sitemap を指す（4段目で `Disallow: /` を外した） |
+| `site/vercel.json` | /law・/law.html にだけ `X-Robots-Tag: noindex`（4段目で、全部に付けていた指定を外した） |
+
+  * **特商法の表記（/law）は検索に載せない**（4段目。ご住所が部屋番号まで載っているため）。ページの中の
+    指定（`tools/build-legal-pages.mjs` の `noindex: true`）と配信側の見出しの両方で止め、sitemap にも
+    載せない。robots.txt では止めない（止めると「載せない」を読めず、住所だけが検索結果に出ることがある）
 
   * 運営者の住所は schema.org に入れない（特商法の表記には載せているが、検索に渡す情報にまで広げない）
   * **よくあるご質問は、画面の文と一字一句同じにする。** 文を変えたら schema.org も直す

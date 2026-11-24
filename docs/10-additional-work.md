@@ -1023,6 +1023,27 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 
 ---
 
+### P-117. SEO：紹介サイトを検索に載せる（特商法の表記だけは載せない） — 依頼 / 0.2人日
+
+`docs/19-seo.md` の4段目（3段目の Search Console は kara さんが DNS に TXT を足して登録中）。
+
+  * 作業中として4か所で載せないようにしていたのを外した（`site/index.html` の指定・`site/vercel.json` の見出し・
+    `site/robots.txt` の `Disallow: /`・規約類のページを作る道具の `NOINDEX`）
+  * **特商法の表記（/law）だけは載せないまま。** ご住所が部屋番号まで載っており、検索に出すとお名前やご住所の
+    検索で出るため（こちらから勧め、kara さんのご判断「/law は外す」）。ページの中の指定と配信側の見出しの両方で
+    止め、`sitemap.xml` からも外した。robots.txt では止めない（止めると「載せない」の指定を読めず、住所だけが
+    検索結果に出ることがある）
+  * 外す前に、紹介サイトに古い確認用の住所が残っていないこと、`www.` が本体へ移ることを確かめた
+
+検査: `tools/test-seo.mjs`・`tools/test-site-legal.mjs` を「トップ・利用規約・プライバシーポリシーは載せる、/law は
+載せない」に合わせ、手元で **45 / 0**・**63 / 0**。
+
+関連: `site/index.html`, `site/vercel.json`, `site/robots.txt`, `site/sitemap.xml`, `site/terms.html`, `site/privacy.html`,
+`site/law.html`, `tools/build-legal-pages.mjs`, `tools/test-seo.mjs`, `tools/test-site-legal.mjs`, `site/README.md`,
+`docs/19-seo.md`
+
+---
+
 ### P-116. SEO：紹介サイトの土台（正規の住所・schema.org・sitemap.xml） — 依頼 / 0.3人日
 
 `docs/19-seo.md` の2段目（ご指示 2026-11-24「ok,plz」）。
