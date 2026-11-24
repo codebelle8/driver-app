@@ -35,7 +35,7 @@
 | 1 | アプリの土台：題・説明・正規の住所・共有の情報・schema.org（WebApplication）・robots.txt・sitemap.xml。トップ以外は載せない | **済**（2026-11-24 公開。本番 `test-seo` 29 / 0） |
 | 2 | 紹介サイトの土台：正規の住所・sitemap.xml・schema.org（運営者・サイト・アプリ・よくあるご質問） | **済**（2026-11-24 公開。本番 `test-seo` 46 / 0） |
 | 3 | Google Search Console の登録。ドメインごとの登録なら、DNS に1行（TXT）でサイトもアプリも一度に。ConoHa に入れるのは kara さん | |
-| 4 | 紹介サイトの「検索に載せない」を外す（`index.html`・`vercel.json`・`robots.txt`・`tools/build-legal-pages.mjs`）。**特商法の表記（/law）だけは載せないまま**（ご住所が載っているため。kara さんのご判断） | 手元で済（2026-11-24）。公開待ち |
+| 4 | 紹介サイトの「検索に載せない」を外す（`index.html`・`vercel.json`・`robots.txt`・`tools/build-legal-pages.mjs`）。**特商法の表記（/law）だけは載せないまま**（ご住所が載っているため。kara さんのご判断） | **済**（2026-11-24 公開。本番 `test-seo` 54 / 0・`test-site-legal` 66 / 0） |
 | 5 | 最初の画面の出る速さを測って直す（紹介サイトは動画と動きが重い） | |
 | 6 | 施設ごとのページ（ホテルなど誰でも行ける施設だけ・さわりだけ）。**上野様のご判断が要る** | |
 

@@ -1038,6 +1038,9 @@ cancel の合図にも対応した。display:none をやめ、画面の外へ置
 検査: `tools/test-seo.mjs`・`tools/test-site-legal.mjs` を「トップ・利用規約・プライバシーポリシーは載せる、/law は
 載せない」に合わせ、手元で **45 / 0**・**63 / 0**。
 
+公開（2026-11-24、ご指示「public」）。本番で `test-seo` **54 / 0**（/law は、ページの中の指定と配信側の見出しの
+両方で載せないことを確かめた）、`test-site-legal` **66 / 0**。
+
 関連: `site/index.html`, `site/vercel.json`, `site/robots.txt`, `site/sitemap.xml`, `site/terms.html`, `site/privacy.html`,
 `site/law.html`, `tools/build-legal-pages.mjs`, `tools/test-seo.mjs`, `tools/test-site-legal.mjs`, `site/README.md`,
 `docs/19-seo.md`
