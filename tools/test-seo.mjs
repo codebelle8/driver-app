@@ -18,6 +18,9 @@
  *   載せる範囲 … トップは検索に載せる。トップ以外（/facility/… /mypage など）は、中身が
  *              同じ入口になるため載せない（配信側の見出し。公開先でだけ確かめられる）
  *   画面     … ブラウザで開いても題がそのまま／ホーム画面に置く名前は「車寄せナビ」のまま
+ *   アイコン … 検索結果に出るアイコン。トップの指定があり、画像が読め、48×48 より大きい
+ *              正方形がある。公開先では「検索に載せない」の見出しが付いていない
+ *              （アプリと紹介サイトの両方。2026-11-24〜）
  *
  * **紹介サイト**
  *   頭の情報 … 正規の住所／schema.org が正しい JSON で、運営者・サイト・アプリ・よくある
@@ -55,6 +58,47 @@ function check(label, ok, detail = '') {
 const attr = (html, re) => html.match(re)?.[1] ?? null;
 const meta = (html, key, name) =>
   attr(html, new RegExp(`<meta\\s+${key}="${name}"\\s+content="([^"]*)"`, 's'));
+
+/** 画像の縦横（PNG と ICO だけ。ICO は中のいちばん大きいもの） */
+function imageSize(buf) {
+  const b = Buffer.from(buf);
+  if (b.length > 24 && b.readUInt32BE(0) === 0x89504e47) return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  if (b.length > 6 && b.readUInt16LE(0) === 0 && b.readUInt16LE(2) === 1) {
+    let best = { w: 0, h: 0 };
+    for (let i = 0; i < b.readUInt16LE(4); i++) {
+      const w = b[6 + i * 16] || 256;
+      const h = b[7 + i * 16] || 256;
+      if (w > best.w) best = { w, h };
+    }
+    return best;
+  }
+  return null;
+}
+
+/**
+ * 検索結果に出るアイコン。Google はトップに書いた <link rel="icon"> を使う。正方形で、
+ * 48×48 より大きいものを勧めている。アイコンの画像が読めること、検索に載せない指定が
+ * 付いていないことも見る（配信側の見出しは公開先でだけ確かめられる）。
+ */
+async function checkSearchIcon(base, html, remote) {
+  const links = [...html.matchAll(/<link\b[^>]*\brel="(?:shortcut )?icon"[^>]*>/g)].map((m) => m[0]);
+  const icons = [];
+  for (const tag of links) {
+    const href = attr(tag, /\bhref="([^"]*)"/);
+    if (!href) continue;
+    const url = new URL(href, `${base}/`).href;
+    const r = await fetch(url);
+    const size = imageSize(await r.arrayBuffer());
+    icons.push({ href, url, status: r.status, type: r.headers.get('content-type') ?? '', robots: r.headers.get('x-robots-tag') ?? '', size });
+  }
+  const show = icons.map((i) => `${i.href} ${i.status} ${i.size ? `${i.size.w}x${i.size.h}` : '?'} ${i.robots}`).join(' / ');
+  check('トップにアイコンの指定がある', icons.length > 0, links.join(' '));
+  check('アイコンの画像がすべて読める', icons.length > 0 && icons.every((i) => i.status === 200 && /^image\//.test(i.type)), show);
+  check('48×48 より大きい正方形のアイコンがある', icons.some((i) => i.size && i.size.w === i.size.h && i.size.w > 48), show);
+  if (remote) {
+    check('アイコンに「検索に載せない」の見出しが付いていない', icons.length > 0 && icons.every((i) => !/noindex/.test(i.robots)), show);
+  }
+}
 
 let browser = null;
 try {
@@ -95,6 +139,9 @@ try {
   check('紹介サイトと同じものだと伝える（sameAs）', Array.isArray(ld?.sameAs) && ld.sameAs.includes(SITE_URL));
   check('料金は書かない（試験提供と有料で変わるため）', !ld?.offers);
   check('ホーム画面に置く名前は「車寄せナビ」のまま', meta(html, 'name', 'apple-mobile-web-app-title') === '車寄せナビ');
+
+  console.log('\n--- アプリ：検索結果のアイコン ---');
+  await checkSearchIcon(APP, html, REMOTE);
 
   /* ---------------------------------------------------------------------- */
   console.log('\n--- アプリ：robots.txt とページの一覧 ---');
@@ -164,6 +211,9 @@ try {
   }
   check('サイトの名前が「車寄せナビ」で、運営者を指す', site?.name === '車寄せナビ' && site?.publisher?.['@id'] === org?.['@id']);
   check('アプリはアプリの住所を指し、料金は書かない', app?.url === APP_URL && !app?.offers);
+
+  console.log('\n--- 紹介サイト：検索結果のアイコン ---');
+  await checkSearchIcon(SITE, siteHtml, SITE_REMOTE);
 
   console.log('\n--- 紹介サイト：よくあるご質問 ---');
   const qa = faq?.mainEntity ?? [];

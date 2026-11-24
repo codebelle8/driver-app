@@ -63,7 +63,12 @@
 | `app/public/index.html` | 題・説明・正規の住所・共有の情報・schema.org。料金（offers）は書かない（試験提供と有料で変わり、書き換え忘れると古い値段が出る） |
 | `app/public/robots.txt` | 読みに来るのを止めない（止めると、トップ以外の noindex も、画面を組み立てる部品も読めなくなる）。sitemap を指す |
 | `app/public/sitemap.xml` | トップだけ |
-| `app/vercel.json` | トップ以外に `X-Robots-Tag: noindex`。robots.txt と sitemap.xml をアプリの画面に置き換えない |
+| `app/vercel.json` | トップ以外に `X-Robots-Tag: noindex`（アイコンの `favicon.ico`・`icons/` は除く）。robots.txt と sitemap.xml をアプリの画面に置き換えない |
+
+**検索結果のアイコン**（2026-11-24）。Google はトップに書いた `<link rel="icon">` を使い、正方形で 48×48 より
+大きいものを勧めている。Expo が足す `/favicon.ico` は最大 48×48 なので、`index.html` で 192×192 の PNG
+（`/icons/icon-192.png`）も指す。アイコンに「検索に載せない」の見出しを付けると出なくなるおそれがあるため、
+`vercel.json` で外している。紹介サイトは `assets/brand/icon.png`（1024×1024）を指している。
 
 題はログインしたあとのブラウザのタブにも出るため、どちらの状態でもおかしくない言い方にした
 （「ログイン」は題に入れず、説明にだけ入れる）。ホーム画面に置いたときの名前は「車寄せナビ」のまま。

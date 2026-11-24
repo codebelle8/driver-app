@@ -24,7 +24,7 @@
       ]
     },
     {
-      "source": "/(.+)",
+      "source": "/((?!favicon.ico|icons/).+)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }]
     },
     {

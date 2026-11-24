@@ -109,6 +109,13 @@
     <meta name="apple-mobile-web-app-title" content="車寄せナビ" />
     <link rel="apple-touch-icon" href="/icons/icon-180.png" />
 
+    <!--
+      検索結果に出るアイコン。Google はトップに書いたアイコンを使い、48×48 より大きいものを勧めている。
+      Expo が足す /favicon.ico は最大 48×48 なので、192×192（48 の倍数）をこちらで指す。
+      vercel.json で、アイコンには「検索に載せない」の見出しを付けていない。
+    -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+
     <style id="expo-reset">
       /* 画面いっぱいに広げる */
       html, body { height: 100%; }
