@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  紹介サイトの、検索に出すページの一覧（2026-11-24、docs/19-seo.md の2段目）。
+  ページを足したら、ここにも足す（tools/test-seo.mjs が、載せたページが開くかを見る）。
+  アプリ（app.kurumayosenavi.com）の一覧は、アプリの側に別にある。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://kurumayosenavi.com/</loc>
+  </url>
+  <url>
+    <loc>https://kurumayosenavi.com/terms</loc>
+  </url>
+  <url>
+    <loc>https://kurumayosenavi.com/privacy</loc>
+  </url>
+  <url>
+    <loc>https://kurumayosenavi.com/law</loc>
+  </url>
+</urlset>

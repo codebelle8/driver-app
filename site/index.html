@@ -18,6 +18,85 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://kurumayosenavi.com/">
+
+<!--
+  検索の仕組みに、このサイトとアプリが何で、誰が出しているかを伝える（schema.org。2026-11-24、
+  docs/19-seo.md の2段目）。運営者・サイト・アプリ・よくあるご質問を1つにまとめている。
+
+  * 運営者の住所は入れない（特商法の表記には載せているが、検索に渡す情報にまで広げない）
+  * アプリの料金は書かない（試験提供と有料で変わり、書き換え忘れると古い値段が出る）
+  * よくあるご質問は、ページに出ている文と**一字一句同じ**にする（違うと検索の仕組みに嫌われる）。
+    「どの地域に対応していますか？」は入れない。答えの施設数を開いたときに読み直すため、
+    ここに数を書くとすぐ古くなる。**ご質問の文を変えたら、ここも直す**（tools/test-seo.mjs が
+    食い違いを見つける）
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://kurumayosenavi.com/#organization",
+      "name": "レベルサーフェス",
+      "url": "https://kurumayosenavi.com/",
+      "email": "kurumayose@levelsurface.net",
+      "logo": "https://kurumayosenavi.com/assets/brand/icon.png"
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://kurumayosenavi.com/#website",
+      "name": "車寄せナビ",
+      "alternateName": "Driver Entrance Navi",
+      "url": "https://kurumayosenavi.com/",
+      "inLanguage": "ja",
+      "publisher": { "@id": "https://kurumayosenavi.com/#organization" }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://kurumayosenavi.com/#app",
+      "name": "車寄せナビ",
+      "url": "https://app.kurumayosenavi.com/",
+      "description": "プロドライバーのための車寄せ・エントランス案内アプリ。施設の車寄せや入口の場所、入り方を案内し、Google マップなどのナビへ目的地を渡します。",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "iOS, Android（ブラウザで動作）",
+      "inLanguage": "ja",
+      "publisher": { "@id": "https://kurumayosenavi.com/#organization" }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://kurumayosenavi.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "アプリのインストールは必要ですか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "必要ありません。ブラウザでそのまま開けます。ブラウザのメニューから「ホーム画面に追加」を選ぶと、ふつうのアプリと同じようにアイコンから開けます（iPhone は共有ボタンの中にあります）。" }
+        },
+        {
+          "@type": "Question",
+          "name": "料金はかかりますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "試験提供の期間中は無料です。有料での提供を始める際は、事前にお知らせします。お知らせだけで自動的に有料へ切り替わることはありません。" }
+        },
+        {
+          "@type": "Question",
+          "name": "電波が届かない場所でも使えますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "使えます。施設の情報は端末に保存されているため、地下駐車場などで電波が途切れても表示できます。表示されるのは、最後に取り込んだ時点の内容です。" }
+        },
+        {
+          "@type": "Question",
+          "name": "どの地図アプリで案内されますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "「経路」を押すと、車寄せの位置を目的地にして Google マップなどの地図アプリが開きます。" }
+        },
+        {
+          "@type": "Question",
+          "name": "1つのアカウントを、複数の端末で使えますか？",
+          "acceptedAnswer": { "@type": "Answer", "text": "同時に使えるのは1台です。別の端末でログインすると、前の端末はログアウトされます。" }
+        }
+      ]
+    }
+  ]
+}
+</script>
 
 <link rel="icon" href="assets/brand/icon.png">
 <link rel="apple-touch-icon" href="assets/brand/icon.png">

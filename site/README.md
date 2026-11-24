@@ -228,6 +228,15 @@ kurumayosenavi.com へ転送している（Vercel の Domains で 308。中の�
 
 **本公開のときは、この4つを外す。** 外し忘れると、公開しても検索に出てこない。
 
+## 検索（SEO）
+
+方針は `docs/19-seo.md`。`index.html` の頭に正規の住所と schema.org（運営者・サイト・アプリ・
+よくあるご質問）、`sitemap.xml` にトップと規約類の3ページ。
+
+  * **よくあるご質問の文を変えたら、`index.html` の schema.org も同じ文に直す。**
+    `node tools/test-seo.mjs` が食い違いを見つける
+  * ページを足したら `sitemap.xml` にも足す
+
 ## 規約類のページ
 
 2026-11-23 に足した。アプリの登録画面とマイページは、管理画面の「サイト設定」に

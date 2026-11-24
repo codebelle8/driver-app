@@ -1,2 +1,5 @@
+# 作業中のあいだは検索に載せない。本公開（docs/19-seo.md の4段目）で Disallow の行を外す。
 User-agent: *
 Disallow: /
+
+Sitemap: https://kurumayosenavi.com/sitemap.xml

@@ -2,8 +2,9 @@
  * 検索（SEO）のための土台を確かめる（2026-11-24〜）。
  *
  *   npx serve -s app/dist/web -l 4291                    （別の窓で。アプリの書き出し。4190 は Node の通信が断る番号）
+ *   npx serve -l 4300 site                               （別の窓で。紹介サイト）
  *   node tools/test-seo.mjs                              手元
- *   node tools/test-seo.mjs https://app.kurumayosenavi.com
+ *   node tools/test-seo.mjs https://app.kurumayosenavi.com https://kurumayosenavi.com
  *
  * 方針は docs/19-seo.md。アプリと紹介サイトの両方を検索に出し、役目を分ける
  * （紹介サイト＝サービスの説明、アプリ＝使い始める入口）。
@@ -17,11 +18,21 @@
  *   載せる範囲 … トップは検索に載せる。トップ以外（/facility/… /mypage など）は、中身が
  *              同じ入口になるため載せない（配信側の見出し。公開先でだけ確かめられる）
  *   画面     … ブラウザで開いても題がそのまま／ホーム画面に置く名前は「車寄せナビ」のまま
+ *
+ * **紹介サイト**
+ *   頭の情報 … 正規の住所／schema.org が正しい JSON で、運営者・サイト・アプリ・よくある
+ *              ご質問の4つがそろう。運営者の住所とアプリの料金は書かない
+ *   ご質問   … schema.org に書いたご質問と答えが、画面に出ている文と一字一句同じ。
+ *              施設数が入る「どの地域に…」は入れない
+ *   一覧     … sitemap.xml の4ページがすべて開く／robots.txt が一覧を指す
+ *   載せる範囲 … いまは作業中のため、まだ検索に載せない（外すのは4段目）
  */
 import { chromium } from 'playwright';
 
 const APP = (process.argv[2] ?? 'http://localhost:4291').replace(/\/$/, '');
+const SITE = (process.argv[3] ?? 'http://localhost:4300').replace(/\/$/, '');
 const REMOTE = !/localhost|127\.0\.0\.1/.test(APP);
+const SITE_REMOTE = !/localhost|127\.0\.0\.1/.test(SITE);
 const APP_URL = 'https://app.kurumayosenavi.com/';
 const SITE_URL = 'https://kurumayosenavi.com/';
 const SITE_TITLE = '車寄せナビ｜プロドライバーのための車寄せ・エントランス案内';
@@ -45,7 +56,7 @@ const meta = (html, key, name) =>
 
 let browser = null;
 try {
-  console.log(`検索の土台の検査: アプリ ${APP}\n`);
+  console.log(`検索の土台の検査: アプリ ${APP} ／ 紹介サイト ${SITE}\n`);
 
   /* ---------------------------------------------------------------------- */
   console.log('--- アプリ：頭の情報 ---');
@@ -121,6 +132,77 @@ try {
   check('ブラウザで開いても題がそのまま', (await page.title()) === title, await page.title());
   check('画面に誤りが出ない', errors.length === 0, errors.join(' / '));
   await ctx.close();
+
+  /* ====================================================================== */
+  console.log('\n--- 紹介サイト：頭の情報 ---');
+  const siteRes = await fetch(`${SITE}/`);
+  const siteHtml = await siteRes.text();
+  check('トップが開く（200）', siteRes.status === 200, String(siteRes.status));
+  check('題は紹介サイトのもの（アプリと分けている）', attr(siteHtml, /<title>([^<]*)<\/title>/) === SITE_TITLE);
+  check('正規の住所がトップ', attr(siteHtml, /<link rel="canonical" href="([^"]*)"/) === SITE_URL);
+
+  const siteLdRaw = attr(siteHtml, /<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  let graph = null;
+  try {
+    graph = JSON.parse(siteLdRaw ?? '')['@graph'];
+  } catch {
+    graph = null;
+  }
+  check('schema.org の書き方が正しい JSON', Array.isArray(graph), siteLdRaw?.slice(0, 80));
+  const node = (type) => (graph ?? []).find((n) => n['@type'] === type);
+  const org = node('Organization');
+  const site = node('WebSite');
+  const app = node('WebApplication');
+  const faq = node('FAQPage');
+  check('運営者（レベルサーフェス）とお問い合わせ先', org?.name === 'レベルサーフェス' && org?.email === 'kurumayose@levelsurface.net');
+  check('運営者の住所は書かない', !org?.address);
+  if (org?.logo) {
+    const logo = await fetch(org.logo);
+    check('運営者のロゴが読める', logo.status === 200, `${logo.status} ${org.logo}`);
+  }
+  check('サイトの名前が「車寄せナビ」で、運営者を指す', site?.name === '車寄せナビ' && site?.publisher?.['@id'] === org?.['@id']);
+  check('アプリはアプリの住所を指し、料金は書かない', app?.url === APP_URL && !app?.offers);
+
+  console.log('\n--- 紹介サイト：よくあるご質問 ---');
+  const qa = faq?.mainEntity ?? [];
+  check('ご質問が5つ', qa.length === 5, String(qa.length));
+  check('施設数が入る「どの地域に…」は入れない', !qa.some((q) => q.name.includes('どの地域')));
+  {
+    browser ??= await chromium.launch({ channel: 'msedge' });
+    const sctx = await browser.newContext({ locale: 'ja-JP', viewport: { width: 1280, height: 900 } });
+    const spage = await sctx.newPage();
+    await spage.goto(`${SITE}/`, { waitUntil: 'networkidle' });
+    const shown = await spage.locator('#faq details.qa').evaluateAll((els) =>
+      els.map((d) => ({ q: d.querySelector('summary').textContent.trim(), a: d.querySelector('p').textContent.trim() })),
+    );
+    const mismatched = qa.filter((q) => {
+      const s = shown.find((x) => x.q === q.name);
+      return !s || s.a !== q.acceptedAnswer?.text;
+    });
+    check('書いたご質問と答えが、画面の文と一字一句同じ', qa.length > 0 && mismatched.length === 0, mismatched.map((q) => q.name).join(' / '));
+    await sctx.close();
+  }
+
+  console.log('\n--- 紹介サイト：ページの一覧と robots.txt ---');
+  const siteMap = await fetch(`${SITE}/sitemap.xml`);
+  const siteMapText = await siteMap.text();
+  const siteLocs = [...siteMapText.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+  check('sitemap.xml が届き、4ページを載せる', siteMap.status === 200 && siteLocs.length === 4, siteLocs.join(' '));
+  const notOpen = [];
+  for (const loc of siteLocs) {
+    const local = loc.replace(SITE_URL.replace(/\/$/, ''), SITE);
+    const r = await fetch(local);
+    if (r.status !== 200) notOpen.push(`${r.status} ${local}`);
+  }
+  check('一覧に載せたページがすべて開く', notOpen.length === 0, notOpen.join(' / '));
+  const siteRobots = await (await fetch(`${SITE}/robots.txt`)).text();
+  check('robots.txt がページの一覧を指す', siteRobots.includes(`Sitemap: ${SITE_URL}sitemap.xml`), siteRobots);
+
+  console.log('\n--- 紹介サイト：検索に載せる範囲 ---');
+  check('いまは作業中のため、まだ検索に載せない（ページの指定）', /<meta name="robots" content="noindex/.test(siteHtml));
+  if (SITE_REMOTE) {
+    check('いまは作業中のため、まだ検索に載せない（配信側の見出し）', /noindex/.test(siteRes.headers.get('x-robots-tag') ?? ''));
+  }
 } catch (e) {
   failures.push(`途中で止まった: ${e.message}`);
   console.error(e);
