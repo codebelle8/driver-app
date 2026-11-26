@@ -10,6 +10,8 @@ import { PlanPrompt } from '@/components/plan-prompt';
 import { endsAt, freeShown, isExpired, remaining } from '@/lib/account';
 import { freeText } from '@/lib/free-text';
 import { useAccount } from '@/lib/account-context';
+import { connected } from '@/lib/checkout';
+import { usePaidOpen } from '@/lib/paid-open';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatDate, formatSpan } from '@/lib/i18n/dictionaries';
 import {
@@ -58,6 +60,11 @@ export default function PlanScreen() {
   const styles = makeStyles(c);
   const router = useRouter();
   const { account } = useAccount();
+  /*
+    有料での提供を始めたか（試験提供の期間を終えたか）。料金の選び方の部品
+    （PlanPrompt）が開くたびに読み直すので、ここはその答えを使う。
+  */
+  const paidOpen = usePaidOpen();
 
   /* 受取口座。発注元から伺って入れるまでは空。 */
   const [transfer, setTransfer] = useState<Transfer | null>(null);
@@ -206,10 +213,14 @@ export default function PlanScreen() {
             </View>
           ) : (
             <>
-              {/* 期間が終わったあとどうなるか。伏せずに書く。 */}
+              {/*
+                期間が終わったあとどうなるか。伏せずに書く。
+                試験提供の期間中は「終わっても使える」、有料での提供を始めたあとは
+                「一部が使えなくなる」（利用規約 第4条第6項・第5条第3項）。
+              */}
               <View style={styles.notice}>
                 <Ionicons name="information-circle-outline" size={18} color={c.accent} />
-                <Text style={styles.noticeText}>{t.plan.afterTrial}</Text>
+                <Text style={styles.noticeText}>{paidOpen ? t.plan.afterTrialPaid : t.plan.afterTrial}</Text>
               </View>
 
               {/* 料金の選択。ここは部品に任せる（探す画面の帯と同じ中身）。 */}
@@ -221,7 +232,13 @@ export default function PlanScreen() {
             お振込先。ご希望の料金をお選びいただいてから出す。
             選ぶ前に出しても、いくら振り込めばよいのかが決まらない。
           */}
-          {!!current && !freeShown(account) &&
+          {/*
+            有料での提供を始めたあとは、銀行振込の申込みをつなぐまで出さない。
+            試験提供の期間中に控えた「ご希望」のまま振込先を出すと、申込みの
+            最後の画面を通らずに申し込めてしまう。つなぐときは、最後の画面を
+            通って銀行振込を選んだ方にだけ出す（lib/checkout.ts の TRANSFER_CONNECTED）。
+          */}
+          {!!current && !freeShown(account) && (!paidOpen || connected('transfer')) &&
             (isReady(transfer) ? (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t.plan.transferTitle}</Text>

@@ -1,12 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { choosePlan, daysLeft, freeShown, isExpired, remaining } from '@/lib/account';
 import { useAccount } from '@/lib/account-context';
+import { PAY_METHODS, type PayMethod } from '@/lib/checkout';
 import { useT } from '@/lib/i18n/context';
 import { fill, formatSpan } from '@/lib/i18n/dictionaries';
 import { notify } from '@/lib/notice';
+import { usePaidOpen } from '@/lib/paid-open';
 import { offeredPlan, PLANS, yen, type PlanId } from '@/lib/plans';
 import { RADIUS, SPACE, TEXT, type Palette } from '@/theme';
 import { useTheme } from '@/theme-context';
@@ -32,6 +35,14 @@ import { useTheme } from '@/theme-context';
  *   panel  … 節の中へ差し込む。たたんで出す。
  *   page   … お支払いの画面。最初から開いており、たたむ釦も出さない。
  *            そこを見に来た方に、もう一手を求める理由がない。
+ *
+ * **有料での提供を始めたあとは、申込みへ進む形に変わる**（lib/paid-open.ts）
+ *   page   … 料金とお支払い方法を選び、「確認へ進む」で申込みの最後の画面
+ *            （/checkout。特定商取引法 第12条の6）へ。ここでは何も控えない。
+ *   banner・panel … 開かずに、お支払いの画面へ案内する。その場で選ばせると、
+ *            最後の画面を通らずに申し込んだように見える。
+ *   試験提供の期間中（と、それを確かめられないとき）は、これまでどおり
+ *   「ご希望」を控える形のまま。
  */
 /**
  * 探す画面の帯を出し始める、残り日数。
@@ -59,10 +70,14 @@ export function PlanPrompt({
   const t = useT();
   const s = makeStyles(c);
   const { account, refresh } = useAccount();
+  const router = useRouter();
 
   const isPage = variant === 'page';
+  /* お支払いの画面では開くたびに確かめ直す。帯は、開いているあいだの答えを使う */
+  const paidOpen = usePaidOpen(isPage);
   const [open, setOpen] = useState(isPage);
   const [picked, setPicked] = useState<PlanId | null>(null);
+  const [method, setMethod] = useState<PayMethod | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (!account) return null;
@@ -91,6 +106,12 @@ export function PlanPrompt({
     選んでいた方には、未選択と同じく選んでいただく案内を出す。
   */
   const chosen = offeredPlan(account.plan)?.id ?? null;
+
+  /* 有料での提供を始めたあと：申込みの最後の画面へ。ここでは何も控えない */
+  function onNext() {
+    if (!picked || !method) return;
+    router.push({ pathname: '/checkout', params: { plan: picked, method } });
+  }
 
   async function onSubmit() {
     if (!account || !picked || busy) return;
@@ -127,14 +148,20 @@ export function PlanPrompt({
       </View>
       )}
 
-      {isPage && <Text style={s.title}>{t.plan.choiceTitle}</Text>}
+      {isPage && <Text style={s.title}>{paidOpen ? t.plan.choiceTitlePaid : t.plan.choiceTitle}</Text>}
 
-      {!open && (
-        <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={s.openButton}>
-          <Text style={s.openText}>{chosen ? t.plan.change : t.plan.open}</Text>
-          <Ionicons name="chevron-down" size={16} color={c.accent} />
-        </Pressable>
-      )}
+      {!open &&
+        (paidOpen ? (
+          <Pressable onPress={() => router.push('/plan')} accessibilityRole="button" style={s.openButton}>
+            <Text style={s.openText}>{t.plan.toPlan}</Text>
+            <Ionicons name="chevron-forward" size={16} color={c.accent} />
+          </Pressable>
+        ) : (
+          <Pressable onPress={() => setOpen(true)} accessibilityRole="button" style={s.openButton}>
+            <Text style={s.openText}>{chosen ? t.plan.change : t.plan.open}</Text>
+            <Ionicons name="chevron-down" size={16} color={c.accent} />
+          </Pressable>
+        ))}
 
       {open && (
         <View style={s.choices} accessibilityRole="radiogroup">
@@ -170,16 +197,65 @@ export function PlanPrompt({
             );
           })}
 
-          <Text style={s.notYet}>{t.plan.notYet}</Text>
+          {paidOpen ? (
+            <>
+              {/*
+                お支払い方法。自動更新するのはカードだけなので、そのことを
+                名前の下に添える（最後の画面にも出すが、選ぶ前に分かるように）。
+              */}
+              <Text style={s.subTitle}>{t.plan.methodTitle}</Text>
+              <View style={s.choices} accessibilityRole="radiogroup">
+                {PAY_METHODS.map((m) => {
+                  const on = method === m;
+                  return (
+                    <Pressable
+                      key={m}
+                      onPress={() => setMethod(m)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: on }}
+                      aria-checked={on}
+                      accessibilityLabel={t.checkout.methods[m]}
+                      style={[s.choice, on && s.choiceOn]}
+                    >
+                      <Ionicons
+                        name={on ? 'radio-button-on' : 'radio-button-off'}
+                        size={20}
+                        color={on ? c.accent : c.textFaint}
+                      />
+                      <View style={s.choiceBody}>
+                        <Text style={s.methodName}>{t.checkout.methods[m]}</Text>
+                        <Text style={s.body}>{t.checkout.methodNotes[m]}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-          <Pressable
-            onPress={onSubmit}
-            disabled={!picked || busy}
-            accessibilityRole="button"
-            style={[s.submit, (!picked || busy) && s.submitOff]}
-          >
-            <Text style={s.submitText}>{t.plan.choose}</Text>
-          </Pressable>
+              <Text style={s.notYet}>{t.plan.nextHint}</Text>
+
+              <Pressable
+                onPress={onNext}
+                disabled={!picked || !method}
+                accessibilityRole="button"
+                style={[s.submit, (!picked || !method) && s.submitOff]}
+              >
+                <Text style={s.submitText}>{t.plan.next}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={s.notYet}>{t.plan.notYet}</Text>
+
+              <Pressable
+                onPress={onSubmit}
+                disabled={!picked || busy}
+                accessibilityRole="button"
+                style={[s.submit, (!picked || busy) && s.submitOff]}
+              >
+                <Text style={s.submitText}>{t.plan.choose}</Text>
+              </Pressable>
+            </>
+          )}
 
           {!isPage && (
             <Pressable onPress={() => setOpen(false)} accessibilityRole="button" style={s.closeRow}>
@@ -238,6 +314,8 @@ const makeStyles = (c: Palette) =>
     choiceBody: { flex: 1, gap: 1 },
     choiceName: { fontSize: TEXT.sub, fontWeight: '700', color: c.textMuted },
     choicePrice: { fontSize: TEXT.titleLarge, fontWeight: '800', color: c.text },
+    subTitle: { fontSize: TEXT.bodyStrong, fontWeight: '800', color: c.text, marginTop: SPACE.xs },
+    methodName: { fontSize: TEXT.bodyStrong, fontWeight: '700', color: c.text },
 
     notYet: { fontSize: TEXT.small, color: c.textMuted },
 

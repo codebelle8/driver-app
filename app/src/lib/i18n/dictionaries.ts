@@ -767,6 +767,110 @@ const ja = {
     transferNotReadyBody: '整い次第、この画面でご案内いたします。お手数をおかけいたします。',
     futsu: '普通',
     touza: '当座',
+
+    /*
+      有料での提供を始めたあと（試験提供の期間を終えたあと）の、料金の選び方。
+      料金とお支払い方法を選び、申込みの最後の画面（checkout）へ進む。
+    */
+    choiceTitlePaid: '料金プランとお支払い方法をお選びください',
+    methodTitle: 'お支払い方法',
+    next: '確認へ進む',
+    nextHint: '次の画面で、お申し込みの内容をご確認いただきます。まだお支払いは発生しません。',
+    toPlan: 'お申し込みへ',
+    afterTrialPaid:
+      '無料期間が終わると、一部の機能がお使いいただけなくなります。続けてお使いいただくには、下からお申し込みください。',
+  },
+
+  /*
+    申込みの最後の画面（特定商取引法 第12条の6）。
+
+    **法律が求める項目を、この画面の中に並べる。** 分量（料金プランと期間）、
+    金額、支払の時期と方法、提供の時期、解約と返金。リンク先に置くだけでは足りない。
+    文言を変えたら、弁護士にお見せする文案（docs/20-payments.md）も直す。
+  */
+  checkout: {
+    title: 'お申し込みの確認',
+    lead: '内容をご確認のうえ、いちばん下の釦を押してください。',
+    sample:
+      '試験提供の期間中のため、まだお申し込みはいただけません。この画面は、有料での提供を始めたあとの見本です。',
+    holdBlocked: 'ご利用を止めているため、お申し込みいただけません。提供元へお問い合わせください。',
+    holdFree: '無料でお使いいただいているため、お申し込みは要りません。',
+    holdUnlimited: 'いまのご利用に期限はありません。お申し込みは要りません。',
+    badPlan: 'この料金プランはお選びいただけません。お支払いの画面からお選び直しください。',
+
+    orderTitle: 'お申し込みの内容',
+    planLabel: '料金プラン',
+    methodLabel: 'お支払い方法',
+    methods: {
+      card: 'クレジットカード・デビットカード',
+      paypay: 'PayPay',
+      transfer: '銀行振込',
+    },
+    methodNotes: {
+      card: 'Apple Pay・Google Pay もお使いいただけます。',
+      paypay: 'その都度のお支払いです。',
+      transfer: 'その都度のお支払いです。',
+    },
+    /* 自動更新の刻み。いま申し込める刻みだけ */
+    every: {
+      monthly: '1か月',
+      yearly: '12か月',
+    },
+    periodLabel: 'ご利用の期間',
+    periodRenew: '{start}から。{every}ごとに自動で更新し、自動更新を止めるまで続きます。',
+    periodFixed: '{start}から{end}まで（{every}）',
+    periodTransferNow: 'お振込みを確認した日から{every}',
+    periodTransferLater:
+      '{start}から{end}まで（{every}）。お振込みの確認が{start}より後になったときは、確認した日から{every}。',
+    renewLabel: '自動更新',
+    renewYes: 'あり',
+    renewNo: 'なし。期間が終わったあとも続けるときは、あらためてお申し込みください。',
+
+    payTitle: 'お支払い',
+    amountLabel: '金額（税込）',
+    amountRenew: '{yen}円（{every}ごと）',
+    amountOnce: '{yen}円',
+    timingLabel: 'お支払いの時期',
+    timingCardLaterFree: '無料期間が終わる{date}に、最初のお支払い（{yen}円）があります。',
+    timingCardLaterPaid: 'いまのご利用期間が終わる{date}に、最初のお支払い（{yen}円）があります。',
+    timingCardNow: 'この後の画面でカードを登録した時点で、最初のお支払い（{yen}円）があります。',
+    timingCardThen: '以後、{when}に、同じ金額をお支払いいただきます。',
+    renewMonthly: '毎月{d}日（その日が無い月は月末）',
+    renewYearly: '毎年{m}月{d}日',
+    timingPaypay: 'この後の画面で、すぐにお支払いいただきます。',
+    timingTransfer: 'お申し込みのあと、ご案内する口座へお振込みください。',
+    feesLabel: 'ほかにかかる費用',
+    feesTransfer: '振込手数料と、インターネットの通信料はご負担ください。',
+    feesOther: 'インターネットの通信料はご負担ください。',
+
+    startTitle: 'ご利用の開始',
+    startLaterFree:
+      'いまの無料期間（{date}まで）は、そのままお使いいただけます。有料の期間は、その続きの{date}から始まります。',
+    startLaterPaid:
+      'いまのご利用期間（{date}まで）は、そのままお使いいただけます。新しい期間は、その続きの{date}から始まります。',
+    startNowOnline: 'お支払いが済みしだい、すぐにお使いいただけます。',
+    startNowTransfer: 'お振込みを確認しだい、お使いいただけます（確認まで、しばらくお時間をいただきます）。',
+
+    cancelTitle: '解約・返金',
+    cancelRenew:
+      '自動更新は、お支払いの画面からいつでも止められます。次の更新日の前日までに止めると、それより後のお支払いはありません。止めたあとも、お支払い済みの期間の終わりまでお使いいただけます。',
+    cancelOnce: '期間が終わると、有料の機能はお使いいただけなくなります。',
+    refundNone: '1か月の料金は、返金いたしません。',
+    refundYearly:
+      '期間の途中で解約・退会されたときは、残りの月数（1か月未満は切り捨て）から2か月を引いた月数×500円を返金いたします。残りが3か月未満のときは、返金いたしません。',
+
+    moreTitle: '詳しくは',
+    moreLead: '料金とお支払いの決まりは、利用規約の第6条から第12条と、特定商取引法に基づく表記に載せています。',
+
+    submitCard: 'この内容で、カードの登録へ進む',
+    submitPaypay: 'この内容で、PayPay のお支払いへ進む',
+    submitTransfer: 'この内容で申し込む',
+    nextCard:
+      '次の画面（決済代行会社 Stripe）でカードの情報を入れると、お申し込みが完了します。カード番号は、当方には届きません。',
+    nextPaypay: '次の画面（決済代行会社 Stripe）で PayPay のお支払いを済ませると、お申し込みが完了します。',
+    nextTransfer: '押すと、お申し込みが完了し、お振込先をご案内します。',
+    notConnected: 'この支払方法は、ただいま準備中です。',
+    change: '内容を変える',
   },
 
   notices: {
@@ -824,6 +928,8 @@ const ja = {
     yesterday: '昨日',
     daysAgo: '{n}日前',
     date: '{m}月{d}日',
+    /** 年まで書く日付。申込みの画面など、年をまたぐ期間を出すところで使う */
+    dateYear: '{y}年{m}月{d}日',
     /** 英語だけが使う。日本語は date の {m} をそのまま使う。 */
     months: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
     /*
@@ -1551,6 +1657,98 @@ const en: Dictionary = {
     transferNotReadyBody: 'We will show them here as soon as they are ready.',
     futsu: 'Ordinary',
     touza: 'Current',
+
+    choiceTitlePaid: 'Choose a plan and how to pay',
+    methodTitle: 'How to pay',
+    next: 'Review',
+    nextHint: 'You will review your order on the next screen. Nothing is charged yet.',
+    toPlan: 'Subscribe',
+    afterTrialPaid:
+      'Once your free month ends, some features stop working. To carry on, please subscribe below.',
+  },
+
+  checkout: {
+    title: 'Review your order',
+    lead: 'Please check the details, then press the button at the bottom.',
+    sample:
+      'We are not taking orders during the trial period. This screen is a preview of how ordering will work once paid service starts.',
+    holdBlocked: 'Your account is suspended, so you cannot place an order. Please contact the provider.',
+    holdFree: 'You are using the app free of charge, so there is nothing to order.',
+    holdUnlimited: 'Your current plan has no end date, so there is nothing to order.',
+    badPlan: 'This plan is not available. Please choose again on the payment screen.',
+
+    orderTitle: 'Your order',
+    planLabel: 'Plan',
+    methodLabel: 'Payment method',
+    methods: {
+      card: 'Credit or debit card',
+      paypay: 'PayPay',
+      transfer: 'Bank transfer',
+    },
+    methodNotes: {
+      card: 'Apple Pay and Google Pay are also accepted.',
+      paypay: 'You pay each time.',
+      transfer: 'You pay each time.',
+    },
+    every: {
+      monthly: '1 month',
+      yearly: '12 months',
+    },
+    periodLabel: 'Period',
+    periodRenew: 'From {start}. Renews automatically every {every} until you turn off auto-renewal.',
+    periodFixed: '{start} to {end} ({every})',
+    periodTransferNow: '{every} from the day we confirm your transfer',
+    periodTransferLater:
+      '{start} to {end} ({every}). If we confirm your transfer after {start}, {every} from the day we confirm it.',
+    renewLabel: 'Auto-renewal',
+    renewYes: 'Yes',
+    renewNo: 'No. To carry on after the period ends, please order again.',
+
+    payTitle: 'Payment',
+    amountLabel: 'Amount (tax included)',
+    amountRenew: '¥{yen} every {every}',
+    amountOnce: '¥{yen}',
+    timingLabel: 'When you pay',
+    timingCardLaterFree: 'Your first payment (¥{yen}) is taken on {date}, when your free month ends.',
+    timingCardLaterPaid: 'Your first payment (¥{yen}) is taken on {date}, when your current period ends.',
+    timingCardNow: 'Your first payment (¥{yen}) is taken when you add your card on the next screen.',
+    timingCardThen: 'After that, the same amount is taken on {when}.',
+    renewMonthly: 'day {d} of each month (the last day in shorter months)',
+    renewYearly: '{d} {mon} each year',
+    timingPaypay: 'You pay straight away on the next screen.',
+    timingTransfer: 'After ordering, please transfer to the account we show you.',
+    feesLabel: 'Other costs',
+    feesTransfer: 'Bank transfer fees and your internet charges are yours to pay.',
+    feesOther: 'Your internet charges are yours to pay.',
+
+    startTitle: 'When it starts',
+    startLaterFree:
+      'You keep your free month (until {date}). The paid period starts straight after, on {date}.',
+    startLaterPaid:
+      'You keep your current period (until {date}). The new period starts straight after, on {date}.',
+    startNowOnline: 'You can use it as soon as the payment goes through.',
+    startNowTransfer: 'You can use it once we confirm your transfer (this takes a little time).',
+
+    cancelTitle: 'Cancelling and refunds',
+    cancelRenew:
+      'You can turn off auto-renewal on the payment screen at any time. If you turn it off by the day before the next renewal, nothing more is charged. You can keep using the app until the end of the period you have paid for.',
+    cancelOnce: 'When the period ends, paid features stop working.',
+    refundNone: 'The 1-month fee is not refunded.',
+    refundYearly:
+      'If you cancel or leave part-way through, we refund ¥500 for each remaining whole month, minus 2 months. Nothing is refunded if fewer than 3 months remain.',
+
+    moreTitle: 'More details',
+    moreLead: 'The payment rules are in Articles 6 to 12 of the terms of use and in the legal notice.',
+
+    submitCard: 'Continue to add your card',
+    submitPaypay: 'Continue to pay with PayPay',
+    submitTransfer: 'Place order',
+    nextCard:
+      'Your order is complete once you enter your card on the next screen (run by our payment provider, Stripe). Your card number never reaches us.',
+    nextPaypay: 'Your order is complete once you pay with PayPay on the next screen (run by our payment provider, Stripe).',
+    nextTransfer: 'Pressing this places your order and shows where to transfer.',
+    notConnected: 'This payment method is not available yet.',
+    change: 'Change order',
   },
 
   notices: {
@@ -1605,6 +1803,7 @@ const en: Dictionary = {
       月の名前は months から引く。
     */
     date: '{d} {mon}',
+    dateYear: '{d} {mon} {y}',
     spanMonthsDays: '{m} months {d} days',
     spanMonths: '{m} months',
     spanDays: '{d} days',

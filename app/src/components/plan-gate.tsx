@@ -26,13 +26,14 @@ import { useAccount } from '@/lib/account-context';
  *
  *   /mypage   設定。ご指示の「設定だけは使える」がこれ。
  *   /plan     お支払いの手続き。ここへ行けないと、締めた意味が無い。
+ *   /checkout 申込みの最後の画面（/plan から進む）。ここで止めると申し込めない。
  *   /account  お名前・パスワード。締めていても、ご自身のことは直せる。
  *   /notices  お知らせ。締めた理由がここに出ている。
  *   /chat, /ranking, /my-submissions, /chat-room
  *             チャット（情報提供ランキング・情報交換）と、送った情報
  *             （ご回答 2026-10-05）。情報を送って無料を目指す入口にもなるため。
  */
-const OPEN = ['/mypage', '/plan', '/account', '/notices', '/chat', '/ranking', '/my-submissions', '/chat-room'];
+const OPEN = ['/mypage', '/plan', '/checkout', '/account', '/notices', '/chat', '/ranking', '/my-submissions', '/chat-room'];
 
 export function PlanGate({ children }: { children: ReactNode }) {
   const { account } = useAccount();
